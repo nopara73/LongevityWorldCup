@@ -53,7 +53,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             {
                 submitted.SetResult();
                 await releaseSave.Task;
-                await route.FulfillAsync(new() { Status = 503, ContentType = "application/json", Body = "{\"message\":\"Connection interrupted. Try again.\"}" });
+                await route.FulfillAsync(new() { Status = 429, ContentType = "application/json", Body = "{\"message\":\"Too many requests. Try again.\"}" });
             }
             else
             {
@@ -75,14 +75,14 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         finally { releaseSave.TrySetResult(); }
 
         await Assertions.Expect(save).ToHaveTextAsync("Retry");
-        await Assertions.Expect(status).ToContainTextAsync("Not saved. Connection interrupted");
+        await Assertions.Expect(status).ToContainTextAsync("Not saved. Too many requests");
         await Assertions.Expect(status).ToBeVisibleAsync();
         await Assertions.Expect(note).ToHaveValueAsync("Keep this edit through failure.");
         await note.FillAsync("");
         await Assertions.Expect(save).ToHaveTextAsync("Retry");
         await Assertions.Expect(save).ToBeEnabledAsync();
         await Assertions.Expect(progress).ToBeEmptyAsync();
-        await Assertions.Expect(status).ToContainTextAsync("Not saved. Connection interrupted");
+        await Assertions.Expect(status).ToContainTextAsync("Not saved. Too many requests");
         await Assertions.Expect(selectedDay.Locator("em")).ToHaveTextAsync("Not saved");
         await save.ClickAsync();
         await Assertions.Expect(save).ToHaveTextAsync("Saved");

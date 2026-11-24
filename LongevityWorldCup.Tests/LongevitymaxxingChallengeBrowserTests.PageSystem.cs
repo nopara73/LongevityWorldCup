@@ -134,8 +134,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                 const cards = [...grid.querySelectorAll('.lmx-habit-card')];
                 if (cards.length !== 4) problems.push('missing habit cards');
                 const columns = getComputedStyle(grid).gridTemplateColumns.split(' ').length;
-                const expected = innerWidth <= 520 ? 1 : 2;
-                if (percent === 100 && columns !== expected) problems.push(`unexpected ${columns}-column habit grid`);
+                if (percent === 100 && columns !== 2) problems.push(`unexpected ${columns}-column habit grid`);
+                if (percent === 200 && innerWidth <= 520 && columns !== 1) problems.push('enlarged phone grid needs one column');
                 for (const card of cards) {
                     const label = card.querySelector('span');
                     const box = card.getBoundingClientRect();

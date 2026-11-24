@@ -12,6 +12,37 @@ public sealed class ProofUploadBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
+    public async Task RotatedHeif_RendersAnUprightProofWithAnOnDemandDecoder()
+    {
+        await using var context = await AestheticSystemBrowserTests.NewContextAsync(Browser, App, new());
+        var decoderRequests = 0;
+        context.Request += (_, request) =>
+        {
+            if (new Uri(request.Url).AbsolutePath == "/js/heic-to.js") Interlocked.Increment(ref decoderRequests);
+        };
+        var page = await ProofReviewBrowserTests.PrepareAsync(context, false);
+        Assert.Equal(0, decoderRequests);
+        await page.Locator("#proofPicInput").SetInputFilesAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "rotated-lab.heif"));
+        var preview = page.Locator(".proof-page-preview img").Last;
+        await preview.WaitForAsync();
+        Assert.True(await preview.EvaluateAsync<bool>("""
+            async image => {
+                await image.decode();
+                if (image.naturalWidth !== 240 || image.naturalHeight !== 330) return false;
+                const canvas = document.createElement('canvas');
+                canvas.width = 240; canvas.height = 330;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(image, 0, 0);
+                // The upright reference has a navy header and a white lower-right margin.
+                const top = ctx.getImageData(3, 3, 1, 1).data;
+                const bottom = ctx.getImageData(235, 325, 1, 1).data;
+                return top[0] < 45 && top[2] > top[0] + 30 && bottom[0] > 240;
+            }
+            """));
+        Assert.Equal(1, decoderRequests);
+    }
+
+    [Fact]
     public async Task ResultUpload_WaitsForDelayedProofHelperBeforeBindingUploadControls()
     {
         var app = App;

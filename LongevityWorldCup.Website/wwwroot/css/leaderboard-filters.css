@@ -74,40 +74,17 @@
     outline-offset: 2px;
 }
 
-/* The check: a round stamp instead of a square box. */
+/* The round filter stamp uses the shared checkbox mark. */
 #athleteLeaderboard .sidebar-filter-list .filter-section li > label > input[type="checkbox"] {
-    flex: 0 0 auto;
-    appearance: none;
-    display: grid;
-    place-items: center;
     width: 1.15rem;
     height: 1.15rem;
     margin: 0;
-    border: 1.5px solid var(--lwc-border-strong, var(--lwc-border));
+    border-width: 1.5px;
     border-radius: 50%;
-    background: var(--lwc-surface);
-    transition: border-color 160ms ease, background-color 160ms ease;
-}
-
-#athleteLeaderboard .sidebar-filter-list .filter-section li > label > input[type="checkbox"]::after {
-    content: "";
-    width: 0.32rem;
-    height: 0.58rem;
-    margin-top: -0.12rem;
-    border: solid var(--lwc-on-accent, #fff);
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg) scale(0);
-    transition: transform 220ms var(--lwc-ease-pop, ease-out);
 }
 
 #athleteLeaderboard .sidebar-filter-list .filter-section li > label > input[type="checkbox"]:checked {
-    border-color: var(--lwc-accent);
-    background: var(--lwc-accent);
     animation: lwc-filter-stamp 300ms var(--lwc-ease-pop, ease-out);
-}
-
-#athleteLeaderboard .sidebar-filter-list .filter-section li > label > input[type="checkbox"]:checked::after {
-    transform: rotate(45deg) scale(1);
 }
 
 #athleteLeaderboard .sidebar-filter-list .filter-label-copy {
@@ -413,7 +390,6 @@
 @media (prefers-reduced-motion: reduce) {
     #athleteLeaderboard .sidebar-filter-list .filter-section li > label,
     #athleteLeaderboard .sidebar-filter-list .filter-section li > label::after,
-    #athleteLeaderboard .sidebar-filter-list .filter-section li > label > input[type="checkbox"]::after,
     #athleteLeaderboard > .sidebar,
     #athleteLeaderboard > .sidebar.expanded {
         transition: none;
@@ -424,4 +400,37 @@
     #athleteLeaderboard .sidebar-filter-list .filter-section li > label > input[type="checkbox"]:checked {
         animation: none;
     }
+}
+
+
+/* The non-interactive copy travels above the open deck. */
+.leaderboard-selection-chip--ghost {
+    position: fixed;
+    z-index: 40;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lwc-space-2);
+    box-sizing: border-box;
+    padding: var(--lwc-space-2) var(--lwc-space-3);
+    border: 1px solid transparent;
+    border-radius: var(--lwc-radius-md);
+    background: var(--lwc-accent-soft);
+    color: var(--lwc-ink);
+    font-size: var(--lwc-type-sm);
+    font-weight: 700;
+    overflow: hidden;
+    pointer-events: none;
+}
+.leaderboard-selection-chip--ghost.is-flying { z-index: 130; }
+.leaderboard-selection-chip--ghost span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.leaderboard-selection-chip--ghost span:last-child { flex: none; color: var(--lwc-accent); font-size: 1.1rem; }
+#leaderboardResultCount { display: inline-block; }
+
+@media (hover: hover) {
+    .leaderboard-selection-chip:hover span:last-child { color: var(--lwc-danger); }
+    .leaderboard-selection-summary:has(#clearLeaderboardSelection:hover) .leaderboard-selection-chip { opacity: .65; }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .leaderboard-selection-chip span:last-child { transition: transform 180ms ease; }
+    .leaderboard-selection-chip:hover span:last-child { transform: rotate(90deg); }
 }

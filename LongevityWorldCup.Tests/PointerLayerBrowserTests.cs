@@ -364,6 +364,21 @@ public sealed class PointerLayerBrowserTests(PlaywrightBrowserFixture browserFix
     }
 
     [Fact]
+    public async Task Focus_SubpixelGridRemainderDoesNotAnimateTheRingWidth()
+    {
+        await using var context = await ContextAsync();
+        var page = await FixtureAsync(context);
+        await page.AddStyleTagAsync(new() { Content = "#one{width:169px} #two{width:169.015625px}" });
+        await page.Keyboard.PressAsync("Tab");
+        var ring = page.Locator(".lwc-focus-ring.is-on");
+        await Expect(ring).ToBeVisibleAsync();
+        var firstWidth = await ring.EvaluateAsync<string>("e => e.style.getPropertyValue('--lwc-ring-w')");
+        await page.Keyboard.PressAsync("Tab");
+        await Expect(page.Locator("#two")).ToBeFocusedAsync();
+        Assert.Equal(firstWidth, await ring.EvaluateAsync<string>("e => e.style.getPropertyValue('--lwc-ring-w')"));
+    }
+
+    [Fact]
     public async Task Focus_RemainsVisibleImmediatelyAndAfterRuntimePreferenceChanges()
     {
         await using var context = await ContextAsync();

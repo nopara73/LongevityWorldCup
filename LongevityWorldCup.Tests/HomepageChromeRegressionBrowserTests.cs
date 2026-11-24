@@ -137,9 +137,17 @@ public sealed class HomepageChromeRegressionBrowserTests(
             var description = page.Locator(".game-description");
             var link = description.Locator("a[href=\"/about\"]");
             Assert.Equal("center", await description.EvaluateAsync<string>("element => getComputedStyle(element).textAlign"));
+            Assert.True((await link.BoundingBoxAsync())?.Height >= 44, "The heading band must be tappable.");
 
             var horizontalOffset = await link.EvaluateAsync<double>(
-                "element => { const rect = element.getBoundingClientRect(); return Math.abs((rect.left + rect.right) / 2 - document.documentElement.clientWidth / 2); }");
+                """
+                element => {
+                    const text = document.createRange();
+                    text.selectNodeContents(element);
+                    const rect = text.getBoundingClientRect();
+                    return Math.abs((rect.left + rect.right) / 2 - document.documentElement.clientWidth / 2);
+                }
+                """);
             Assert.InRange(horizontalOffset, 0, 1);
         }
     }

@@ -1,5 +1,4 @@
 using Microsoft.Playwright;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Xunit;
 
@@ -185,26 +184,46 @@ public sealed class LeaderboardRouteBrowserTests(
         Assert.Equal("Leaderboard: Live long enough to live forever", await collapsedTitle.GetAttributeAsync("aria-label"));
         Assert.Equal("Leaderboard: Live long enough to live forever | Longevity World Cup", await directPage.TitleAsync());
 
-        var geometry = await directPage.EvaluateAsync<JsonElement>(
+        await directPage.EvaluateAsync("() => document.fonts.ready");
+        var heading = directPage.Locator("#leaderboardLeagueTitle");
+        await Assertions.Expect(heading).ToHaveTextAsync("Live long enough to live forever League");
+        await Assertions.Expect(heading).ToBeVisibleAsync();
+        await Assertions.Expect(collapsedTitle).ToBeHiddenAsync();
+        await directPage.WaitForFunctionAsync(
+            """
+            () => {
+                const heading = document.querySelector('#leaderboardLeagueTitle');
+                const title = heading.getBoundingClientRect();
+                const identity = heading.closest('.leaderboard-identity').getBoundingClientRect();
+                const board = document.querySelector('.leaderboard');
+                const heightDifference = board.getBoundingClientRect().height
+                    - board.querySelector(':scope > .sidebar').getBoundingClientRect().height;
+                return title.left >= identity.left - 1 && title.right <= identity.right + 1
+                    && title.top >= identity.top - 1 && title.bottom <= identity.bottom + 1
+                    && heading.scrollWidth <= heading.clientWidth + 1 && heading.scrollHeight <= heading.clientHeight + 1
+                    && heightDifference >= 0 && heightDifference <= 2.5;
+            }
+            """);
+
+        // Clearing the flag restores the sideways title and its fitted sidebar footprint.
+        await directPage.Locator("#clearSidebarFiltersBtn").EvaluateAsync("button => button.click()");
+        await directPage.WaitForFunctionAsync("() => location.pathname === '/leaderboard'");
+        await Assertions.Expect(heading).ToBeHiddenAsync();
+        await Assertions.Expect(collapsedTitle).ToHaveTextAsync("ULTIMATE LEAGUE");
+        await directPage.WaitForFunctionAsync(
             """
             () => {
                 const sidebar = document.querySelector('.leaderboard > .sidebar').getBoundingClientRect();
-                const table = document.querySelector('.leaderboard > table').getBoundingClientRect();
                 const frame = document.querySelector('.leaderboard').getBoundingClientRect();
                 const title = document.querySelector('.collapsed-title');
-                return {
-                    sidebarHeight: sidebar.height,
-                    tableHeight: table.height,
-                    frameHeight: frame.height,
-                    titleBottom: title.getBoundingClientRect().bottom,
-                    sidebarBottom: sidebar.bottom,
-                    titleOverflow: title.scrollHeight - title.clientHeight
-                };
+                const heightDifference = frame.height - sidebar.height;
+                const overflow = title.scrollHeight - title.clientHeight;
+                return title.clientHeight > 0
+                    && heightDifference >= 0 && heightDifference <= 2.5
+                    && title.getBoundingClientRect().bottom <= sidebar.bottom + 1
+                    && overflow >= -1 && overflow <= 1.5;
             }
             """);
-        Assert.InRange(geometry.GetProperty("frameHeight").GetDouble() - geometry.GetProperty("sidebarHeight").GetDouble(), 0, 2.5);
-        Assert.True(geometry.GetProperty("titleBottom").GetDouble() <= geometry.GetProperty("sidebarBottom").GetDouble() + 1);
-        Assert.InRange(geometry.GetProperty("titleOverflow").GetDouble(), -1, 1.5);
     }
 
     [Fact]

@@ -693,6 +693,14 @@ namespace LongevityWorldCup.Website.Controllers
                     compressionLevel: System.IO.Compression.CompressionLevel.Optimal,
                     includeBaseDirectory: false
                 );
+                var crpNotes = GetReportedCrpNotes(applicantData);
+                if (crpNotes.Count > 0)
+                {
+                    // Recovery sometimes has only the ZIP. Archive comments stay outside the
+                    // athlete directory when the reviewer extracts it for publication.
+                    using var archive = System.IO.Compression.ZipFile.Open(zipPath, System.IO.Compression.ZipArchiveMode.Update);
+                    archive.Comment = string.Join(Environment.NewLine, crpNotes);
+                }
                 recoverableZipPath = zipPath;
                 recoverableFolderKey = folderKey;
                 var zipSizeBytes = new FileInfo(zipPath).Length;
@@ -720,6 +728,7 @@ namespace LongevityWorldCup.Website.Controllers
                     correctedPersonalLink,
                     folderKey,
                     attachmentFilename,
+                    crpNotes,
                     paymentDueText,
                     chronoPhenoDifference,
                     chronoBortzDifference,
@@ -1880,6 +1889,7 @@ namespace LongevityWorldCup.Website.Controllers
             string? correctedPersonalLink,
             string folderKey,
             string attachmentFilename,
+            List<string> crpNotes,
             string paymentDueText,
             string? chronoPhenoDifference,
             string? chronoBortzDifference,
@@ -1944,6 +1954,8 @@ namespace LongevityWorldCup.Website.Controllers
                     applicantData,
                     chronoPhenoDifference,
                     chronoBortzDifference));
+            foreach (var note in crpNotes)
+                sb.AppendLine(note);
 
             return sb.ToString();
         }
@@ -2107,6 +2119,37 @@ namespace LongevityWorldCup.Website.Controllers
             lines.Add($"- Proof files submitted: {proofCount}");
 
             return string.Join(Environment.NewLine, lines);
+        }
+
+        [GeneratedRegex(@"\A(?:< *|less +than +)(?<limit>[0-9]*[.,]?[0-9]+) (?<unit>mg/(?:dL|L))\z",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+        private static partial Regex ReportedCrpLimit();
+
+        private static List<string> GetReportedCrpNotes(ApplicantData applicant)
+        {
+            var notes = new List<string>();
+            if (applicant.CrpReports is null || applicant.Biomarkers is null) return notes;
+            foreach (var panel in applicant.Biomarkers)
+            {
+                if (panel.Date is null || panel.CrpMgL is not double score || score <= 0 ||
+                    !applicant.CrpReports.TryGetValue(panel.Date, out var reported) ||
+                    reported is null || reported.Length > 96) continue;
+
+                var isNegative = reported.Equals("negative", StringComparison.OrdinalIgnoreCase);
+                double limit = 1;
+                if (!isNegative)
+                {
+                    var match = ReportedCrpLimit().Match(reported);
+                    if (!match.Success || !double.TryParse(match.Groups["limit"].Value.Replace(',', '.'),
+                        NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out limit)) continue;
+                    if (match.Groups["unit"].Value.Equals("mg/dL", StringComparison.OrdinalIgnoreCase)) limit *= 10;
+                }
+                if (!double.IsFinite(limit) || limit <= 0 || Math.Abs(limit - score) > score * 1e-14) continue;
+                var basis = isNegative ? "its default of " : "";
+                notes.Add(FormattableString.Invariant(
+                    $"CRP ({panel.Date}): lab reported {reported}. LWC used {basis}{score} mg/L for scoring."));
+            }
+            return notes;
         }
 
         private static string GetSubmittedBiomarkerMetrics(BiomarkerData biomarker)

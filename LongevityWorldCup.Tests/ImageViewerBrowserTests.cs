@@ -53,6 +53,115 @@ public sealed class ImageViewerBrowserTests(
     }
 
     [Theory]
+    [InlineData(1440, 0, 5, "End")]
+    [InlineData(390, 1, 2, "ArrowRight")]
+    public async Task HistoryReader_CloseReturnsToTheSelectedPrint(int width, int from, int to, string key)
+    {
+        await using var context = await Browser.NewContextAsync(new()
+        {
+            BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = width, Height = 844 }
+        });
+        var page = await OpenDocumentAsync(context, "/history");
+        var prints = page.Locator(".history-evidence-card > img");
+        var opening = prints.Nth(from);
+        await opening.FocusAsync();
+        await opening.EvaluateAsync("e => e.scrollIntoView({block:'center', inline:'nearest', behavior:'instant'})");
+        var readingPosition = await page.EvaluateAsync<double>("scrollY");
+        var reader = page.Locator("dialog.lwc-viewer");
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(reader).ToHaveAttributeAsync("data-state", "open");
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(reader).ToBeHiddenAsync();
+        await Assertions.Expect(opening).ToBeFocusedAsync();
+        Assert.Equal(readingPosition, await page.EvaluateAsync<double>("scrollY"));
+
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(reader).ToHaveAttributeAsync("data-state", "open");
+        await page.Keyboard.PressAsync(key);
+        await Assertions.Expect(reader.Locator(".lwc-viewer-picture")).ToHaveAttributeAsync("alt", (await prints.Nth(to).GetAttributeAsync("alt"))!);
+        await Assertions.Expect(reader).ToHaveAttributeAsync("data-state", "open");
+        await page.EvaluateAsync("history.back()");
+        await Assertions.Expect(reader).ToBeHiddenAsync();
+        await Assertions.Expect(prints.Nth(to)).ToBeFocusedAsync();
+        Assert.True(await prints.Nth(to).EvaluateAsync<bool>("""
+            e => {
+                const r = e.getBoundingClientRect(), strip = e.closest('.history-evidence').getBoundingClientRect();
+                return r.top >= 0 && r.bottom <= innerHeight && r.left >= Math.max(0, strip.left) - 1
+                    && r.right <= Math.min(innerWidth, strip.right) + 1;
+            }
+            """));
+    }
+
+    [Fact]
+    public async Task HistoryEvidence_OptionalMotionApisCanBeAbsent()
+    {
+        await using var context = await Browser.NewContextAsync(new() { BaseURL = App.BaseAddress.ToString() });
+        await context.AddInitScriptAsync("""
+            window.historyPageErrors = [];
+            window.addEventListener('error', event => { if (event.error) window.historyPageErrors.push(event.message); });
+            delete Element.prototype.animate;
+            delete Element.prototype.getAnimations;
+            delete window.IntersectionObserver;
+            """);
+        var page = await OpenDocumentAsync(context, "/history");
+        var pair = page.Locator(".history-evidence").Filter(new() { Has = page.GetByAltText("Relative Leaderboard", new() { Exact = true }) });
+        await Assertions.Expect(pair).ToHaveClassAsync(new Regex(@"\bis-settled\b"));
+        var relative = pair.GetByRole(AriaRole.Button, new() { Name = "Relative Leaderboard", Exact = true });
+        var absolute = pair.GetByRole(AriaRole.Button, new() { Name = "Absolute Leaderboard", Exact = true });
+        await relative.ClickAsync();
+        var reader = page.Locator("dialog.lwc-viewer");
+        await Assertions.Expect(reader).ToHaveAttributeAsync("data-state", "open");
+        await page.Keyboard.PressAsync("ArrowRight");
+        await Assertions.Expect(reader.Locator(".lwc-viewer-picture")).ToHaveAttributeAsync("alt", "Absolute Leaderboard");
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(reader).ToBeHiddenAsync();
+        await Assertions.Expect(absolute).ToBeFocusedAsync();
+        Assert.Empty(await page.EvaluateAsync<string[]>("window.historyPageErrors"));
+
+        await page.EmulateMediaAsync(new() { Media = Media.Print });
+        var whole = await page.Locator(".history-evidence-card > img").EvaluateAllAsync<bool>("""
+            async images => {
+                await Promise.all(images.map(i => i.decode()));
+                return images.length > 0 && images.every(i => {
+                    const r = i.getBoundingClientRect(), ratio = i.naturalWidth / i.naturalHeight;
+                    return Math.abs(r.width / r.height / ratio - 1) < .01 && getComputedStyle(i.parentElement).transform === 'none';
+                });
+            }
+            """);
+        Assert.True(whole);
+    }
+
+    [Fact]
+    public async Task HistoryEvidence_FocusSettlesAnActiveDealAndReducedMotionKeepsPrintsStill()
+    {
+        await using var context = await Browser.NewContextAsync(new()
+        {
+            BaseURL = App.BaseAddress.ToString(), ViewportSize = new() { Width = 1440, Height = 900 },
+            ReducedMotion = ReducedMotion.NoPreference
+        });
+        await context.AddInitScriptAsync("""
+            document.addEventListener('animationstart', event => {
+                const strip = event.target.closest('.history-evidence[data-count="2"]');
+                if (!strip || event.animationName !== 'history-print-deal' || window.focusedPrintOpacity !== undefined) return;
+                const card = strip.lastElementChild;
+                card.querySelector('img').focus({preventScroll:true});
+                window.focusedPrintOpacity = getComputedStyle(card).opacity;
+            });
+            """);
+        var page = await OpenDocumentAsync(context, "/history");
+        var pair = page.Locator(".history-evidence[data-count='2']").First;
+        await pair.ScrollIntoViewIfNeededAsync();
+        await page.WaitForFunctionAsync("() => window.focusedPrintOpacity !== undefined");
+        Assert.Equal("1", await page.EvaluateAsync<string>("window.focusedPrintOpacity"));
+        await page.ReloadAsync();
+        await Assertions.Expect(page.Locator(".history-evidence:not(.is-settled)")).ToHaveCountAsync(0);
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+        var card = pair.Locator(".history-evidence-card").First;
+        await card.HoverAsync();
+        Assert.Equal("none", await card.EvaluateAsync<string>("e => getComputedStyle(e).transform"));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task BackDuringAnimation_ClosesAndReturnsFocus(bool duringNavigation)

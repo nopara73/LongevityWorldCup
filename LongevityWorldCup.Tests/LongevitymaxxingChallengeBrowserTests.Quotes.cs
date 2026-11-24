@@ -29,7 +29,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             requests.Add(JsonNode.Parse(route.Request.PostData!)!.AsObject());
             if (retry && requests.Count == 1)
             {
-                await route.FulfillAsync(new() { Status = 503, ContentType = "application/json", Body = "{\"message\":\"Try again.\"}" });
+                await route.FulfillAsync(new() { Status = 429, ContentType = "application/json", Body = "{\"message\":\"Try again.\"}" });
                 return;
             }
 

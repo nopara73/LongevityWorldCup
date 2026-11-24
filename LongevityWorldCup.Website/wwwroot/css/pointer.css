@@ -83,11 +83,6 @@
         border-color: var(--lwc-hover-edge);
     }
 
-    /* Podium: the athlete steps up off the block; the prize base stays put. */
-    :root:not([data-lwc-input="touch"]) .podium-item:hover:not(:has(.podium-item-lower:hover)) :is(.athlete-profile-link, .podium-rank) {
-        translate: 0 -5px;
-    }
-
     :root:not([data-lwc-input="touch"]) .podium-item:hover:not(:has(.podium-item-lower:hover)) .podium-portrait {
         box-shadow: 0 0 0 5px var(--lwc-hover-tint), 0 16px 26px -12px color-mix(in srgb, var(--lwc-ink, #17212b) 55%, transparent);
     }
@@ -153,8 +148,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    :root :is(.proof-page-card, .lmx-habit-card, [data-lwc-hover="card"], .option-button, .flow-action, .lmx-button, label.view-badge):hover,
-    :root .podium-item:hover :is(.athlete-profile-link, .podium-rank) {
+    :root :is(.proof-page-card, .lmx-habit-card, [data-lwc-hover="card"], .option-button, .flow-action, .lmx-button, label.view-badge):hover {
         translate: none;
     }
 }

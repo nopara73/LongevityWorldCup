@@ -167,6 +167,7 @@ public sealed class LongevitymaxxingLifeStripBrowserTests(
                 const strip = document.getElementById('lmxLifeStrip');
                 const tiles = [...strip.querySelectorAll('span')];
                 const problems = [];
+                let fontsLoaded = document.fonts.check('800 16px Roboto');
                 const boxes = tiles.map(tile => tile.getBoundingClientRect());
                 const contains = (outer, inner) => inner.left >= outer.left - 1 && inner.right <= outer.right + 1
                     && inner.top >= outer.top - 1 && inner.bottom <= outer.bottom + 1;
@@ -180,7 +181,10 @@ public sealed class LongevitymaxxingLifeStripBrowserTests(
                     if (!contains(strip.getBoundingClientRect(), box)) problems.push(label + ': tile outside strip');
                     if (!contains(box, iconBox) || iconBox.width < 1 || iconBox.height < 1)
                         problems.push(label + ': icon outside tile or missing');
-                    if (!getComputedStyle(icon, '::before').content.includes('"')) problems.push(label + ': missing icon glyph');
+                    const glyph = getComputedStyle(icon, '::before');
+                    if (!glyph.content.includes('"')) problems.push(label + ': missing icon glyph');
+                    fontsLoaded &&= document.fonts.check(
+                        glyph.fontWeight + ' ' + glyph.fontSize + ' ' + glyph.fontFamily, glyph.content.slice(1, -1));
                     if (tile.scrollWidth > tile.clientWidth + 1 || tile.scrollHeight > tile.clientHeight + 1)
                         problems.push(label + ': overflowing tile');
                     // Text-node fragments exclude the icon and the blockified flex item box.
@@ -211,7 +215,7 @@ public sealed class LongevitymaxxingLifeStripBrowserTests(
                     Columns: boxes.filter(box => Math.abs(box.top - boxes[0].top) < 1).length,
                     RootFontSize: parseFloat(getComputedStyle(document.documentElement).fontSize),
                     LabelFontSize: parseFloat(getComputedStyle(tiles[0]).fontSize),
-                    FontsLoaded: document.fonts.check('800 16px Roboto') && document.fonts.check('900 16px "Font Awesome 6 Free"')
+                    FontsLoaded: fontsLoaded
                 };
             }
             """);

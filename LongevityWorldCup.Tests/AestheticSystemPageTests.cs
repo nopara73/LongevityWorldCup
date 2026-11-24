@@ -58,7 +58,7 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
-        var stylesheetIndex = html.IndexOf("/css/aesthetic-system.css?v=", StringComparison.Ordinal);
+        var stylesheetIndex = html.IndexOf("<link rel=\"stylesheet\" href=\"/css/aesthetic-system.css?v=", StringComparison.Ordinal);
         var closingHeadIndex = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
 
         var motionIndex = html.IndexOf("/css/motion.css?v=", StringComparison.Ordinal);
@@ -76,10 +76,10 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
 
         Assert.True(stylesheetIndex >= 0);
         Assert.True(closingHeadIndex > stylesheetIndex);
-        var depthIndex = html.IndexOf("/css/depth-system.css?v=", StringComparison.Ordinal);
+        var depthIndex = html.IndexOf("<link rel=\"stylesheet\" href=\"/css/depth-system.css?v=", StringComparison.Ordinal);
         var depthScriptIndex = html.IndexOf("/js/depth-system.js?v=", StringComparison.Ordinal);
         Assert.True(depthIndex > stylesheetIndex && depthScriptIndex > depthIndex && depthScriptIndex < closingHeadIndex);
-        Assert.Equal(1, html.Split("/css/depth-system.css?v=", StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, html.Split("<link rel=\"stylesheet\" href=\"/css/depth-system.css?v=", StringSplitOptions.None).Length - 1);
         Assert.Equal(1, html.Split("/js/depth-system.js?v=", StringSplitOptions.None).Length - 1);
         var scrollIndex = html.IndexOf("/css/scroll-choreography.css?v=", StringComparison.Ordinal);
         var scrollScriptIndex = html.IndexOf("/js/scroll-choreography.js?v=", StringComparison.Ordinal);
@@ -122,7 +122,7 @@ public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFac
         var html = await client.GetStringAsync(path);
 
         Assert.Equal(
-            2,
+            path == "/" ? 1 : 2,
             html.Split("/vendor/font-awesome/6.7.2/css/all.min.css?v=", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("cdnjs.cloudflare.com/ajax/libs/font-awesome", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("{{ASSET_FONT_AWESOME_CSS}}", html);

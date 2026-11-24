@@ -51,7 +51,11 @@ public sealed class SiteNavigationBrowserTests(
                 const body = document.querySelector('.site-menu-body');
                 if (panel.left < -1 || panel.right > innerWidth + 1 || panel.top < -1 || panel.bottom > innerHeight + 1) issues.push('panel clipped');
                 if (body.scrollWidth > body.clientWidth + 1) issues.push('horizontal scroller');
-                const close = document.querySelector('.site-menu-close').getBoundingClientRect();
+                const menu = document.querySelector('#site-menu'), close = menu.querySelector('.site-menu-close').getBoundingClientRect();
+                if (menu.dataset.layout === 'panel' && !menu.hasAttribute('data-inline-close')) {
+                    const opener = document.querySelector('header .site-menu-toggle').getBoundingClientRect();
+                    if (Math.abs(close.left - opener.left) > 1 || Math.abs(close.top - opener.top) > 1) issues.push('close misses the visible cross');
+                }
                 const grip = document.querySelector('.site-menu-grip').getBoundingClientRect();
                 if (grip.width && grip.right > close.left && grip.left < close.right && grip.bottom > close.top && grip.top < close.bottom) issues.push('grip overlaps close control');
                 for (const link of body.querySelectorAll('a')) {
@@ -75,9 +79,67 @@ public sealed class SiteNavigationBrowserTests(
         await last.FocusAsync();
         Assert.True(await last.EvaluateAsync<bool>("e => { const r = e.getBoundingClientRect(), b = e.closest('.site-menu-body').getBoundingClientRect(); return r.top >= b.top - 1 && r.bottom <= b.bottom + 1; }"));
         await page.Keyboard.PressAsync("Tab");
-        await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Close menu" })).ToBeFocusedAsync();
+        var close = page.GetByRole(AriaRole.Button, new() { Name = "Close menu" });
+        await Assertions.Expect(close).ToBeFocusedAsync();
+        Assert.True(await close.EvaluateAsync<bool>("e => { const r = e.getBoundingClientRect(); return e.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)); }"));
         await page.Keyboard.PressAsync("Shift+Tab");
         await Assertions.Expect(last).ToBeFocusedAsync();
+    }
+
+    [Theory]
+    [InlineData(1440)]
+    [InlineData(390)]
+    public async Task UnlistedPage_KeyboardOpensOnFirstTileAndPointerReopensWithoutSelection(int width)
+    {
+        await using var context = await ContextAsync(width, 844);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/about");
+        var toggle = page.Locator("header .site-menu-toggle");
+        await page.Keyboard.PressAsync("Tab");
+        await toggle.FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
+        var first = page.Locator("#site-menu .site-menu-pages a").First;
+        await Assertions.Expect(first).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(toggle).ToBeFocusedAsync();
+        if (width == 390) await toggle.TapAsync();
+        else await toggle.ClickAsync();
+        await Assertions.Expect(page.Locator(".site-menu-panel")).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#site-menu .nav-glide.is-shown")).ToHaveCountAsync(0);
+    }
+
+    [Fact]
+    public async Task Menu_StationaryPointerPreservesKeyboardSelectionAndUnchangedLinks()
+    {
+        await using var context = await ContextAsync(1440, 900);
+        var page = await context.NewPageAsync();
+        await OpenAsync(page);
+        await page.EvaluateAsync("""
+            () => {
+                window.openLinks = [...document.querySelectorAll('#site-menu a')];
+                window.changedLabels = [];
+                new MutationObserver(records => window.changedLabels.push(...records.map(r => r.target.className)))
+                    .observe(document.querySelector('.site-menu-follow'), { subtree: true, attributes: true });
+            }
+            """);
+        var tiles = page.Locator("#site-menu .site-menu-pages a");
+        foreach (var tile in await tiles.AllAsync()) await tile.HoverAsync();
+        await page.EvaluateAsync("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))");
+        Assert.Empty(await page.EvaluateAsync<string[]>("window.changedLabels"));
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator("header .site-menu-toggle")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Enter");
+        var current = page.Locator("#site-menu a[aria-current=page]");
+        await Assertions.Expect(current).ToBeFocusedAsync();
+        await WaitForFiniteAnimationsAsync(page);
+        Assert.True(await current.EvaluateAsync<bool>("""
+            link => {
+                const indicator = link.parentElement.querySelector('.nav-glide.is-current.is-shown');
+                const box = link.getBoundingClientRect(), shown = indicator?.getBoundingClientRect();
+                return shown && ['top', 'left', 'width', 'height'].every(k => Math.abs(box[k] - shown[k]) <= 1);
+            }
+            """));
+        Assert.True(await page.EvaluateAsync<bool>("() => [...document.querySelectorAll('#site-menu a')].every((a, i) => a === openLinks[i])"));
     }
 
     [Theory]
