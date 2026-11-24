@@ -177,7 +177,10 @@ public sealed class FeedbackSystemBrowserTests(
             () => {
                 const panel = getComputedStyle(document.querySelector('.custom-alert-panel'));
                 const mark = getComputedStyle(document.querySelector('.custom-alert-mark'));
-                return [panel.borderTopWidth, panel.borderTopLeftRadius, mark.width];
+                // The alert draws its tone accent as a top bar (alert-feel.css) instead of a border.
+                const bar = getComputedStyle(document.querySelector('.custom-alert-panel'), '::before');
+                const accent = panel.borderTopWidth !== '0px' ? panel.borderTopWidth : bar.height;
+                return [accent, panel.borderTopLeftRadius, mark.width];
             }
             """);
 
