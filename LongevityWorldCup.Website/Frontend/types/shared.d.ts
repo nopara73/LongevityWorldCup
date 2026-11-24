@@ -404,6 +404,7 @@ interface GuessMyAgeState {
     skipped: boolean;
     first: boolean;
     exact: boolean;
+    beatCrowd?: boolean;
 }
 
 interface GuessMyAgeStoredEntry {
@@ -435,6 +436,7 @@ interface MediaContactLink {
 interface Window {
     PhenoAge?: PhenoAgeApi;
     BortzAge?: BortzAgeApi;
+    TryGetExclusiveLeagueFaIcon?: ((league: string) => string) | undefined;
     TryGetDivisionFaIcon?: ((division: string) => string) | undefined;
     TryGetLeagueTrackFaIcon?: ((leagueTrack: string | null | undefined) => string) | undefined;
     TryGetGenerationFaIcon?: ((generation: string) => string) | undefined;
@@ -539,6 +541,7 @@ interface Window {
     __lwcBadgeLightBound?: boolean;
     getBadgeRarity?(badge: ServerBadge): 'legendary' | 'rare' | '';
     LwcBadges?: {
+        searchText(athlete: BadgeAthlete, guess: unknown): string;
         celebrate(scope: Element | null | undefined): void;
         rarity(badge: ServerBadge): 'legendary' | 'rare' | '';
         stashOverflow(owner: HTMLElement, html: string): void;

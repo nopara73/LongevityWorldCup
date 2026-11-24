@@ -1,44 +1,25 @@
 const leaderboardPageAssets = document.currentScript.dataset;
 (function () {
-const pageDocument = window.document;
 let currentLeaderboardDocumentTitle = /^\/athlete\/[^/]+\/?$/i.test(window.location.pathname)
     ? 'Longevity World Cup'
-    : pageDocument.title;
-const athleteDialogRuntime = pageDocument.getElementById('athleteDialogRuntime');
-if (!athleteDialogRuntime) {
+    : document.title;
+const runtimeRoot = document.getElementById('athleteDialogRuntime');
+if (!runtimeRoot) {
     console.error('Athlete dialog runtime root was not found.');
     return;
 }
 
-// Keep the legacy leaderboard controller isolated from unrelated page
-// components when the same runtime is mounted outside the leaderboard.
-// Selector calls remain scoped to this one component; document-wide APIs
-// such as body scroll locking and event listeners still use the real page.
-const document = new Proxy(pageDocument, {
-    get(target, property) {
-        if (property === 'getElementById') {
-            return id => athleteDialogRuntime.querySelector(`#${CSS.escape(id)}`);
-        }
-        if (property === 'querySelector') {
-            return selector => athleteDialogRuntime.querySelector(selector);
-        }
-        if (property === 'querySelectorAll') {
-            return selector => athleteDialogRuntime.querySelectorAll(selector);
-        }
-
-        const value = Reflect.get(target, property, target);
-        return typeof value === 'function' ? value.bind(target) : value;
-    },
-    set(target, property, value) {
-        return Reflect.set(target, property, value, target);
-    }
-});
+// Embedded pages have controls of their own. Look up leaderboard and profile
+// controls within this root, leaving page-wide DOM operations on the document.
+function getRuntimeElementById(id) {
+    return runtimeRoot.querySelector(`#${CSS.escape(id)}`);
+}
 
 let athleteResults = [];
 let leaderboardOrderingSnapshot = null;
 let athletesOrderedByPace;
 let athletesOrderedByBortzPace;
-const isAthleteDialogOnlyRuntime = athleteDialogRuntime.dataset.athleteDialogOnly === 'true';
+const isAthleteDialogOnlyRuntime = runtimeRoot.dataset.athleteDialogOnly === 'true';
 let athleteResultsReady = false;
 let athleteResultsLoadPromise = null;
 let renderedLeaderboardSelection = '';
@@ -499,10 +480,10 @@ function wirePortraitFallback(img, athlete) {
 }
 
 function initializeAthletePortraitMotion() {
-    const podium = document.querySelector('.podium');
-    const leaderboard = document.querySelector('.leaderboard table tbody');
-    const profile = document.getElementById('modalProfilePic');
-    const profileModal = document.getElementById('detailsModal');
+    const podium = runtimeRoot.querySelector('.podium');
+    const leaderboard = runtimeRoot.querySelector('.leaderboard table tbody');
+    const profile = getRuntimeElementById('modalProfilePic');
+    const profileModal = getRuntimeElementById('detailsModal');
     const profileContent = profileModal?.querySelector('.modal-content');
 
     // Each clip belongs to one exact photograph, not to future profile updates.
@@ -557,7 +538,7 @@ function initializeAthletePortraitMotion() {
         }
     ];
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const wired = new WeakSet();
+    const bindings = new WeakMap();
     const active = new Map();
     const surfaces = new Map();
     const podiumPlayed = new Set();
@@ -572,6 +553,12 @@ function initializeAthletePortraitMotion() {
         } catch (_) {
             return null;
         }
+    }
+
+    function hasPortraitIntent(img, directHover = img.matches(':hover')) {
+        const link = img.closest('a');
+        if (directHover || document.activeElement === img || (link && document.activeElement === link)) return true;
+        return !!img.closest('tr[data-athlete-name]:hover')?.querySelector('.athlete-name[aria-details~="leaderboard-peek"]');
     }
 
     // Keep the still and clip in one bitmap rendering path. Returning to the
@@ -595,8 +582,8 @@ function initializeAthletePortraitMotion() {
         const context = live.getContext('2d', { alpha: false });
         if (!stillContext || !context) return null;
         root.append(still, live);
-        let ready = false, loaded = false, disposed = false, playing = false;
-        let frame = 0, until = 0, entrance = null;
+        let disposed = false, playing = false;
+        let frame = 0, until = 0;
         const photo = new Image();
         const sync = () => {
             const style = getComputedStyle(img);
@@ -645,20 +632,9 @@ function initializeAthletePortraitMotion() {
             until = performance.now() + 450;
             if (!disposed && !playing && !frame) frame = requestAnimationFrame(tick);
         };
-        const settle = () => {
-            if (disposed || ready || !loaded) return;
-            ready = true;
-            entrance?.cancel();
-            follow();
-            if (img.matches(':hover') || document.activeElement === img || document.activeElement === img.closest('a')) play(img);
-            if (reducedMotion.matches) return;
-            if (img === profile && profileReady(motion) && profilePlayed !== motion) visiblePortraits?.observe(img);
-            else if (podium?.contains(img) && athleteResultsReady && !podiumPlayed.has(motion)) visiblePortraits?.observe(img);
-        };
         const resize = new ResizeObserver(size);
         const record = {
-            motion, wrapper, root, live, context, sync, size, follow, settle,
-            get ready() { return ready; },
+            motion, wrapper, live, context, sync, follow,
             setPlaying(value) {
                 playing = value;
                 if (value) { cancelAnimationFrame(frame); frame = 0; }
@@ -669,7 +645,6 @@ function initializeAthletePortraitMotion() {
                 active.get(img)?.stop();
                 disposed = true;
                 cancelAnimationFrame(frame);
-                entrance?.cancel();
                 resize.disconnect();
                 photo.removeAttribute('src');
                 root.remove();
@@ -680,22 +655,17 @@ function initializeAthletePortraitMotion() {
         surfaces.set(img, record);
         wrapper.classList.add('portrait-motion');
         img.after(root);
-        if (img === profile) size();
         resize.observe(img);
         photo.decoding = 'async';
+        photo.fetchPriority = 'low';
         photo.src = img.src.replace('/generated/profiles/athletes/', '/generated/thumbs/athletes/')
             .replace(/(?:_thumb_(?:sm|md))?_([0-9a-f]{64}\.webp)(?=[?#]|$)/, '_thumb_md_$1');
         void photo.decode().then(() => {
             if (disposed || !img.isConnected || motionFor(img) !== motion) { record.dispose(); return; }
             stillContext.drawImage(photo, 0, 0, 320, 320);
-            loaded = true;
-            root.style.opacity = '1';
-            if (reducedMotion.matches || typeof root.animate !== 'function') settle();
-            else {
-                entrance = root.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
-                entrance.finished.then(settle, () => {});
-            }
-        }, () => record.dispose());
+            still.style.opacity = '1';
+            follow();
+        }, () => still.remove()); // The displayed photo remains underneath the clip.
         return record;
     }
 
@@ -710,7 +680,7 @@ function initializeAthletePortraitMotion() {
         const wrapper = img.parentElement;
         if (!wrapper || !img.naturalWidth || !img.checkVisibility?.()) return false;
         const portrait = surfaceFor(img, motion);
-        if (!portrait?.ready) return false;
+        if (!portrait) return false;
 
         if (podium?.contains(img)) {
             podiumPlayed.add(motion);
@@ -730,12 +700,10 @@ function initializeAthletePortraitMotion() {
         video.hidden = true;
         const surface = portrait.live;
         const context = portrait.context;
-        portrait.size();
-        portrait.setPlaying(true);
         let frame = 0;
         let finishFrame = 0;
         let fadeTimer = 0;
-        let firstPaint = null;
+        let visibleSince = 0;
         let finishing = false;
         let replayRequested = false;
         const stop = () => {
@@ -760,12 +728,11 @@ function initializeAthletePortraitMotion() {
                     surface.height = video.videoHeight;
                 }
                 context.drawImage(video, 0, 0, surface.width, surface.height);
-                firstPaint ??= now;
                 // Blend while the clip is still moving. Its first/last frames
                 // return to the photo's pose; ended only clears an invisible
                 // surface, rather than starting a frozen-frame dissolve.
                 const remaining = Number.isFinite(video.duration) ? (video.duration - video.currentTime) * 1000 : Infinity;
-                const blend = Math.max(0, Math.min(1, (now - firstPaint) / 180, remaining / 280));
+                const blend = Math.max(0, Math.min(1, (now - visibleSince) / 180, remaining / 280));
                 surface.style.opacity = `${blend * blend * (3 - 2 * blend)}`;
             }
             frame = requestAnimationFrame(syncOverlay);
@@ -784,7 +751,13 @@ function initializeAthletePortraitMotion() {
             fadeTimer = window.setTimeout(complete, 80);
         };
         active.set(img, { motion, stop, replay: () => { if (finishing) replayRequested = true; } });
-        video.addEventListener('playing', () => video.classList.add('is-playing'), { once: true });
+        video.addEventListener('playing', () => {
+            if (active.get(img)?.stop !== stop) return;
+            visibleSince = performance.now() - Math.min(180, video.currentTime * 1000);
+            video.classList.add('is-playing');
+            portrait.setPlaying(true);
+            syncOverlay();
+        }, { once: true });
         video.addEventListener('ended', finish, { once: true });
         video.addEventListener('error', stop, { once: true });
         for (const [extension, type] of [['webm', 'video/webm'], ['mp4', 'video/mp4']]) {
@@ -799,35 +772,39 @@ function initializeAthletePortraitMotion() {
             video.appendChild(source);
         }
         img.after(video);
-        syncOverlay();
         video.play().catch(stop);
         return true;
     }
 
-    function wire(img) {
-        if (wired.has(img) || !motionFor(img)) return;
-        wired.add(img);
-        let pointerInside = false;
+    function wire(img, motion) {
+        const previous = bindings.get(img);
+        if (!motion && !previous) return;
         const link = img.closest('a');
+        if (previous && previous.motion === motion && previous.link === link) return;
+        previous?.controller.abort();
+        bindings.delete(img);
+        if (!motion) return;
+        const controller = new AbortController();
+        const options = { passive: true, signal: controller.signal };
+        bindings.set(img, { link, motion, controller });
+        let pointerInside = false;
         const follow = () => surfaces.get(img)?.follow();
-        for (const event of ['pointermove', 'pointerenter', 'pointerleave', 'pointerdown', 'pointerup', 'pointercancel', 'focus', 'blur']) img.addEventListener(event, follow, { passive: true });
+        for (const event of ['pointermove', 'pointerenter', 'pointerleave', 'pointerdown', 'pointerup', 'pointercancel', 'focus', 'blur']) img.addEventListener(event, follow, options);
         img.addEventListener('pointerenter', event => {
             pointerInside = event.pointerType !== 'touch';
             if (pointerInside) play(img);
-        });
-        img.addEventListener('pointerleave', () => { pointerInside = false; });
-        img.addEventListener('focus', () => play(img));
-        link?.addEventListener('focus', () => play(img));
+        }, options);
+        img.addEventListener('pointerleave', () => { pointerInside = false; }, options);
+        img.addEventListener('lwc:portrait-preview', () => {
+            if (!pointerInside && !active.has(img)) play(img);
+        }, options);
+        img.addEventListener('focus', () => play(img), options);
+        link?.addEventListener('focus', () => play(img), options);
         // Lazy table photos may finish loading after the first pointer entry.
         // Replay then only if that interaction is still active.
         img.addEventListener('load', () => {
-            // The reusable profile image can change while its dialog is open.
-            // Table images only need a motion surface when someone activates them.
-            const motion = motionFor(img);
-            if (img === profile && motion) surfaceFor(img, motion);
-            if (pointerInside || document.activeElement === img || (link && document.activeElement === link)) play(img);
-        });
-        if (img === profile && img.complete && img.naturalWidth) surfaceFor(img, motionFor(img));
+            if (hasPortraitIntent(img, pointerInside)) play(img);
+        }, options);
     }
 
     const visiblePortraits = window.IntersectionObserver && new IntersectionObserver(entries => {
@@ -839,7 +816,7 @@ function initializeAthletePortraitMotion() {
                 const motion = motionFor(img);
                 if (img === profile) {
                     if (!profileReady(motion) || profilePlayed === motion) return;
-                } else if (podiumPlayed.has(motion)) return;
+                } else if (!athleteResultsReady || !podium?.contains(img) || podiumPlayed.has(motion)) return;
                 play(img);
             };
             if (img.complete) start();
@@ -855,62 +832,80 @@ function initializeAthletePortraitMotion() {
             && motion;
     }
 
-    function scan(records) {
-        const profileOnly = records && records.every(record => profileModal?.contains(record.target));
-        for (const [img, portrait] of surfaces) {
-            if (profileOnly && img !== profile) continue;
-            if (!img.isConnected || motionFor(img) !== portrait.motion || img.parentElement !== portrait.wrapper) portrait.dispose();
+    function updateBinding(img, motion) {
+        const surface = surfaces.get(img);
+        if (surface && (surface.motion !== motion || surface.wrapper !== img.parentElement)) surface.dispose();
+        wire(img, motion);
+    }
+
+    const boardPortrait = 'img.portrait, img.podium-portrait';
+    function updateBoardImage(img) {
+        const onPodium = podium?.contains(img);
+        const motion = onPodium || leaderboard?.contains(img) ? motionFor(img) : null;
+        updateBinding(img, motion);
+        // Direct interaction works on the first rendered photo. Only automatic
+        // playback waits for the rankings to confirm which winners are visible.
+        if (onPodium && athleteResultsReady && motion && !podiumPlayed.has(motion) && !reducedMotion.matches) {
+            visiblePortraits?.observe(img);
+        } else {
+            visiblePortraits?.unobserve(img);
         }
-        for (const [img, playback] of active) {
-            if (!img.isConnected || motionFor(img) !== playback.motion) playback.stop();
-        }
-        // Paging changes the profile, not the hundreds of portraits behind it.
-        // Only a board mutation (or the initial scan) needs to recheck those photos.
-        if (!records || records.some(record => !profileModal?.contains(record.target))) {
-            // Server-rendered rows also work while hydration is pending or fails.
-            leaderboard?.querySelectorAll('img.portrait').forEach(wire);
-            // Start autoplay after the ranking has confirmed the final portraits.
-            if (athleteResultsReady) {
-                podium?.querySelectorAll('img.podium-portrait').forEach(img => {
-                    wire(img);
-                    const motion = motionFor(img);
-                    if (motion && !podiumPlayed.has(motion) && !reducedMotion.matches) visiblePortraits?.observe(img);
-                });
+    }
+
+    function updatePodium() {
+        podium?.querySelectorAll('img.podium-portrait').forEach(updateBoardImage);
+    }
+
+    const updates = new MutationObserver(records => {
+        const changed = new Set();
+        const collect = node => {
+            if (!(node instanceof Element)) return;
+            if (node.matches(boardPortrait)) changed.add(node);
+            else if (node.childElementCount) node.querySelectorAll(boardPortrait).forEach(img => changed.add(img));
+        };
+        for (const record of records) {
+            if (record.type === 'attributes') {
+                if (record.target.matches(boardPortrait)) changed.add(record.target);
+            } else {
+                record.removedNodes.forEach(collect);
+                record.addedNodes.forEach(collect);
             }
         }
+        changed.forEach(updateBoardImage);
+    });
+    for (const root of [podium, leaderboard]) {
+        if (!root) continue;
+        root.querySelectorAll(boardPortrait).forEach(updateBoardImage);
+        updates.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
+    }
+    document.addEventListener('lwc:standings-ready', updatePodium);
 
+    function updateProfile() {
         if (!profile) return;
-        const profileMotion = motionFor(profile);
-        if (!profileReady(profileMotion)) {
+        const motion = motionFor(profile);
+        updateBinding(profile, motion);
+        if (!profileReady(motion)) {
             visiblePortraits?.unobserve(profile);
             profilePlayed = null;
             active.get(profile)?.stop();
-            return;
+        } else if (profilePlayed !== motion && !reducedMotion.matches) {
+            visiblePortraits?.observe(profile);
         }
-        wire(profile);
-        // The portrait is already visible. Start its decorative clip from the
-        // browser's visibility report instead of forcing the rebuilt card to
-        // resolve layout synchronously inside every pager click.
-        if (profilePlayed !== profileMotion) visiblePortraits?.observe(profile);
     }
-
-    const updates = new MutationObserver(scan);
-    if (podium) updates.observe(podium, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
-    if (leaderboard) updates.observe(leaderboard, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] });
     if (profile) {
-        updates.observe(profile, { attributes: true, attributeFilter: ['src'] });
-        updates.observe(profileModal, { attributes: true, attributeFilter: ['class', 'style'] });
-        updates.observe(profileContent, { attributes: true, attributeFilter: ['class', 'inert'] });
-        profile.addEventListener('load', () => scan([]));
+        const profileUpdates = new MutationObserver(updateProfile);
+        profileUpdates.observe(profile, { attributes: true, attributeFilter: ['src'] });
+        profileUpdates.observe(profileModal, { attributes: true, attributeFilter: ['class', 'style'] });
+        profileUpdates.observe(profileContent, { attributes: true, attributeFilter: ['class', 'inert'] });
+        profile.addEventListener('load', updateProfile);
+        updateProfile();
     }
     reducedMotion.addEventListener('change', () => {
         if (reducedMotion.matches) for (const playback of active.values()) playback.stop();
-        for (const portrait of surfaces.values()) {
-            if (reducedMotion.matches) portrait.settle();
-            portrait.follow();
-        }
+        for (const portrait of surfaces.values()) portrait.follow();
+        updatePodium();
+        updateProfile();
     });
-    scan();
 }
 
 function markAthleteSkippedForGuessMyAge(athlete) {
@@ -1370,7 +1365,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
     maxAthletesGlobal = maxAthletes;
     athleteResultsReady = false;
     if (!refresh) setLeaderboardLoadingState(includePodium, maxAthletes);
-    const fullBoard = pageDocument.querySelector('main[data-leaderboard-page="full"]');
+    const fullBoard = document.querySelector('main[data-leaderboard-page="full"]');
     if (fullBoard && !fullBoard.hasAttribute('data-lwc-refresh-ready')) {
         fullBoard.setAttribute('data-lwc-refresh-ready', '');
         fullBoard.addEventListener('lwc:pull-refresh', event => {
@@ -1387,14 +1382,14 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
         .then(async athletes => {
             // A prefetched response can resolve inside DOMContentLoaded. Give the
             // already-visible links an input turn before enhancing the board.
-            if (hasServerRenderedLeaderboardRows(document.querySelector('.leaderboard table tbody'))) {
+            if (hasServerRenderedLeaderboardRows(runtimeRoot.querySelector('.leaderboard table tbody'))) {
                 if (window.scheduler?.yield) await window.scheduler.yield();
                 else await new Promise(resolve => setTimeout(resolve, 0));
             }
             // A pull refresh can finish before the initial request. Only the
             // latest load owns the visible board, including failure handling.
             if (athleteResultsLoadPromise !== currentLoadPromise) return;
-            const selectedFilters = refresh ? new Set(Array.from(document.querySelectorAll('.sidebar input:checked'))
+            const selectedFilters = refresh ? new Set(Array.from(runtimeRoot.querySelectorAll('.sidebar input:checked'))
                 .map(input => `${input.name}\n${input.value}`)) : null;
             const refreshFocus = refresh ? document.activeElement : null;
             const refreshScroll = refresh ? window.scrollY : null;
@@ -1731,7 +1726,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 generateExclusiveFilters(athleteResults);
                 generateLeagueTrackFilters(athleteResults);
                 if (selectedFilters) {
-                    document.querySelectorAll('.sidebar input').forEach(input => {
+                    runtimeRoot.querySelectorAll('.sidebar input').forEach(input => {
                         input.checked = selectedFilters.has(`${input.name}\n${input.value}`);
                     });
                 }
@@ -1828,71 +1823,57 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 // Get the top three athletes from athleteResults
                 const topThree = athleteResults.slice(0, 3);
 
-                // Keep the painted portraits when the public data agrees with the HTML.
-                const podium = document.querySelector('.podium');
-                const serverCards = [...podium.children];
-                const keepCards = podium.dataset.serverRendered === 'true'
-                    && serverCards.length === topThree.length
-                    && topThree.every((athlete, index) =>
-                        serverCards[index].dataset.athleteName === athlete.name
-                        && serverCards[index].querySelector('.athlete-profile-link')?.getAttribute('href') === getAthleteProfileHref(athlete)
-                        && serverCards[index].querySelector('.podium-portrait')?.getAttribute('src') === getAthletePortraitUrl(athlete)
-                        && serverCards[index].querySelector('.athlete-name')?.textContent === athlete.displayName
-                        && serverCards[index].querySelector('.age-reduction')?.textContent === podiumScore(athlete));
-                if (!keepCards) podium.replaceChildren();
+                // Reconcile each placing independently, including on a pull refresh.
+                const podium = runtimeRoot.querySelector('.podium');
+                const previousCards = [...podium.children];
+                previousCards.slice(topThree.length).forEach(card => card.remove());
                 podium.removeAttribute('data-server-rendered');
                 podium.setAttribute('aria-busy', 'false');
 
                 // Loop through the top three athletes and create podium items
                 topThree.forEach(athlete => {
-                    let rankClass, rankEmoji;
-
-                    switch (athlete.rank) {
-                        case 1:
-                            rankClass = 'first';
-                            rankEmoji = '<i class="fa-solid fa-crown" style="color: gold;"></i>';
-                            break;
-                        case 2:
-                            rankClass = 'second';
-                            rankEmoji = '<i class="fa-solid fa-medal" style="color: silver;"></i>';
-                            break;
-                        case 3:
-                            rankClass = 'third';
-                            rankEmoji = '<i class="fa-solid fa-award" style="color: #cd7f32;"></i>';
-                            break;
-                        default:
-                            return; // Only handle top three
-                    }
-
-                    const podiumItem = keepCards ? serverCards[athlete.rank - 1] : document.createElement('div');
-                    if (!keepCards) {
+                    const rankClass = ['first', 'second', 'third'][athlete.rank - 1];
+                    const previous = previousCards[athlete.rank - 1];
+                    const profileHref = getAthleteProfileHref(athlete);
+                    const podiumPortraitUrl = getAthletePortraitUrl(athlete);
+                    const score = podiumScore(athlete);
+                    const keepPortrait = previous?.dataset.athleteName === athlete.name
+                        && previous.querySelector('.athlete-profile-link')?.getAttribute('href') === profileHref
+                        && previous.querySelector('.podium-portrait')?.getAttribute('src') === podiumPortraitUrl;
+                    const podiumItem = keepPortrait ? previous : document.createElement('div');
+                    if (keepPortrait) {
+                        const name = podiumItem.querySelector('.athlete-name');
+                        if (name.textContent !== athlete.displayName) {
+                            name.textContent = athlete.displayName;
+                            name.title = `View stats of ${athlete.displayName}`;
+                            podiumItem.querySelector('.athlete-profile-link').setAttribute('aria-label', name.title);
+                            podiumItem.querySelector('.podium-portrait').alt = `${athlete.displayName} portrait`;
+                        }
+                        const metric = podiumItem.querySelector('.age-reduction');
+                        if (metric.textContent !== score) metric.textContent = score;
+                    } else {
                         podiumItem.classList.add('podium-item', rankClass);
-
-                        const podiumPortraitUrl = getAthletePortraitUrl(athlete);
 
                         podiumItem.innerHTML = `
                             <div class="podium-rank" title="${athlete.rank === 1 ? '1st Place' : athlete.rank === 2 ? '2nd Place' : '3rd Place'}">
-                                ${rankEmoji}
                             </div>
-                            <a class="athlete-profile-link" href="${escapeHtml(getAthleteProfileHref(athlete))}" aria-label="View stats of ${escapeHtml(athlete.displayName)}"><img src="${podiumPortraitUrl}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="eager" decoding="async"${athlete.rank === 1 ? ' fetchpriority="high"' : ''}></a>
+                            <a class="athlete-profile-link" href="${escapeHtml(profileHref)}" aria-label="View stats of ${escapeHtml(athlete.displayName)}"><img src="${podiumPortraitUrl}" alt="${escapeHtml(athlete.displayName)} portrait" class="podium-portrait" loading="eager" decoding="async"${athlete.rank === 1 ? ' fetchpriority="high"' : ''}></a>
                             <div class="name-row">
-                                <a class="athlete-name" href="${escapeHtml(getAthleteProfileHref(athlete))}" title="View stats of ${escapeHtml(athlete.displayName)}">${escapeHtml(athlete.displayName)}</a>
+                                <a class="athlete-name" href="${escapeHtml(profileHref)}" title="View stats of ${escapeHtml(athlete.displayName)}">${escapeHtml(athlete.displayName)}</a>
                             </div>
                             <div class="podium-link-row">
                             </div>
-                            <div class="podium-score"><span class="age-reduction">${podiumScore(athlete)}</span> reduced</div>
+                            <div class="podium-score"><span class="age-reduction">${score}</span> reduced</div>
                             <a class="podium-item-lower" href="#contribute" aria-label="Donate to the prize pool" aria-busy="true">
                                 <div class="btc-amount">&nbsp;</div>
                                 <div class="prize-money">&mdash;</div>
                             </a>
                         `;
 
-                        podium.appendChild(podiumItem);
+                        if (previous) previous.replaceWith(podiumItem);
+                        else podium.appendChild(podiumItem);
                     }
-                    podiumItem.querySelector('.podium-link-row').innerHTML =
-                        renderPersonalLink(athlete.personalLink, athlete.displayName)
-                        + renderPodcastLink(athlete.podcastLink, athlete.displayName)
-                        + renderMediaContact(athlete.mediaContact, true, athlete.displayName);
+                    updatePodiumLinks(podiumItem.querySelector('.podium-link-row'), athlete);
                     wirePortraitFallback(podiumItem.querySelector('img.podium-portrait'), athlete);
 
                     // After appending the podium item
@@ -1907,7 +1888,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 updatePodiumPrizes(podium);
             } else {
                 // Hide the podium container if not included
-                const podium = document.querySelector('.podium');
+                const podium = runtimeRoot.querySelector('.podium');
                 if (podium) {
                     podium.style.display = 'none';
                     podium.innerHTML = '';
@@ -1917,23 +1898,22 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
 
             window.computeBadges(athleteResults);
 
-            // Populate the table with athletes ranked >3
-            const tableBody = document.querySelector('.leaderboard table tbody');
+            const tableBody = runtimeRoot.querySelector('.leaderboard table tbody');
             tableBody.classList.remove('loading-skeleton');
             tableBody.setAttribute('aria-busy', 'false');
             tableBody.removeAttribute('data-server-rendered');
             tableBody.removeAttribute('data-hydrating');
-            const serverRows = new Map([...tableBody.querySelectorAll('tr.server-rendered-leaderboard-row')]
-                .map(row => [row.dataset.athleteName, row]));
             resetRowRevealQueue();
-            const initialRows = athleteResults.slice(0, maxAthletes).map(athlete =>
-                createLeaderboardRow(athlete, serverRows.get(athlete.name)));
-            // Preserve focus and the already-painted portraits when the server has the same rows.
-            const keep = new Set(initialRows);
-            for (const row of [...tableBody.children]) if (!keep.has(row)) row.remove();
-            const newRows = document.createDocumentFragment();
-            for (const row of initialRows) if (!row.isConnected) newRows.append(row);
-            tableBody.append(newRows);
+            // Hydrate the rows painted for this URL. performFilter fills the selected board below.
+            const athletesByName = new Map(athleteResults.map(athlete => [athlete.name, athlete]));
+            for (const row of [...tableBody.children]) {
+                const athlete = athletesByName.get(row.dataset.athleteName);
+                if (!athlete || !row.classList.contains('server-rendered-leaderboard-row')) {
+                    row.remove();
+                    continue;
+                }
+                createLeaderboardRow(athlete, row);
+            }
             scheduleLeaderboardTableHeightSync();
 
             // At the end of the athlete fetch block in LoadLeaderboard, after athleteResults has been populated:
@@ -1966,7 +1946,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                         query = decodeURIComponent(searchParam);
                     } catch (_) {
                     }
-                    const searchInput = document.getElementById('athleteSearch');
+                    const searchInput = getRuntimeElementById('athleteSearch');
                     searchInput.value = query;
                     searchOrFilterApplied = true;
                 }
@@ -1976,7 +1956,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     const filtersList = parseFiltersParam(filtersParam);
                     filtersList.forEach(filterValue => {
                         const normalizedFilter = filterValue.trim().toLowerCase();
-                        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                        runtimeRoot.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
                             const checkboxMatchesFilter = checkbox.name === 'flag'
                                 ? getFlagFilterKey(checkbox.value) === getFlagFilterKey(normalizedFilter)
                                 : checkbox.value.toLowerCase() === normalizedFilter;
@@ -1987,7 +1967,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     });
                     searchOrFilterApplied = true;
                 } else if (flagRouteState.flagKey) {
-                    document.querySelectorAll('input[name="flag"]').forEach(checkbox => {
+                    runtimeRoot.querySelectorAll('input[name="flag"]').forEach(checkbox => {
                         if (getFlagFilterKey(checkbox.value) === flagRouteState.flagKey) {
                             checkbox.checked = true;
                             searchOrFilterApplied = true;
@@ -1995,7 +1975,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     });
                 } else if (leagueRouteState.filterLabel) {
                     const normalizedFilter = leagueRouteState.filterLabel.trim().toLowerCase();
-                    document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                    runtimeRoot.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
                         if (checkbox.value.toLowerCase() === normalizedFilter) {
                             checkbox.checked = true;
                         }
@@ -2003,21 +1983,21 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     searchOrFilterApplied = true;
                 }
 
-                document.getElementById('group-flags').checked = new URLSearchParams(window.location.search).get('group')?.toLowerCase() === 'flags';
-                syncFlagFilters(document.getElementById('group-flags').checked);
+                getRuntimeElementById('group-flags').checked = new URLSearchParams(window.location.search).get('group')?.toLowerCase() === 'flags';
+                syncFlagFilters(getRuntimeElementById('group-flags').checked);
                 const rawViewParam = new URLSearchParams(window.location.search).get('view') || leagueRouteState.view;
                 const viewParam = rawViewParam && rawViewParam.toLowerCase() === 'pheno-improvement'
                     ? 'improvement'
                     : rawViewParam;
                 if (viewParam && ['bortz', 'pheno', 'improvement', 'bortz-improvement', 'crowd'].includes(viewParam.toLowerCase())) {
                     const viewId = 'view-' + viewParam.toLowerCase();
-                    const viewRadio = document.getElementById(viewId);
+                    const viewRadio = getRuntimeElementById(viewId);
                     if (viewRadio) {
                         viewRadio.checked = true;
                         searchOrFilterApplied = true;
                     }
                 }
-                const selectedViewRadio = document.querySelector('input[name="leaderboardView"]:checked');
+                const selectedViewRadio = runtimeRoot.querySelector('input[name="leaderboardView"]:checked');
                 updateRankingExplanation(selectedViewRadio ? selectedViewRadio.value : 'ultimate');
                 updateLeaderboardTitles(getSelectedLeaderboardState());
 
@@ -2028,7 +2008,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                     // overwriting the reader's native Back/Forward restoration.
                     const incomingScrollY = window.scrollY;
                     setTimeout(() => {
-                        const filtersPanel = document.querySelector('.sidebar');
+                        const filtersPanel = runtimeRoot.querySelector('.sidebar');
                         const returning = performance.getEntriesByType('navigation')[0]?.type === 'back_forward';
                         if (!returning && canAutoScroll() && window.scrollY === incomingScrollY &&
                             !filtersPanel?.matches(':hover, .expanded') && document.activeElement !== searchInput) {
@@ -2044,7 +2024,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
                 performFilter({ updateUrl: false });
                 const hash = window.location.hash;
                 if (hash && /^#rank-\d+$/.test(hash)) {
-                    const target = document.querySelector(hash);
+                    const target = runtimeRoot.querySelector(hash);
                     if (target?.getClientRects().length) {
                         ScrollGuard.setAnchorTarget(target);
                         ScrollGuard.trustedScrollIntoView(target, { behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
@@ -2054,7 +2034,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
             }
             setLeaderboardStatus('Leaderboard loaded.');
             if (refreshFocus && !refreshFocus.isConnected) {
-                const replacement = Array.from(document.querySelectorAll('.sidebar input, .leaderboard a')).find(element =>
+                const replacement = Array.from(runtimeRoot.querySelectorAll('.sidebar input, .leaderboard a')).find(element =>
                     refreshFocus instanceof HTMLInputElement
                         ? element.name === refreshFocus.name && element.value === refreshFocus.value
                         : refreshFocus instanceof HTMLAnchorElement && element.getAttribute('href') === refreshFocus.getAttribute('href'));
@@ -2073,7 +2053,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
             if (athleteResultsLoadPromise !== currentLoadPromise) return;
             athleteResultsReady = false;
             athleteResultsLoadPromise = null;
-            const tableBody = document.querySelector('.leaderboard table tbody');
+            const tableBody = runtimeRoot.querySelector('.leaderboard table tbody');
             if (tableBody) {
                 tableBody.classList.remove('loading-skeleton');
                 tableBody.setAttribute('aria-busy', 'false');
@@ -2082,7 +2062,7 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
             }
             setLeaderboardStatus('Leaderboard could not load.', true);
             updateLeaderboardStructuredData(null);
-            const podium = document.querySelector('.podium');
+            const podium = runtimeRoot.querySelector('.podium');
             if (podium && podium.dataset.serverRendered !== 'true') {
                 podium.innerHTML = '';
                 podium.setAttribute('aria-busy', 'false');
@@ -2100,9 +2080,12 @@ function LoadLeaderboard(includePodium = true, maxAthletes = Infinity, refresh =
 function createLeaderboardRow(athlete, serverRow) {
     const isPro = Number.isFinite(athlete.bortzAgeReduction);
     const tier = isPro ? 'pro' : 'amateur';
-    const template = document.getElementById('leaderboardRowTemplate');
-    const row = serverRow?.querySelector('.portrait-wrapper img.portrait') ? serverRow : template.content.firstElementChild.cloneNode(true);
+    const template = getRuntimeElementById('leaderboardRowTemplate');
+    const row = serverRow || template.content.firstElementChild.cloneNode(true);
     row.classList.remove('server-rendered-leaderboard-row');
+    if (serverRow && !row.querySelector('.portrait-wrapper')) {
+        row.querySelector('.athlete-td').prepend(template.content.querySelector('.portrait-wrapper').cloneNode(true));
+    }
     if (!row.querySelector('.pro-badge')) {
         row.querySelector('.portrait-wrapper').append(template.content.querySelector('.pro-badge').cloneNode());
     }
@@ -2213,7 +2196,7 @@ function hasServerRenderedLeaderboardRows(tableBody) {
 }
 
 function setLeaderboardStatus(message, isError = false) {
-    const status = document.getElementById('leaderboardStatus');
+    const status = getRuntimeElementById('leaderboardStatus');
     if (!status) return;
     status.setAttribute('role', isError ? 'alert' : 'status');
     status.textContent = message;
@@ -2241,7 +2224,7 @@ function renderLeaderboardLoadError(tableBody) {
     });
 
     recovery.append(message, retryButton);
-    const flags = document.getElementById('flagLeaderboard');
+    const flags = getRuntimeElementById('flagLeaderboard');
     if (getSelectedLeaderboardState().byFlag && flags) {
         flags.querySelector('.leaderboard-recovery')?.remove();
         flags.querySelector('.flag-empty')?.remove();
@@ -2259,7 +2242,7 @@ function renderLeaderboardLoadError(tableBody) {
 
 function setLeaderboardLoadingState(includePodium, maxAthletes) {
     setLeaderboardStatus('Loading leaderboard.');
-    const podium = document.querySelector('.podium');
+    const podium = runtimeRoot.querySelector('.podium');
     if (podium) {
         if (includePodium) {
             if (podium.dataset.serverRendered !== 'true') {
@@ -2278,7 +2261,7 @@ function setLeaderboardLoadingState(includePodium, maxAthletes) {
         }
     }
 
-    const tableBody = document.querySelector('.leaderboard table tbody');
+    const tableBody = runtimeRoot.querySelector('.leaderboard table tbody');
     if (!tableBody) return;
     tableBody.querySelector('.leaderboard-load-error-row')?.remove();
     if (hasServerRenderedLeaderboardRows(tableBody)) {
@@ -2408,8 +2391,8 @@ function restoreEnlargedViewFromHistory(state) {
     }
 
     const candidates = imageState.kind === 'profile'
-        ? [document.getElementById('modalProfilePic')].filter(Boolean)
-        : Array.from(document.querySelectorAll('#proofsGallery .proof-item img'));
+        ? [getRuntimeElementById('modalProfilePic')].filter(Boolean)
+        : Array.from(runtimeRoot.querySelectorAll('#proofsGallery .proof-item img'));
     const image = candidates.find(candidate =>
         (candidate.dataset.fullSrc || candidate.getAttribute('src') || '') === imageState.source)
         || candidates[imageState.index]
@@ -2421,7 +2404,7 @@ function restoreEnlargedViewFromHistory(state) {
 }
 
 function openEnlargedView(imgElement, settings) {
-    const owner = document.getElementById('detailsModal');
+    const owner = getRuntimeElementById('detailsModal');
     if (!owner || owner.style.display !== 'block') return;
     const gallery = imgElement.closest('.proofs-gallery');
     void window.LwcImageViewer?.open(imgElement, {
@@ -2430,6 +2413,9 @@ function openEnlargedView(imgElement, settings) {
         pushHistory: settings?.pushHistory !== false,
         ownsHistory: state => state?.modal === 'enlarged',
         historyState: (image, index) => ({ modal: 'enlarged', enlargedImage: getEnlargedImageHistoryState(image, { currentImageIndex: index }) }),
+        onLoad(image) {
+            if (image.closest('.proof-preview-unavailable')) image.src = image.dataset.fullSrc || image.src;
+        },
         beforeClose(image) {
             const item = image.closest('.proof-item');
             if (item?.hidden) gallery?._setExpanded?.(true);
@@ -2465,26 +2451,50 @@ function renderMediaContact(contact, isPodium, athleteName) {
     </a>`;
 }
 
+function updatePodiumLinks(row, athlete) {
+    const template = document.createElement('template');
+    template.innerHTML = renderPersonalLink(athlete.personalLink, athlete.displayName)
+        + renderPodcastLink(athlete.podcastLink, athlete.displayName)
+        + renderMediaContact(athlete.mediaContact, true, athlete.displayName);
+
+    // Keep the original link (and keyboard focus) when the live destination agrees.
+    // Only the contact glyph needs the browser's platform-specific icon.
+    const desired = [...template.content.children];
+    for (const current of [...row.children]) {
+        const index = desired.findIndex(link =>
+            link.className === current.className && link.href === current.href && link.title === current.title &&
+            (link.tagName === 'A' || link.textContent === current.textContent));
+        if (index < 0) {
+            current.remove();
+            continue;
+        }
+        if (current.hasAttribute('data-contact-glyph')) {
+            current.replaceChildren(...desired[index].childNodes);
+            current.removeAttribute('data-contact-glyph');
+        }
+        desired[index] = current;
+    }
+    desired.forEach((link, index) => {
+        if (row.children[index] !== link) row.insertBefore(link, row.children[index] || null);
+    });
+}
+
 function renderPersonalLink(link, athleteName) {
     const href = window.normalizeWebUrl(link);
     if (!href) return '';
-    return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener" class="personal-link-icon podium-personal-link" aria-label="Visit athlete's personal page" title="${escapeHtml(`Visit personal page of ${athleteName}`)}">
-        <i class="fa fa-link"></i>
-    </a>`;
+    return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener" class="personal-link-icon podium-personal-link" aria-label="Visit athlete's personal page" title="${escapeHtml(`Visit personal page of ${athleteName}`)}"></a>`;
 }
 
 function renderPodcastLink(link, athleteName) {
     const href = window.normalizeWebUrl(link);
     if (!href) return '';
     const label = escapeHtml(`Listen to ${athleteName}'s podcast appearance`);
-    return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener" class="personal-link-icon podium-podcast-link" aria-label="${label}" title="${label}">
-        <i class="fa fa-microphone"></i>
-    </a>`;
+    return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener" class="personal-link-icon podium-podcast-link" aria-label="${label}" title="${label}"></a>`;
 }
 
-const modal = document.getElementById("detailsModal");
-const closeBtn = document.getElementById("closeAthleteDetailsModal");
-const athleteDetails = document.getElementById("athleteDetails");
+const modal = getRuntimeElementById("detailsModal");
+const closeBtn = getRuntimeElementById("closeAthleteDetailsModal");
+const athleteDetails = getRuntimeElementById("athleteDetails");
 let ageChart;
 let savedBodyScroll = 0;
 let savedBodyScrollRestoration = null;
@@ -2505,12 +2515,12 @@ const athleteModalFrameResizeObserver = typeof ResizeObserver === 'function' ? n
 }) : null;
 
 function revealAthleteModalFrameFocus(frame) {
-    if (pageDocument.activeElement !== frame) return;
+    if (document.activeElement !== frame) return;
     cancelAnimationFrame(athleteModalFocusRevealFrame);
     athleteModalFocusRevealFrame = requestAnimationFrame(() => {
         athleteModalFocusRevealFrame = requestAnimationFrame(() => {
             athleteModalFocusRevealFrame = 0;
-            if (!frame.isConnected || modal.style.display !== 'block' || pageDocument.activeElement !== frame) return;
+            if (!frame.isConnected || modal.style.display !== 'block' || document.activeElement !== frame) return;
             const focused = frame.contentDocument?.activeElement;
             if (!focused || focused === frame.contentDocument.body) return;
             focused.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
@@ -2563,8 +2573,8 @@ function activateAthleteModal() {
 }
 
 function rememberAthleteModalOpener(options) {
-    const candidate = options?.returnFocusTo instanceof HTMLElement ? options.returnFocusTo : pageDocument.activeElement;
-    if (candidate instanceof HTMLElement && candidate.isConnected && candidate !== pageDocument.body
+    const candidate = options?.returnFocusTo instanceof HTMLElement ? options.returnFocusTo : document.activeElement;
+    if (candidate instanceof HTMLElement && candidate.isConnected && candidate !== document.body
         && !modal.contains(candidate) && !candidate.closest('[hidden], [inert]')) {
         athleteDialogReturnFocus = captureAthleteModalOpener(candidate);
     }
@@ -2617,7 +2627,7 @@ function getAthleteModalFocusables(root = modal) {
 
 function containAthleteModalFocus(event) {
     if (event.key !== 'Tab' || event.defaultPrevented || modal.style.display !== 'block') return;
-    if (document.querySelector('.lwc-viewer[open]')) return;
+    if (runtimeRoot.querySelector('.lwc-viewer[open]')) return;
     // The athlete share sheet lives inside this dialog, independently of the
     // site's shared sheet. Keep its keyboard loop above the profile controls.
     const focusRoot = modal.querySelector('#athleteShareMenu:not([hidden])') || modal;
@@ -2650,7 +2660,7 @@ modal.addEventListener('load', event => {
     // A navigating frame can discard its focused document. Keep entry focus
     // inside the open profile rather than leaving it on the page body.
     if (modal.style.display === 'block' && !modal.classList.contains('fade-out')
-        && pageDocument.activeElement === pageDocument.body) closeBtn.focus({ preventScroll: true });
+        && document.activeElement === document.body) closeBtn.focus({ preventScroll: true });
 }, true);
 document.addEventListener('keydown', containAthleteModalFocus);
 
@@ -2727,14 +2737,14 @@ function deferInactiveProfileContent(element) {
 }
 
 function hideAthleteLoadError() {
-    const error = document.getElementById('athleteLoadError');
+    const error = getRuntimeElementById('athleteLoadError');
     if (!error) return;
     error.hidden = true;
     deferInactiveProfileContent(error);
 }
 
 function deferUnavailableProfileFacts() {
-    document.querySelectorAll('.athlete-info-table tr[hidden]').forEach(deferInactiveProfileContent);
+    runtimeRoot.querySelectorAll('.athlete-info-table tr[hidden]').forEach(deferInactiveProfileContent);
 }
 
 function setProfileProBadge(badge, isPro) {
@@ -2751,18 +2761,18 @@ function setProfileProBadge(badge, isPro) {
 }
 
 function ensureAthleteModalDeferredSections() {
-    if (document.getElementById('events-frame') && document.getElementById('athlete-biomarkers') && document.getElementById('athlete-proofs')) {
+    if (getRuntimeElementById('events-frame') && getRuntimeElementById('athlete-biomarkers') && getRuntimeElementById('athlete-proofs')) {
         return;
     }
 
-    const modalContent = document.querySelector('.modal-content');
-    const template = document.getElementById('athleteModalDeferredSectionsTemplate');
+    const modalContent = runtimeRoot.querySelector('.modal-content');
+    const template = getRuntimeElementById('athleteModalDeferredSectionsTemplate');
     if (!modalContent || !template) return;
 
     modalContent.appendChild(template.content.cloneNode(true));
 
     if (typeof window.__sendThemeToEventsFrame === 'function') {
-        const frame = document.getElementById('events-frame');
+        const frame = getRuntimeElementById('events-frame');
         if (frame && !frame.dataset.themeBound) {
             frame.addEventListener('load', function () {
                 window.__sendThemeToEventsFrame(frame);
@@ -2773,7 +2783,7 @@ function ensureAthleteModalDeferredSections() {
 }
 
 function resetAthleteEventsFrame(athleteSlug) {
-    const eventsFrame = document.getElementById('events-frame');
+    const eventsFrame = getRuntimeElementById('events-frame');
     if (!eventsFrame) return null;
 
     const freshFrame = eventsFrame.cloneNode(false);
@@ -2794,7 +2804,7 @@ function resetAthleteEventsFrame(athleteSlug) {
 }
 
 function resetModalForLoading(athleteSlug, allowPaging = false) {
-    const modalContent = document.querySelector('.modal-content');
+    const modalContent = runtimeRoot.querySelector('.modal-content');
     if (!modalContent) return null;
     // Reset the old scroll before changing content/styles; writing scrollTop
     // after those changes synchronously laid out the whole new profile.
@@ -2806,7 +2816,7 @@ function resetModalForLoading(athleteSlug, allowPaging = false) {
     ensureAthleteModalDeferredSections();
     resetAthleteShareState();
     if (!allowPaging) modal.querySelectorAll('.athlete-step').forEach(button => { button.disabled = true; });
-    const viewer = document.querySelector('.lwc-viewer[open]');
+    const viewer = runtimeRoot.querySelector('.lwc-viewer[open]');
     if (viewer) closeEnlargedView(viewer);
     modal._historyClosePending = false;
 
@@ -2821,7 +2831,7 @@ function resetModalForLoading(athleteSlug, allowPaging = false) {
     if (modalContent.dataset.serverRenderedProfile === athleteSlug) {
         modalContent.classList.add('is-loading');
         modal.style.display = 'block';
-        document.getElementById('shareAthleteProfile').disabled = true;
+        getRuntimeElementById('shareAthleteProfile').disabled = true;
         hideAthleteLoadError();
         activateAthleteModal();
         return modalContent;
@@ -2834,61 +2844,61 @@ function resetModalForLoading(athleteSlug, allowPaging = false) {
     delete modalContent.dataset.profileImageId;
 
     hideAthleteLoadError();
-    document.querySelectorAll('#detailsModal .pro-badge, #stickyProBadge').forEach(badge => setProfileProBadge(badge, false));
+    runtimeRoot.querySelectorAll('#detailsModal .pro-badge, #stickyProBadge').forEach(badge => setProfileProBadge(badge, false));
 
-    const stickyHeader = document.getElementById('modalStickyHeader');
+    const stickyHeader = getRuntimeElementById('modalStickyHeader');
     if (stickyHeader) {
         stickyHeader.classList.remove('visible');
     }
 
-    const athleteNameElement = document.getElementById('athleteName');
+    const athleteNameElement = getRuntimeElementById('athleteName');
     if (athleteNameElement) athleteNameElement.textContent = 'Loading...';
-    const athleteRankings = document.getElementById('athleteRankings');
+    const athleteRankings = getRuntimeElementById('athleteRankings');
     if (athleteRankings) {
         athleteRankings.replaceChildren();
         athleteRankings.hidden = true;
     }
-    const stickyAthleteName = document.getElementById('stickyAthleteName');
+    const stickyAthleteName = getRuntimeElementById('stickyAthleteName');
     if (stickyAthleteName) stickyAthleteName.textContent = 'Loading...';
-    const stickyPortrait = document.getElementById('stickyAthletePortrait');
+    const stickyPortrait = getRuntimeElementById('stickyAthletePortrait');
     if (stickyPortrait) {
         stickyPortrait.removeAttribute('src');
         stickyPortrait.hidden = true;
     }
     renderPortraitFlagMark('');
 
-    const profilePic = document.getElementById('modalProfilePic');
+    const profilePic = getRuntimeElementById('modalProfilePic');
     if (profilePic) {
         profilePic.removeAttribute('src');
         profilePic.removeAttribute('data-full-src');
         profilePic.alt = 'Loading athlete profile picture';
     }
 
-    const modalBadgeStrip = document.getElementById('modalBadgeStrip');
+    const modalBadgeStrip = getRuntimeElementById('modalBadgeStrip');
     if (modalBadgeStrip) {
         setModalBadgeExplainer(modalBadgeStrip, null);
         modalBadgeStrip.replaceChildren();
     }
-    const athleteBio = document.getElementById('athleteBio');
+    const athleteBio = getRuntimeElementById('athleteBio');
     if (athleteBio) {
         athleteBio.textContent = '';
         athleteBio.hidden = true;
         athleteBio.removeAttribute('data-leading-quote');
     }
-    const personalLinkElement = document.getElementById('personalLink');
+    const personalLinkElement = getRuntimeElementById('personalLink');
     if (personalLinkElement) personalLinkElement.style.display = 'none';
-    const mediaContactElement = document.getElementById('mediaContact');
+    const mediaContactElement = getRuntimeElementById('mediaContact');
     if (mediaContactElement) mediaContactElement.style.display = 'none';
-    const proofsGallery = document.getElementById('proofsGallery');
+    const proofsGallery = getRuntimeElementById('proofsGallery');
     if (proofsGallery) proofsGallery.innerHTML = '';
 
-    const eventsFrame = document.getElementById('events-frame');
+    const eventsFrame = getRuntimeElementById('events-frame');
     if (eventsFrame) {
         resetAthleteEventsFrame(athleteSlug);
     }
 
     disposeBiomarkerHistory();
-    const historySection = document.getElementById('athlete-biomarkers');
+    const historySection = getRuntimeElementById('athlete-biomarkers');
     if (historySection) {
         historySection._biomarkerHistory = null;
         historySection.querySelector('.biomarker-overview-table tbody')?.replaceChildren();
@@ -2962,8 +2972,8 @@ function restoreBodyScroll() {
 // Initialize scroll progress indicator and sticky header
 // Store the scroll listener function reference on the element to allow proper removal
 function initializeScrollProgress(modalContent) {
-    const progressBar = document.getElementById('modalScrollProgress');
-    const stickyHeader = document.getElementById('modalStickyHeader');
+    const progressBar = getRuntimeElementById('modalScrollProgress');
+    const stickyHeader = getRuntimeElementById('modalStickyHeader');
     if (!modalContent) return;
 
     // Remove previous listener if it exists (using stored reference)
@@ -2993,7 +3003,7 @@ function initializeScrollProgress(modalContent) {
         // Show/hide sticky header (show when athlete name starts scrolling out of view)
         // Don't show in guess-mode
         if (stickyHeader && !modalContent.classList.contains('guess-mode')) {
-            const athleteName = document.getElementById('athleteName');
+            const athleteName = getRuntimeElementById('athleteName');
             if (athleteName) {
                 // Get the athlete name's position relative to modal content
                 const nameOffsetTop = athleteName.offsetTop;
@@ -3026,7 +3036,7 @@ function initializeScrollProgress(modalContent) {
 
         // Don't show in guess-mode
         if (stickyHeader && !modalContent.classList.contains('guess-mode')) {
-            const athleteName = document.getElementById('athleteName');
+            const athleteName = getRuntimeElementById('athleteName');
             if (athleteName) {
                 // Get the athlete name's position relative to modal content
                 const nameOffsetTop = athleteName.offsetTop;
@@ -3066,7 +3076,7 @@ function setupScrollToSectionNavigation(modalContent) {
 
     // Add smooth scroll behavior when clicking section links
     sections.forEach(section => {
-        const sectionEl = document.getElementById(section.id);
+        const sectionEl = getRuntimeElementById(section.id);
         if (sectionEl) {
             // Ensure smooth scrolling when programmatically scrolled to
             sectionEl.scrollIntoView = (function(original) {
@@ -3085,7 +3095,7 @@ function setupModalKeyboardNavigation() {
     document.addEventListener('keydown', function(event) {
         if (modal.style.display !== "block") return;
 
-        const modalContent = document.querySelector('.modal-content');
+        const modalContent = runtimeRoot.querySelector('.modal-content');
         if (!modalContent) return;
         if (event.defaultPrevented || (window.LwcImageViewer?.isOpen() || modal.querySelector('#athleteShareMenu:not([hidden])'))) return;
         if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
@@ -3146,10 +3156,10 @@ function isGuessMyAgeDismissBlocked(modalContent) {
 }
 
 // Set up sticky header close button
-const stickyCloseBtn = document.getElementById('stickyCloseBtn');
+const stickyCloseBtn = getRuntimeElementById('stickyCloseBtn');
 if (stickyCloseBtn) {
     stickyCloseBtn.onclick = function() {
-        const modalContent = document.querySelector('.modal-content');
+        const modalContent = runtimeRoot.querySelector('.modal-content');
         if (modalContent && modalContent.classList.contains('guess-mode')) return;
         requestCloseAthleteModal();
     };
@@ -3157,7 +3167,7 @@ if (stickyCloseBtn) {
 
 closeBtn.onclick = function () {
     // Keep an unresolved round locked; a confirmed result reuses this standard close control.
-    const modalContent = document.querySelector('.modal-content');
+    const modalContent = runtimeRoot.querySelector('.modal-content');
     if (isGuessMyAgeDismissBlocked(modalContent)) return;
     requestCloseAthleteModal();
 };
@@ -3170,7 +3180,7 @@ function getAthleteDialogBoardSequence() {
         // The ordinary table is hidden in the flag view. Only the expanded,
         // filtered team links form the sequence the visitor is browsing.
         const bySlug = new Map(athleteResults.map(athlete => [normalizeAthleteSlugForLookup(athlete.athleteSlug || athlete.name), athlete]));
-        return [...pageDocument.querySelectorAll('#flagLeaderboard .flag-athlete-link')]
+        return [...document.querySelectorAll('#flagLeaderboard .flag-athlete-link')]
             .filter(link => link.checkVisibility?.() ?? (link.getClientRects().length > 0
                 && !link.closest('[hidden], details:not([open])')))
             .map(link => bySlug.get(getAthleteSlugFromProfileLink(link)))
@@ -3192,7 +3202,7 @@ function getAthleteDialogNeighbours(slug = modal.querySelector('.modal-content')
 }
 
 function focusAvailableAthleteStep(neighbours) {
-    const focused = pageDocument.activeElement;
+    const focused = document.activeElement;
     if (!focused?.matches('.athlete-step') || !modal.contains(focused) || neighbours[focused.dataset.step]) return;
     const replacement = focused.closest('.athlete-steps')?.querySelector(`.athlete-step:not([data-step="${focused.dataset.step}"])`);
     if (!replacement || !neighbours[replacement.dataset.step]) return;
@@ -3249,7 +3259,7 @@ modal.querySelectorAll('.athlete-step').forEach(button => {
 });
 
 window.addEventListener('click', function (event) {
-    const modalContent = document.querySelector('.modal-content');
+    const modalContent = runtimeRoot.querySelector('.modal-content');
     if (event.target === modal && modalContent && !modalContent.classList.contains('guess-mode')) {
         requestCloseAthleteModal();
     }
@@ -3288,10 +3298,10 @@ function finishAfterTransition(element, property, complete) {
 function closeModal(options) {
     if (!options?.fromHistory) return requestCloseAthleteModal();
     if (modal.classList.contains('fade-out')) return;
-    const modalContent = document.querySelector('.modal-content');
+    const modalContent = runtimeRoot.querySelector('.modal-content');
     if (!modalContent) return;
     modal._historyClosePending = false;
-    const badgeShelf = document.getElementById('modalBadgeStrip');
+    const badgeShelf = getRuntimeElementById('modalBadgeStrip');
     if (badgeShelf) setModalBadgeExplainer(badgeShelf, null);
 
     currentAthleteModalRequestId++;
@@ -3323,7 +3333,7 @@ function closeModal(options) {
             modalContent.classList.remove('guess-mode', 'gma-fast', 'gma-result-ready');
         }
         resetAthleteShareState();
-        document.getElementById('modalStickyHeader')?.classList.remove('visible');
+        getRuntimeElementById('modalStickyHeader')?.classList.remove('visible');
         if (modalContent._scrollProgressListener) {
             modalContent.removeEventListener('scroll', modalContent._scrollProgressListener);
             modalContent._scrollProgressListener = null;
@@ -3337,7 +3347,7 @@ function closeModal(options) {
         resetPageTitle();
         const returnFocusElement = resolveAthleteModalOpener(returnFocus);
         const focusTarget = returnFocusElement?.isConnected && !returnFocusElement.closest('[inert], [hidden]')
-            && returnFocusElement.getClientRects().length ? returnFocusElement : pageDocument.querySelector('a.header-link');
+            && returnFocusElement.getClientRects().length ? returnFocusElement : document.querySelector('a.header-link');
         focusTarget?.focus({ preventScroll: true });
         modal.dispatchEvent(new Event('athlete-dialog-closed'));
     });
@@ -3349,8 +3359,8 @@ function debounceFilterAthletes() {
 }
 
 function toggleClearIcon() {
-    const searchInput = document.getElementById('athleteSearch');
-    const clearIcon = document.querySelector('.clear-icon');
+    const searchInput = getRuntimeElementById('athleteSearch');
+    const clearIcon = runtimeRoot.querySelector('.clear-icon');
 
     if (searchInput.value.trim().length > 0) {
         clearIcon.classList.add('visible');
@@ -3360,9 +3370,9 @@ function toggleClearIcon() {
 }
 
 function clearSearch() {
-    const searchInput = document.getElementById('athleteSearch');
-    const clearIcon = document.querySelector('.clear-icon');
-    const podium = document.querySelector('.podium');
+    const searchInput = getRuntimeElementById('athleteSearch');
+    const clearIcon = runtimeRoot.querySelector('.clear-icon');
+    const podium = runtimeRoot.querySelector('.podium');
 
     searchInput.value = '';
     clearIcon.classList.remove('visible');
@@ -3397,7 +3407,7 @@ const debouncedFilter = (() => {
 })();
 
 function hasActiveLeaderboardState() {
-    const searchInput = document.getElementById('athleteSearch');
+    const searchInput = getRuntimeElementById('athleteSearch');
     const hasSearch = !!(searchInput && searchInput.value.trim().length > 0);
     return hasActiveLeaderboardFilterState() || hasSearch || (!getSelectedLeaderboardState().byFlag && window.LwcLeaderboardOrder.getState().sort !== 'rank');
 }
@@ -3409,7 +3419,7 @@ function hasActiveLeaderboardFilterState() {
 }
 
 function syncAgingClockFilters(currentLeaderboardView) {
-    document.querySelectorAll('input[name="agingClockView"]').forEach(input => {
+    runtimeRoot.querySelectorAll('input[name="agingClockView"]').forEach(input => {
         const isActive = input.value === currentLeaderboardView;
         input.checked = isActive;
         input.closest('label')?.classList.toggle('active', isActive);
@@ -3417,7 +3427,7 @@ function syncAgingClockFilters(currentLeaderboardView) {
 }
 
 function syncFlagFilters(byFlag) {
-    const section = document.getElementById('flag-filter-section');
+    const section = getRuntimeElementById('flag-filter-section');
     if (!section) return;
     section.hidden = byFlag;
     section.querySelectorAll('input[name="flag"]').forEach(input => {
@@ -3427,21 +3437,21 @@ function syncFlagFilters(byFlag) {
 }
 
 function updateActiveFilterSections() {
-    document.querySelectorAll('.filter-section input[type="checkbox"]').forEach(input => {
+    runtimeRoot.querySelectorAll('.filter-section input[type="checkbox"]').forEach(input => {
         input.closest('label')?.classList.toggle('active', input.checked);
     });
 
     const sectionFilters = {
-        'aging-clock-filter-section': document.querySelectorAll('input[name="agingClockView"]:checked').length > 0,
-        'league-track-filter-section': document.querySelectorAll('input[name="leagueTrack"]:checked').length === 1,
-        'division-filter-section': document.querySelectorAll('input[name="division"]:checked').length > 0,
-        'flag-filter-section': document.querySelectorAll('input[name="flag"]:checked').length > 0,
-        'generation-filter-section': document.querySelectorAll('input[name="generation"]:checked').length > 0,
-        'exclusive-filter-section': document.querySelectorAll('input[name="exclusiveLeague"]:checked').length > 0
+        'aging-clock-filter-section': runtimeRoot.querySelectorAll('input[name="agingClockView"]:checked').length > 0,
+        'league-track-filter-section': runtimeRoot.querySelectorAll('input[name="leagueTrack"]:checked').length === 1,
+        'division-filter-section': runtimeRoot.querySelectorAll('input[name="division"]:checked').length > 0,
+        'flag-filter-section': runtimeRoot.querySelectorAll('input[name="flag"]:checked').length > 0,
+        'generation-filter-section': runtimeRoot.querySelectorAll('input[name="generation"]:checked').length > 0,
+        'exclusive-filter-section': runtimeRoot.querySelectorAll('input[name="exclusiveLeague"]:checked').length > 0
     };
 
     Object.entries(sectionFilters).forEach(([sectionId, hasActiveFilter]) => {
-        const section = document.getElementById(sectionId);
+        const section = getRuntimeElementById(sectionId);
         if (!section) return;
 
         section.classList.toggle('has-active-filter', hasActiveFilter);
@@ -3469,9 +3479,8 @@ function updateFilterCountLabel(label, count, available) {
 }
 
 function getViewAllAthletesButton() {
-    // This homepage action intentionally lives outside athleteDialogRuntime.
-    // Cross-component controls must bypass the runtime-scoped document proxy.
-    return pageDocument.getElementById('viewAllAthletesBtn');
+    // This homepage action lives outside the leaderboard.
+    return document.getElementById('viewAllAthletesBtn');
 }
 
 function updateViewAllAthletesButton(count, updateSummary = true, allowMotion = true) {
@@ -3514,36 +3523,36 @@ function selectionGhost(chip, rect, flight) {
 }
 
 function updateLeaderboardSelectionSummary(count, allowMotion) {
-    const summary = document.getElementById('leaderboardSelectionSummary');
+    const summary = getRuntimeElementById('leaderboardSelectionSummary');
     if (!summary || !Number.isFinite(count)) return;
     const state = getSelectedLeaderboardState();
     const unit = state.byFlag ? 'flag' : 'athlete';
     const resultLabel = `${count} ${unit}${count === 1 ? '' : 's'}`;
-    const resultCount = document.getElementById('leaderboardResultCount');
-    const showResults = document.getElementById('showLeaderboardResults');
-    const chips = document.getElementById('leaderboardSelectionChips');
-    const toggle = document.querySelector('.sidebar-toggle');
+    const resultCount = getRuntimeElementById('leaderboardResultCount');
+    const showResults = getRuntimeElementById('showLeaderboardResults');
+    const chips = getRuntimeElementById('leaderboardSelectionChips');
+    const toggle = runtimeRoot.querySelector('.sidebar-toggle');
     const choices = [];
     const viewLabels = { bortz: 'Bortz age', pheno: 'Pheno age', improvement: 'Pheno improvement', 'bortz-improvement': 'Bortz improvement', crowd: 'Crowd age' };
-    if (state.byFlag) choices.push({ key: 'by-flag', source: document.querySelector('label[for="group-flags"]'), label: 'By Flag', remove: () => { document.getElementById('group-flags').checked = false; } });
-    if (state.view !== 'ultimate') choices.push({ key: `view:${state.view}`, source: document.querySelector(`label[for="view-${CSS.escape(state.view)}"]`), label: viewLabels[state.view], remove: () => { document.getElementById('view-ultimate').checked = true; } });
+    if (state.byFlag) choices.push({ key: 'by-flag', source: runtimeRoot.querySelector('label[for="group-flags"]'), label: 'By Flag', remove: () => { getRuntimeElementById('group-flags').checked = false; } });
+    if (state.view !== 'ultimate') choices.push({ key: `view:${state.view}`, source: runtimeRoot.querySelector(`label[for="view-${CSS.escape(state.view)}"]`), label: viewLabels[state.view], remove: () => { getRuntimeElementById('view-ultimate').checked = true; } });
     for (const name of ['leagueTrack', 'division', 'generation', 'exclusiveLeague', 'flag']) {
         if (name === 'flag' && state.byFlag) continue;
         if (name === 'leagueTrack' && state.leagueTracks.length !== 1) continue;
-        document.querySelectorAll(`input[name="${name}"]:checked`).forEach(input => {
+        runtimeRoot.querySelectorAll(`input[name="${name}"]:checked`).forEach(input => {
             const label = name === 'leagueTrack' ? getLeagueTrackLabel(input.value) : input.value;
             choices.push({ key: `${name}:${input.value}`, source: input.closest('label'), label, remove: () => { input.checked = false; } });
         });
     }
     const filterCount = choices.length;
-    const search = document.getElementById('athleteSearch');
+    const search = getRuntimeElementById('athleteSearch');
     if (search?.value.trim()) choices.push({ key: 'search', label: `Search: ${search.value.trim()}`, remove: () => { search.value = ''; toggleClearIcon(); } });
 
     const previous = new Map(Array.from(chips.children, chip => [chip.dataset.chipKey, chip]));
     const changed = previous.size !== choices.length || choices.some(choice => !previous.has(choice.key));
     const motion = allowMotion && typeof chips.animate === 'function' && document.documentElement.dataset.lwcMotion === 'on'
         && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const sheetOpen = changed && isMobileDrawerViewport() && document.querySelector('.sidebar.expanded');
+    const sheetOpen = changed && isMobileDrawerViewport() && runtimeRoot.querySelector('.sidebar.expanded');
     const moveChips = motion && changed && !sheetOpen;
     const before = new Map();
     if (changed) {
@@ -3585,10 +3594,10 @@ function updateLeaderboardSelectionSummary(count, allowMotion) {
             close.textContent = '×';
             close.setAttribute('aria-hidden', 'true');
             button.append(document.createElement('span'), close);
-            button.addEventListener('click', () => {
+            button.addEventListener('click', event => {
                 const neighbor = button.nextElementSibling || button.previousElementSibling || toggle;
                 currentSelectionChoices.find(item => item.key === button.dataset.chipKey)?.remove();
-                performFilter();
+                performFilter({ animateLeague: event.isTrusted });
                 (neighbor?.isConnected ? neighbor : toggle)?.focus({ preventScroll: true });
             });
         }
@@ -3599,7 +3608,7 @@ function updateLeaderboardSelectionSummary(count, allowMotion) {
         if (button !== next) chips.insertBefore(button, next);
         next = button.nextElementSibling;
     }
-    document.getElementById('clearLeaderboardSelection').hidden = !choices.length;
+    getRuntimeElementById('clearLeaderboardSelection').hidden = !choices.length;
 
     if (motion && sheetOpen && showResults && choices.some(choice => !previous.has(choice.key))) {
         animateSelection(showResults, [{ transform: 'scale(1)' }, { transform: 'scale(1.035)', boxShadow: '0 0 0 3px var(--lwc-accent-soft)' }, { transform: 'scale(1)' }], { duration: 320 });
@@ -3638,8 +3647,8 @@ function updateLeaderboardSelectionSummary(count, allowMotion) {
 }
 
 function updateLeaderboardStateIndicator() {
-    const sidebarToggle = document.querySelector('.sidebar-toggle');
-    const sidebar = document.querySelector('.sidebar');
+    const sidebarToggle = runtimeRoot.querySelector('.sidebar-toggle');
+    const sidebar = runtimeRoot.querySelector('.sidebar');
 
     const hasActiveState = hasActiveLeaderboardFilterState();
     if (sidebarToggle) {
@@ -3648,7 +3657,7 @@ function updateLeaderboardStateIndicator() {
     if (sidebar) {
         sidebar.classList.toggle('has-active-state', hasActiveState);
     }
-    const clearFiltersButton = document.getElementById('clearSidebarFiltersBtn');
+    const clearFiltersButton = getRuntimeElementById('clearSidebarFiltersBtn');
     if (clearFiltersButton) {
         clearFiltersButton.setAttribute('aria-hidden', hasActiveState ? 'false' : 'true');
         clearFiltersButton.tabIndex = hasActiveState ? 0 : -1;
@@ -3656,12 +3665,12 @@ function updateLeaderboardStateIndicator() {
 }
 
 function clearSidebarFilters() {
-    document.querySelectorAll('input[name="division"], input[name="flag"], input[name="generation"], input[name="exclusiveLeague"], input[name="leagueTrack"]').forEach(input => {
+    runtimeRoot.querySelectorAll('input[name="division"], input[name="flag"], input[name="generation"], input[name="exclusiveLeague"], input[name="leagueTrack"]').forEach(input => {
         input.checked = false;
     });
 
-    document.getElementById('group-flags').checked = false;
-    const ultimateView = document.getElementById('view-ultimate');
+    getRuntimeElementById('group-flags').checked = false;
+    const ultimateView = getRuntimeElementById('view-ultimate');
     if (ultimateView) {
         ultimateView.checked = true;
     }
@@ -3670,31 +3679,31 @@ function clearSidebarFilters() {
 }
 
 function showAllAthletes() {
-    const searchInput = document.getElementById('athleteSearch');
+    const searchInput = getRuntimeElementById('athleteSearch');
     if (searchInput) {
         searchInput.value = '';
     }
 
-    document.querySelector('.clear-icon')?.classList.remove('visible');
+    runtimeRoot.querySelector('.clear-icon')?.classList.remove('visible');
     window.removeAllHighlights();
     clearSidebarFilters();
 }
 
 function getSelectedLeaderboardState() {
-    const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
-    const byFlag = document.getElementById('group-flags')?.checked || false;
+    const viewRadio = runtimeRoot.querySelector('input[name="leaderboardView"]:checked');
+    const byFlag = getRuntimeElementById('group-flags')?.checked || false;
     return {
         byFlag,
         ordering: window.LwcLeaderboardOrder.getState(),
-        divisions: Array.from(document.querySelectorAll('input[name="division"]:checked'))
+        divisions: Array.from(runtimeRoot.querySelectorAll('input[name="division"]:checked'))
             .map(checkbox => checkbox.value),
-        flags: byFlag ? [] : Array.from(document.querySelectorAll('input[name="flag"]:checked'))
+        flags: byFlag ? [] : Array.from(runtimeRoot.querySelectorAll('input[name="flag"]:checked'))
             .map(checkbox => getCanonicalFlagName(checkbox.value)),
-        generations: Array.from(document.querySelectorAll('input[name="generation"]:checked'))
+        generations: Array.from(runtimeRoot.querySelectorAll('input[name="generation"]:checked'))
             .map(checkbox => checkbox.value),
-        exclusiveLeagues: Array.from(document.querySelectorAll('input[name="exclusiveLeague"]:checked'))
+        exclusiveLeagues: Array.from(runtimeRoot.querySelectorAll('input[name="exclusiveLeague"]:checked'))
             .map(checkbox => checkbox.value),
-        leagueTracks: Array.from(document.querySelectorAll('input[name="leagueTrack"]:checked'))
+        leagueTracks: Array.from(runtimeRoot.querySelectorAll('input[name="leagueTrack"]:checked'))
             .map(checkbox => checkbox.value),
         view: viewRadio ? viewRadio.value.toLowerCase() : 'ultimate'
     };
@@ -3713,7 +3722,7 @@ window.getFullLeaderboardUrlWithCurrentState = function () {
     return buildLeaderboardNavigationUrl(getSelectedLeaderboardState());
 };
 
-function buildLeaderboardNavigationUrl(state, searchQuery = document.getElementById('athleteSearch')?.value.trim() || '') {
+function buildLeaderboardNavigationUrl(state, searchQuery = getRuntimeElementById('athleteSearch')?.value.trim() || '') {
     const url = new URL(window.location.href);
     url.pathname = '/leaderboard';
     for (const key of ['athlete', 'guessmyage', 'search', 'filters', 'view']) url.searchParams.delete(key);
@@ -3766,14 +3775,14 @@ function updateFullLeaderboardLink() {
 }
 
 function getLeaderboardSelectionKey() {
-    return JSON.stringify([getSelectedLeaderboardState(), document.getElementById('athleteSearch')?.value || '']);
+    return JSON.stringify([getSelectedLeaderboardState(), getRuntimeElementById('athleteSearch')?.value || '']);
 }
 
 function updateLeaderboardStructuredData(entries) {
     // This partial also powers homepage and profile dialogs. Only a full ranking page
     // has the list as its main subject; never replace a profile's Person with its backdrop.
-    if (!pageDocument.querySelector('main[data-leaderboard-page="full"]')) return;
-    const script = pageDocument.getElementById('pageStructuredData');
+    if (!document.querySelector('main[data-leaderboard-page="full"]')) return;
+    const script = document.getElementById('pageStructuredData');
     if (!script) return;
     try {
         const data = JSON.parse(script.textContent);
@@ -3793,7 +3802,7 @@ function updateLeaderboardStructuredData(entries) {
         const filters = [...state.divisions, ...state.flags, ...state.generations, ...state.exclusiveLeagues,
             ...(state.leagueTracks.length === 1 ? state.leagueTracks : [])].map(value => value.toLowerCase()).sort();
         const encode = value => encodeURIComponent(value).replace(/[!'()*]/g, char => '%' + char.charCodeAt(0).toString(16).toUpperCase());
-        const search = document.getElementById('athleteSearch')?.value.trim() || '';
+        const search = getRuntimeElementById('athleteSearch')?.value.trim() || '';
         if (!search && filters.length === 0) {
             selectedUrl.pathname = state.view === 'ultimate' ? '/leaderboard' : '/league/' + state.view;
         }
@@ -3810,7 +3819,7 @@ function updateLeaderboardStructuredData(entries) {
         const id = url + '#ranking';
         const list = {
             '@type': 'ItemList', '@id': id, url,
-            name: pageDocument.getElementById('leaderboardTitle')?.textContent.trim() || 'Longevity World Cup rankings',
+            name: document.getElementById('leaderboardTitle')?.textContent.trim() || 'Longevity World Cup rankings',
             itemListOrder: 'https://schema.org/ItemListOrderAscending',
             numberOfItems: entries.length,
             itemListElement: entries.map(({ athlete, rank, flag }, index) => {
@@ -3873,8 +3882,15 @@ function buildFlagTeams(entries, view) {
     return teams;
 }
 
-function renderFlagTeams(teams, view) {
-    const container = document.getElementById('flagLeaderboard');
+function renderFlagTeams(teams, view, cohort) {
+    // Search and the homepage limit preserve both the rank and its scale.
+    const scales = new Map();
+    for (const team of cohort) {
+        const gains = team.values.reduce((sum, value) => sum + Math.max(0, -value), 0);
+        const losses = team.values.reduce((sum, value) => sum + Math.max(0, value), 0);
+        scales.set(team.view, Math.max(scales.get(team.view) || 0, gains, losses));
+    }
+    const container = getRuntimeElementById('flagLeaderboard');
     const focused = document.activeElement;
     const focusedTeam = focused?.closest?.('.flag-team');
     const focusedHref = focused?.closest?.('.flag-athlete-link')?.getAttribute('href');
@@ -3894,12 +3910,12 @@ function renderFlagTeams(teams, view) {
             ? '<h3 class="flag-section-heading tier-separator tier-separator-cell" aria-label="Start of Amateur track (Pheno Age) section"><span class="tier-separator-label">Amateur track |<a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf" target="_blank" rel="noopener" class="tier-separator-link">Pheno Age</a></span></h3>'
             : section === 'incomplete' && section !== previousSection ? '<h3 class="flag-section-heading">Incomplete teams</h3>' : '';
         previousSection = section;
-        return `${heading}<details class="flag-team${isAmateur ? ' tier-amateur' : ''}" id="${escapeHtml(id)}" data-clock="${team.view}" data-flag="${escapeHtml(team.flag)}" ${open.has(id) ? 'open' : ''}>
+        return `${heading}<details class="flag-team${isAmateur ? ' tier-amateur' : ''}" id="${escapeHtml(id)}" data-clock="${team.view}" data-flag="${escapeHtml(team.flag)}" style="--lwc-unit:${100 / (scales.get(team.view) || 1)}%" ${open.has(id) ? 'open' : ''}>
             <summary title="${labels[team.view]}"><span class="flag-team-rank" data-rank="${team.rank || ''}" aria-label="${team.rank ? `Rank ${team.rank}` : 'Unranked'}">${team.rank || '—'}</span>
             <span class="flag-team-name"><span class="flag-team-icon" aria-hidden="true">${icon ? `<span class="fi fi-${icon}"></span>` : '<i class="fas fa-flag"></i>'}</span><span>${escapeHtml(team.flag)}</span></span>
             <span class="flag-team-portraits" aria-hidden="true">${team.top.map(a => `<img src="${escapeHtml(getAthletePortraitUrl(a))}" data-athlete-name="${escapeHtml(a.displayName)}" alt="" loading="lazy">`).join('')}</span>
             <span class="flag-team-score">${team.rank ? signed(team.score, 2) : `${team.top.length}/3`} <small>${team.rank ? 'years total' : 'to qualify'}</small></span><span class="flag-team-chevron" aria-hidden="true">⌄</span></summary>
-            <ol class="flag-team-athletes" aria-label="Top ${labels[team.view]} athletes for ${escapeHtml(team.flag)}">${team.top.map((a, index) => `<li><a class="flag-athlete-link" href="${escapeHtml(getAthleteProfileHref(a))}"><span class="flag-athlete-rank" title="Rank within this team">${index + 1}</span><img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy"><span class="flag-athlete-name">${escapeHtml(a.displayName)}<small>${hasBortzRankData(a) ? 'Pro' : 'Amateur'}</small></span><span class="flag-athlete-metric">${signed(team.values[index], 1)} <small>years</small></span></a></li>`).join('')}</ol></details>`;
+            <ol class="flag-team-athletes" aria-label="Top ${labels[team.view]} athletes for ${escapeHtml(team.flag)}">${team.top.map((a, index) => `<li data-delta="${team.values[index]}"><a class="flag-athlete-link" href="${escapeHtml(getAthleteProfileHref(a))}"><span class="flag-athlete-rank" title="Rank within this team">${index + 1}</span><img src="${escapeHtml(getAthletePortraitUrl(a))}" alt="" loading="lazy"><span class="flag-athlete-name">${escapeHtml(a.displayName)}<small>${hasBortzRankData(a) ? 'Pro' : 'Amateur'}</small></span><span class="flag-athlete-metric">${signed(team.values[index], 1)} <small>years</small></span></a></li>`).join('')}</ol></details>`;
     }).join('') || '<p class="flag-empty">No flags match this leaderboard.</p>';
     const nextChildren = [...template.content.children].map(incoming => {
         if (incoming.classList.contains('flag-empty')) {
@@ -3927,6 +3943,8 @@ function renderFlagTeams(teams, view) {
             existing._flagMarkup = nextMarkup;
         }
         existing.className = incoming.className;
+        if (existing.style.getPropertyValue('--lwc-unit') !== incoming.style.getPropertyValue('--lwc-unit'))
+            existing.style.setProperty('--lwc-unit', incoming.style.getPropertyValue('--lwc-unit'));
         existing.dataset.clock = incoming.dataset.clock;
         existing.dataset.flag = incoming.dataset.flag;
         return existing;
@@ -3940,7 +3958,7 @@ function renderFlagTeams(teams, view) {
         const matchingLink = retained?.isConnected && focusedHref
             ? [...retained.querySelectorAll('.flag-athlete-link')].find(link => link.getAttribute('href') === focusedHref)
             : null;
-        const focusTarget = focused.isConnected ? focused : matchingLink || (retained?.isConnected ? retained.querySelector('summary') : document.getElementById('athleteSearch'));
+        const focusTarget = focused.isConnected ? focused : matchingLink || (retained?.isConnected ? retained.querySelector('summary') : getRuntimeElementById('athleteSearch'));
         focusTarget?.focus({ preventScroll: true });
     }
     container.querySelectorAll('.flag-team').forEach((element, index) => {
@@ -3949,6 +3967,7 @@ function renderFlagTeams(teams, view) {
         element.querySelectorAll('.flag-team-portraits img').forEach((img, i) => wirePortraitFallback(img, team.top[i]));
         element.querySelectorAll('.flag-athlete-link img').forEach((img, i) => wirePortraitFallback(img, team.top[i]));
     });
+    window.LwcDisclosure?.refresh(container);
 }
 
 const leaderboardRowAnimations = new Map();
@@ -3965,12 +3984,12 @@ function captureLeaderboardRowMotion() {
         finishLeaderboardRowMotion();
         return null;
     }
-    const rows = [...document.querySelectorAll('.leaderboard table tbody tr')]
+    const rows = [...runtimeRoot.querySelectorAll('.leaderboard table tbody tr')]
         .filter(row => row.style.display !== 'none');
     // Measure the old viewport before changing any labels, ranks or filters.
     // Large ranking changes get a short directional cue in their new slot:
     // crossing whole rows (or leaving copies over new results) obscures names.
-    const style = getComputedStyle(pageDocument.documentElement);
+    const style = getComputedStyle(document.documentElement);
     const durationText = style.getPropertyValue('--lwc-motion-base').trim();
     const duration = parseFloat(durationText) * (durationText.endsWith('ms') ? 1 : 1000) || 200;
     const easing = style.getPropertyValue('--lwc-ease-standard').trim() || 'ease';
@@ -4007,39 +4026,29 @@ function moveLeaderboardRows(mutate, motion) {
     }
 }
 
-const unrenderedBadgeSearch = new WeakMap();
+const leaderboardSearchCache = new WeakMap();
 
-function leaderboardBadgeSearchText(athlete, row) {
-    // Use the same badge labels, overflow copy and personal guess as a rendered row.
-    // Cache offscreen athletes so subsequent keystrokes do not rebuild their badges.
-    let guess;
-    if (!row) {
-        guess = window.LwcGuessState?.get(athlete)?.value;
-        const cached = unrenderedBadgeSearch.get(athlete);
-        if (cached && cached.guess === guess && cached.badges === athlete.Badges) return cached.text;
-    }
-    const cell = row || document.createElement('td');
-    if (!row) {
-        cell.className = 'athlete-td';
-        cell.innerHTML = '<span class="athlete-name-links"></span><div class="badge-section"></div>';
-        window.setBadges(athlete, cell);
-    }
-    const text = Array.from(cell.querySelectorAll('.badge-section .badge-class, .athlete-name-links .badge-class'), badge => {
-        const title = badge.getAttribute('title') || badge.getAttribute('data-badge-tip') || '';
-        return `${title} ${badge.getAttribute('aria-label') || ''} ${badge.textContent || ''}`.trim();
-    }).join(' ');
-    if (!row) unrenderedBadgeSearch.set(athlete, { guess, badges: athlete.Badges, text });
-    return text;
+function leaderboardSearchEntry(athlete) {
+    const guess = window.LwcGuessState?.get(athlete)?.value;
+    const badges = athlete.Badges || athlete.badges;
+    const cached = leaderboardSearchCache.get(athlete);
+    if (cached && cached.guess === guess && cached.badges === badges) return cached;
+    const badgeText = window.LwcBadges.searchText(athlete, guess);
+    const text = window.normalizeString([athlete.name, athlete.displayName, badgeText, athlete.mediaContact,
+        athlete.flag, athlete.canonicalFlag, athlete.why].join(' '));
+    const entry = { guess, badges, badgeText, text };
+    leaderboardSearchCache.set(athlete, entry);
+    return entry;
 }
 
-function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
+function performFilter({ updateUrl = true, orderingOnly = false, animateLeague = false } = {}) {
     // Immediate filter changes already consume the current query. A stale timer
     // must not rewrite a profile URL opened from those freshly filtered rows.
     debouncedFilter.cancel();
     const rowMotion = renderedLeaderboardSelection ? captureLeaderboardRowMotion() : null;
     const selectedState = getSelectedLeaderboardState();
-    const query = window.normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
-    const filterKey = JSON.stringify({ ...selectedState, ordering: undefined, search: document.getElementById('athleteSearch').value });
+    const query = window.normalizeString(getRuntimeElementById('athleteSearch').value.trim().toLowerCase());
+    const filterKey = JSON.stringify({ ...selectedState, ordering: undefined, search: getRuntimeElementById('athleteSearch').value });
     const orderingSnapshot = orderingOnly && !selectedState.byFlag && leaderboardOrderingSnapshot?.athletes === athleteResults
         && leaderboardOrderingSnapshot.key === filterKey ? leaderboardOrderingSnapshot : null;
     if (!orderingSnapshot) syncFlagFilters(selectedState.byFlag);
@@ -4052,14 +4061,14 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
 
     // Get leaderboard view (ultimate | bortz | pheno | improvement | bortz-improvement | crowd)
     const currentLeaderboardView = selectedState.view;
-    if (document.querySelector('.leaderboard--flags') && !selectedState.byFlag) {
-        document.querySelector('.podium')?.style.setProperty('display', includePodiumGlobal && !hasActiveLeaderboardState() ? 'flex' : 'none');
+    if (runtimeRoot.querySelector('.leaderboard--flags') && !selectedState.byFlag) {
+        runtimeRoot.querySelector('.podium')?.style.setProperty('display', includePodiumGlobal && !hasActiveLeaderboardState() ? 'flex' : 'none');
     }
-    document.querySelector('.leaderboard')?.classList.toggle('leaderboard--flags', selectedState.byFlag);
-    const searchInput = document.getElementById('athleteSearch');
+    runtimeRoot.querySelector('.leaderboard')?.classList.toggle('leaderboard--flags', selectedState.byFlag);
+    const searchInput = getRuntimeElementById('athleteSearch');
     searchInput.placeholder = selectedState.byFlag ? 'Search flags or athletes' : 'Search athletes';
     searchInput.setAttribute('aria-label', searchInput.placeholder);
-    document.querySelector('label[for="athleteSearch"]').textContent = searchInput.placeholder;
+    runtimeRoot.querySelector('label[for="athleteSearch"]').textContent = searchInput.placeholder;
     if (!orderingSnapshot) {
         syncAgingClockFilters(currentLeaderboardView);
         updateActiveFilterSections();
@@ -4115,7 +4124,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
         return `${prefix}${value.toFixed(decimals)} years`;
     };
 
-    const metricHeader = document.getElementById('leaderboardMetricHeader');
+    const metricHeader = getRuntimeElementById('leaderboardMetricHeader');
     const metricLabel = currentLeaderboardView === 'improvement'
         ? 'Improvement'
         : currentLeaderboardView === 'bortz-improvement'
@@ -4125,10 +4134,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
         metricHeader.textContent = metricLabel;
     }
     window.LwcLeaderboardOrder.sync(selectedState.ordering, selectedState.byFlag, metricLabel);
-    document.querySelector('.podium')?.style.setProperty('display', includePodiumGlobal && !hasActiveLeaderboardState() ? 'flex' : 'none');
-    if (!orderingSnapshot) document.querySelectorAll('.leaderboard table td.age-reduction-td').forEach(cell => {
-        cell.setAttribute('data-label', metricLabel);
-    });
+    runtimeRoot.querySelector('.podium')?.style.setProperty('display', includePodiumGlobal && !hasActiveLeaderboardState() ? 'flex' : 'none');
 
     // Cache each view's order for both the table and proposed sidebar selections.
     const athletesByView = new Map([['ultimate', athleteResults]]);
@@ -4153,22 +4159,14 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     const showAll = uniqueSearchTerms.length === 0;
 
     const athleteBadgeTextByName = new Map();
+    const searchTextByAthlete = new Map();
     if (uniqueSearchTerms.length && !orderingSnapshot) {
-        const renderedRows = new Map([...document.querySelectorAll('.leaderboard tbody tr[data-athlete-name]')]
-            .map(row => [row.dataset.athleteName, row]));
         for (const athlete of athleteResults) {
-            athleteBadgeTextByName.set(athlete.name, leaderboardBadgeSearchText(athlete, renderedRows.get(athlete.name)));
+            const entry = leaderboardSearchEntry(athlete);
+            searchTextByAthlete.set(athlete, entry.text);
+            if (selectedState.byFlag) athleteBadgeTextByName.set(athlete.name, entry.badgeText);
         }
     }
-
-    const searchTextByAthlete = (orderingSnapshot || showAll) ? null : new Map(athleteResults.map(athlete => [athlete, [
-        athlete.name,
-        athlete.displayName,
-        athleteBadgeTextByName.get(athlete.name) || '',
-        athlete.mediaContact || '',
-        `${athlete.flag || ''} ${athlete.canonicalFlag || ''}`,
-        athlete.why || ''
-    ].map(text => window.normalizeString(text.toLowerCase())).join(' ')]));
 
     const getMatchingEntries = (state, applySearch = true) => {
         const divisions = state.divisions.map(value => value.toLowerCase());
@@ -4207,20 +4205,21 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
             const key = JSON.stringify(state);
             if (!matchingTeamsByState.has(key)) {
                 const teams = buildFlagTeams(getMatchingEntries(state, false), state.view);
-                matchingTeamsByState.set(key, teams.filter(team => uniqueSearchTerms.every(term =>
+                const matching = teams.filter(team => uniqueSearchTerms.every(term =>
                     window.normalizeString(team.flag.toLowerCase()).includes(term) ||
-                    team.entries.some(entry => searchTextByAthlete.get(entry.athlete).includes(term)))));
+                    team.entries.some(entry => searchTextByAthlete.get(entry.athlete).includes(term))));
+                matchingTeamsByState.set(key, { cohort: teams, matching });
             }
             return matchingTeamsByState.get(key);
         };
-        const getMatchingFlagEntries = state => getMatchingFlagTeams(state).flatMap(team => team.eligibleEntries);
-        const matchingTeams = getMatchingFlagTeams(selectedState);
-        renderFlagTeams(matchingTeams.slice(0, maxAthletesGlobal), currentLeaderboardView);
+        const getMatchingFlagEntries = state => getMatchingFlagTeams(state).matching.flatMap(team => team.eligibleEntries);
+        const { cohort, matching: matchingTeams } = getMatchingFlagTeams(selectedState);
+        renderFlagTeams(matchingTeams.slice(0, maxAthletesGlobal), currentLeaderboardView, cohort);
         markFlagSearchReasons(uniqueSearchTerms, matchingTeams, athleteBadgeTextByName);
         updateViewAllAthletesButton(matchingTeams.length, true, updateUrl);
         updateFilterCounts(selectedState, getMatchingFlagEntries, getMatchingFlagEntries(selectedState));
-        updateLeaderboardTitles(selectedState);
-        document.querySelector('.podium')?.style.setProperty('display', 'none');
+        updateLeaderboardTitles(selectedState, animateLeague);
+        runtimeRoot.querySelector('.podium')?.style.setProperty('display', 'none');
         updateLeaderboardStructuredData(matchingTeams.slice(0, maxAthletesGlobal));
         finishLeaderboardFilter(selectedState, query, updateUrl);
         return;
@@ -4230,7 +4229,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     if (orderingSnapshot) closeSearchReason();
     leaderboardOrderingSnapshot = { key: filterKey, athletes: athleteResults, entries: cohortEntries };
     const matchingEntries = window.LwcLeaderboardOrder.sort(cohortEntries, selectedState.ordering);
-    const tableBody = document.querySelector('.leaderboard table tbody');
+    const tableBody = runtimeRoot.querySelector('.leaderboard table tbody');
     tableBody.querySelector('.leaderboard-load-error-row')?.remove();
     const allRows = Array.from(tableBody.querySelectorAll('tr:not(.no-results)'));
     const rowsByName = new Map(allRows.filter(row => row.dataset.athleteName).map(row => [row.dataset.athleteName, row]));
@@ -4251,7 +4250,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     let tierSeparatorRow = tableBody.querySelector('.tier-separator');
 
     // Remove 'blurred' class from all podium items
-    const podiumItems = document.querySelectorAll('.podium-item');
+    const podiumItems = runtimeRoot.querySelectorAll('.podium-item');
     const podiumByName = new Map(Array.from(podiumItems, item => [item.dataset.athleteName, item]));
     podiumItems.forEach(item => {
         item.classList.remove('blurred');
@@ -4270,7 +4269,9 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
                 setDisplayedRank(rankCell, entriesByAthlete.get(athlete).rank);
             }
 
-            const ageReductionCell = row.querySelector('.age-reduction');
+            const metricCell = row.querySelector('.age-reduction-td');
+            if (metricCell.dataset.label !== metricLabel) metricCell.dataset.label = metricLabel;
+            const ageReductionCell = metricCell.querySelector('.age-reduction');
             const displayMetric = entriesByAthlete.get(athlete).metric;
             if (ageReductionCell && displayMetric && ageReductionCell.textContent !== displayMetric) {
                 ageReductionCell.textContent = displayMetric;
@@ -4347,10 +4348,10 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
     // An ordering change cannot alter the search or sidebar membership. Keep
     // their DOM and computed counts intact instead of rebuilding them per click.
     if (!orderingSnapshot) {
-        if (document.querySelector('.athlete-name .highlight')) window.removeAllHighlights();
+        if (runtimeRoot.querySelector('.athlete-name .highlight')) window.removeAllHighlights();
         if (uniqueSearchTerms.length) {
             const filteredNames = new Set(matchingEntries.map(entry => entry.athlete.name));
-            document.querySelectorAll('.athlete-name').forEach(element => {
+            runtimeRoot.querySelectorAll('.athlete-name').forEach(element => {
                 if (filteredNames.has(element.closest('[data-athlete-name]')?.dataset.athleteName)) window.highlightText(element, uniqueSearchTerms);
             });
         }
@@ -4371,7 +4372,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
         }
     });
 
-    if (!orderingSnapshot) updateLeaderboardTitles(selectedState);
+    if (!orderingSnapshot) updateLeaderboardTitles(selectedState, animateLeague);
 
     // Display "No Results Found" if Necessary
     displayNoResults(tableRows, podiumItems, query);
@@ -4379,7 +4380,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
 
     // Hide podium athletes' rows if no filters/search are applied and includePodiumGlobal is true
     if (hidePodiumRowsInTable) {
-        document.querySelectorAll('.leaderboard table tbody tr.podium-athlete').forEach(row => {
+        runtimeRoot.querySelectorAll('.leaderboard table tbody tr.podium-athlete').forEach(row => {
             row.style.display = 'none';
         });
     }
@@ -4400,11 +4401,13 @@ function finishLeaderboardFilter(selectedState, query, updateUrl) {
     const leagueTrackFilterActive = selectedLeagueTracks.length === 1;
     updateLeaderboardStateIndicator();
     scheduleLeaderboardTableHeightSync();
-    renderedLeaderboardSelection = getLeaderboardSelectionKey();
+    const selection = getLeaderboardSelectionKey();
+    const selectionChanged = Boolean(renderedLeaderboardSelection && renderedLeaderboardSelection !== selection);
+    renderedLeaderboardSelection = selection;
     // All row cues compare the same committed selection. Reading every filter
     // again for each athlete turns a single input into thousands of DOM queries.
     renderedStandingsComparable = !hasActiveLeaderboardState();
-    pageDocument.dispatchEvent(new Event('lwc:standings-ready'));
+    document.dispatchEvent(new CustomEvent('lwc:standings-ready', { detail: { selectionChanged } }));
 
     // Initial hydration must preserve direct rank/profile fragments and unrelated URL state.
     if (!updateUrl) {
@@ -4466,24 +4469,15 @@ function finishLeaderboardFilter(selectedState, query, updateUrl) {
 }
 
 function updateRankingExplanation(currentLeaderboardView, byFlag = getSelectedLeaderboardState().byFlag) {
-    const explanation = document.getElementById('rankingExplanation');
+    const explanation = getRuntimeElementById('rankingExplanation');
     if (!explanation) return;
-
-    const explanations = {
-        ultimate: '<strong><a href="/ruleset#point-system-ranking">Ultimate League</a></strong> ranks Pro athletes before Amateur athletes, then by effective age reduction and tie-breakers within each track.',
-        bortz: '<strong><a href="/bortz-age">Bortz age</a></strong> estimates biological age from advanced blood-test markers.',
-        pheno: '<strong><a href="/pheno-age">Pheno age</a></strong> estimates biological age from common blood-test markers.',
-        improvement: '<strong>Pheno improvement</strong> ranks each athlete’s latest <a href="/pheno-age">pheno age</a> against their worst pheno age.',
-        'bortz-improvement': '<strong>Bortz improvement</strong> ranks each athlete’s latest <a href="/bortz-age">bortz age</a> against their worst bortz age.',
-        crowd: '<strong>Crowd age</strong> is a visual age estimate from visitors. Athletes qualify once they reach 100 accepted guesses.'
-    };
 
     const html = byFlag
         ? (currentLeaderboardView === 'ultimate'
             ? 'Top-three total age reduction. Complete Bortz teams first, then complete Pheno teams.'
             : 'Top-three total years. Lower wins.')
-        : explanations[currentLeaderboardView] || '';
-    explanation.innerHTML = html;
+        : getRuntimeElementById('ranking-copy-' + currentLeaderboardView)?.innerHTML || '';
+    if (explanation.innerHTML !== html) explanation.innerHTML = html;
     explanation.classList.toggle('is-visible', html.length > 0);
 }
 
@@ -4563,44 +4557,110 @@ function buildLeaderboardPresentation(state) {
     return { ...viewPresentation, accessibleLabel: viewPresentation.documentTitle };
 }
 
-function syncCollapsedTitleHeight() {
-    scheduleLeaderboardTableHeightSync();
-}
-
 function measureCollapsedTitleHeight() {
-    const collapsedTitle = document.querySelector('.collapsed-title');
+    const collapsedTitle = runtimeRoot.querySelector('.collapsed-title');
     if (!collapsedTitle || collapsedTitle.getClientRects().length === 0 || collapsedTitle.clientHeight <= 0) return null;
 
     // Short result sets still need room for the complete league name.
     // Measure the visible rail, independently of the current row count. Its
     // icon follows the table head and can be taller than the drawer heading.
-    const heading = document.querySelector('.sidebar-rail-icon') || document.querySelector('.sidebar-heading');
+    const heading = runtimeRoot.querySelector('.sidebar-rail-icon') || runtimeRoot.querySelector('.sidebar-heading');
     if (!heading) return null;
     return Math.ceil(heading.getBoundingClientRect().height + collapsedTitle.scrollHeight);
 }
 
-function updateLeaderboardTitles(state) {
-    const presentation = buildLeaderboardPresentation(state);
-    const leagueHeading = document.getElementById('leaderboardLeagueTitle');
-    if (leagueHeading) {
-        leagueHeading.textContent = presentation.leagueTitle || '';
-        leagueHeading.hidden = !presentation.leagueTitle;
+const fullLeaderboard = runtimeRoot.closest('main[data-leaderboard-page="full"]');
+const leagueEmblem = fullLeaderboard?.querySelector('.league-emblem');
+
+function leagueEmblemClasses(state) {
+    // Follow the filter panel's group order. Sort within a group so server
+    // rendering and hydration agree even when flag counts or row order differ.
+    const glyph = icon => 'fas ' + (icon || 'fa-trophy') + ' filter-icon';
+    const classes = [];
+    function add(values, iconClass) {
+        if (!values.length || classes.length === 2) return;
+        const ordered = values.length === 1 ? values : [...values].sort();
+        for (const value of ordered) {
+            classes.push(iconClass(value));
+            if (classes.length === 2) break;
+        }
     }
-    const collapsedTitle = document.querySelector('.collapsed-title');
+    if (state.leagueTracks.length === 1) add(state.leagueTracks, value => glyph(window.TryGetLeagueTrackFaIcon(value)));
+    add(state.divisions, value => glyph(window.TryGetDivisionFaIcon(value)));
+    add(state.generations, value => glyph(window.TryGetGenerationFaIcon(value)));
+    add(state.exclusiveLeagues, value => glyph(window.TryGetExclusiveLeagueFaIcon(value)));
+    add(state.flags, value => {
+        const code = getFlagIconCode(value);
+        return code ? 'fi fi-' + code + ' lwc-flag-icon' : glyph('fa-flag');
+    });
+    return classes;
+}
+
+function updateLeagueMasthead(state, heading, titleChanged, animateLeague) {
+    if (!leagueEmblem) return;
+    const active = !heading.hidden;
+    if (fullLeaderboard.hasAttribute('data-league') !== active) {
+        fullLeaderboard.toggleAttribute('data-league', active);
+        scheduleLeaderboardTableHeightSync();
+    }
+    const classes = (active ? leagueEmblemClasses(state) : [])
+        .map((value, index) => value + (index ? ' league-emblem-badge' : ' league-emblem-mark'));
+    const changed = classes.length !== leagueEmblem.childElementCount ||
+        classes.some((value, index) => value !== leagueEmblem.children[index].className);
+    if (changed) {
+        leagueEmblem.replaceChildren(...classes.map(value => {
+            const mark = document.createElement(value.startsWith('fi ') ? 'span' : 'i');
+            mark.className = value;
+            mark.setAttribute('aria-hidden', 'true');
+            return mark;
+        }));
+    }
+    if (leagueEmblem.hidden === active) leagueEmblem.hidden = !active;
+    if (!active || !animateLeague || !(changed || titleChanged) || document.documentElement.dataset.lwcMotion !== 'on' ||
+        matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    for (const target of [leagueEmblem, heading]) {
+        for (const previous of target.getAnimations()) previous.cancel();
+    }
+    leagueEmblem.animate([
+        { transform: 'scale(.55) rotate(-8deg)', opacity: 0 },
+        { transform: 'scale(1.08) rotate(2deg)', opacity: 1, offset: .6 },
+        { transform: 'none', opacity: 1 },
+    ], { duration: 460, easing: 'cubic-bezier(0.34, 1.32, 0.64, 1)' });
+    heading.animate([
+        { opacity: 0, transform: 'translateY(12px)', clipPath: 'inset(0 0 100% 0)' },
+        { opacity: 1, transform: 'none', clipPath: 'inset(0 0 0 0)' },
+    ], { duration: 380, delay: 60, easing: getComputedStyle(heading).getPropertyValue('--lwc-ease-enter').trim() || 'ease', fill: 'backwards' });
+}
+
+function updateLeaderboardTitles(state, animateLeague = false) {
+    const presentation = buildLeaderboardPresentation(state);
+    const leagueHeading = getRuntimeElementById('leaderboardLeagueTitle');
+    if (leagueHeading) {
+        const title = presentation.leagueTitle || '';
+        const titleChanged = leagueHeading.textContent !== title;
+        if (titleChanged) leagueHeading.textContent = title;
+        if (leagueHeading.hidden !== !title) leagueHeading.hidden = !title;
+        updateLeagueMasthead(state, leagueHeading, titleChanged, animateLeague);
+    }
+    const collapsedTitle = runtimeRoot.querySelector('.collapsed-title');
     if (collapsedTitle) {
         const fullRailText = presentation.railText.toUpperCase();
-        collapsedTitle.dataset.fullRailText = fullRailText;
-        collapsedTitle.textContent = fullRailText;
-        collapsedTitle.title = presentation.accessibleLabel;
-        collapsedTitle.setAttribute('aria-label', presentation.accessibleLabel);
-        requestAnimationFrame(syncCollapsedTitleHeight);
+        if (collapsedTitle.dataset.fullRailText !== fullRailText) {
+            collapsedTitle.dataset.fullRailText = fullRailText;
+            collapsedTitle.textContent = fullRailText;
+            scheduleLeaderboardTableHeightSync();
+        }
+        if (collapsedTitle.title !== presentation.accessibleLabel) {
+            collapsedTitle.title = presentation.accessibleLabel;
+            collapsedTitle.setAttribute('aria-label', presentation.accessibleLabel);
+        }
     }
 
-    if (pageDocument.querySelector('[data-leaderboard-page="full"]')) {
+    if (document.querySelector('[data-leaderboard-page="full"]')) {
         currentLeaderboardDocumentTitle = `${presentation.documentTitle} | Longevity World Cup`;
-        const athleteModal = document.getElementById('detailsModal');
+        const athleteModal = getRuntimeElementById('detailsModal');
         if (!athleteModal || athleteModal.style.display !== 'block') {
-            pageDocument.title = currentLeaderboardDocumentTitle;
+            document.title = currentLeaderboardDocumentTitle;
         }
     }
 }
@@ -4614,7 +4674,7 @@ function updateFilterCounts(state, getMatchingEntries, currentEntries) {
         exclusiveLeague: ['exclusiveLeagues', athlete => athlete.exclusiveLeague || ''],
         leagueTrack: ['leagueTracks', athlete => Number.isFinite(athlete.bortzAgeReduction) ? 'Professional' : 'Amateur']
     };
-    document.querySelectorAll('.filter-section label').forEach(label => {
+    runtimeRoot.querySelectorAll('.filter-section label').forEach(label => {
         const input = label.querySelector('input[type="checkbox"]');
         if (!input) return;
         if (state.byFlag && input.name === 'flag') return;
@@ -4643,7 +4703,7 @@ function updateFilterCounts(state, getMatchingEntries, currentEntries) {
         });
         updateFilterCountLabel(label, count, count > 0 || changesResults);
     });
-    document.querySelectorAll('.sidebar .filter-section').forEach(section => {
+    runtimeRoot.querySelectorAll('.sidebar .filter-section').forEach(section => {
         const labels = [...section.querySelectorAll('li > label')];
         const counts = labels.map(label => parseInt(label.querySelector('.filter-count')?.textContent, 10) || 0);
         const max = Math.max(1, ...counts);
@@ -4652,7 +4712,7 @@ function updateFilterCounts(state, getMatchingEntries, currentEntries) {
 }
 
 function displayNoResults(tableRows, podiumItems, query) {
-    const existingMessage = document.querySelector('.no-results');
+    const existingMessage = runtimeRoot.querySelector('.no-results');
 
     // Check if any rows or podium items are visible
     const anyVisible = Array.from(tableRows).some(row => row.style.display !== 'none');
@@ -4667,11 +4727,11 @@ function displayNoResults(tableRows, podiumItems, query) {
         return;
     }
     if (!anyVisible) {
-        const tableBody = document.querySelector('.leaderboard table tbody');
+        const tableBody = runtimeRoot.querySelector('.leaderboard table tbody');
         const noResults = document.createElement('tr');
         noResults.classList.add('no-results');
         noResults.innerHTML = `
-            <td colspan="${document.querySelectorAll('.leaderboard table thead th').length}">
+            <td colspan="${runtimeRoot.querySelectorAll('.leaderboard table thead th').length}">
                 <div class="no-results-empty-state">
                     <p>No athletes match this leaderboard.</p>
                     <button type="button" class="show-all-athletes-btn">Show all athletes</button>
@@ -4683,7 +4743,7 @@ function displayNoResults(tableRows, podiumItems, query) {
 
 let isInitialClick = true; // Track if it’s the first click after focusing
 
-const searchInput = document.getElementById('athleteSearch');
+const searchInput = getRuntimeElementById('athleteSearch');
 
 // Select all text on the first focus
 searchInput?.addEventListener('focus', () => {
@@ -4699,7 +4759,7 @@ searchInput?.addEventListener('click', (event) => {
 });
 
 document.addEventListener('keydown', function (event) {
-    const searchInput = document.getElementById('athleteSearch');
+    const searchInput = getRuntimeElementById('athleteSearch');
     if (document.activeElement === searchInput && event.key === 'Escape' && searchInput.value.trim().length > 0) {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -4708,7 +4768,7 @@ document.addEventListener('keydown', function (event) {
 });
 
 // Modify the input event listener
-document.getElementById('athleteSearch')?.addEventListener('input', function () {
+getRuntimeElementById('athleteSearch')?.addEventListener('input', function () {
     const query = this.value.trim();
     if (query === '') {
         clearSearch(); // Run only when input is cleared
@@ -4717,16 +4777,16 @@ document.getElementById('athleteSearch')?.addEventListener('input', function () 
     }
 });
 
-const clearSearchButton = document.querySelector('.clear-icon');
+const clearSearchButton = runtimeRoot.querySelector('.clear-icon');
 clearSearchButton?.addEventListener('click', function () {
     clearSearch();
-    document.getElementById('athleteSearch')?.focus({ preventScroll: true });
+    getRuntimeElementById('athleteSearch')?.focus({ preventScroll: true });
 });
 clearSearchButton?.addEventListener('keydown', function (event) {
     if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
         event.preventDefault();
         clearSearch();
-        const searchInput = document.getElementById('athleteSearch');
+        const searchInput = getRuntimeElementById('athleteSearch');
         try {
             searchInput?.focus({ preventScroll: true, focusVisible: true });
         }
@@ -4736,12 +4796,12 @@ clearSearchButton?.addEventListener('keydown', function (event) {
     }
 });
 
-const clearSidebarFiltersButton = document.getElementById('clearSidebarFiltersBtn');
-document.getElementById('clearLeaderboardSelection')?.addEventListener('click', () => {
+const clearSidebarFiltersButton = getRuntimeElementById('clearSidebarFiltersBtn');
+getRuntimeElementById('clearLeaderboardSelection')?.addEventListener('click', () => {
     showAllAthletes();
-    document.getElementById('athleteSearch')?.focus({ preventScroll: true });
+    getRuntimeElementById('athleteSearch')?.focus({ preventScroll: true });
 });
-document.getElementById('showLeaderboardResults')?.addEventListener('click', event => closeSidebar({ restoreFocus: true, focusVisible: event.detail === 0 }));
+getRuntimeElementById('showLeaderboardResults')?.addEventListener('click', event => closeSidebar({ restoreFocus: true, focusVisible: event.detail === 0 }));
 clearSidebarFiltersButton?.addEventListener('click', function (event) {
     event.preventDefault();
     event.stopPropagation();
@@ -4753,9 +4813,9 @@ clearSidebarFiltersButton?.addEventListener('click', function (event) {
     }
 });
 function focusAfterClearingSidebarFilters(focusVisible) {
-    const sidebar = document.querySelector('.sidebar');
-    const sidebarClose = document.querySelector('.sidebar-close');
-    const sidebarToggle = document.querySelector('.sidebar-toggle');
+    const sidebar = runtimeRoot.querySelector('.sidebar');
+    const sidebarClose = runtimeRoot.querySelector('.sidebar-close');
+    const sidebarToggle = runtimeRoot.querySelector('.sidebar-toggle');
     requestAnimationFrame(() => {
         const focusTarget = isMobileDrawerViewport() && sidebar?.classList.contains('expanded')
             ? sidebarClose
@@ -4771,9 +4831,9 @@ document.addEventListener('click', function (event) {
 });
 
 window.LwcLeaderboardOrder.bind(() => performFilter({ updateUrl: false, orderingOnly: true }));
-document.getElementById('group-flags')?.addEventListener('change', () => performFilter());
+getRuntimeElementById('group-flags')?.addEventListener('change', () => performFilter());
 
-document.querySelectorAll('input[name="leaderboardView"]').forEach(radio => {
+runtimeRoot.querySelectorAll('input[name="leaderboardView"]').forEach(radio => {
     radio.addEventListener('change', function () {
         performFilter();
     });
@@ -4781,11 +4841,11 @@ document.querySelectorAll('input[name="leaderboardView"]').forEach(radio => {
         if ((event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Spacebar') || this.value === 'ultimate' || !this.checked) return;
 
         event.preventDefault();
-        const defaultViewRadio = document.getElementById('view-ultimate');
+        const defaultViewRadio = getRuntimeElementById('view-ultimate');
         if (!defaultViewRadio) return;
 
         defaultViewRadio.checked = true;
-        document.querySelectorAll('input[name="leaderboardView"].is-keyboard-focus').forEach(input => {
+        runtimeRoot.querySelectorAll('input[name="leaderboardView"].is-keyboard-focus').forEach(input => {
             input.classList.remove('is-keyboard-focus');
         });
         defaultViewRadio.classList.add('is-keyboard-focus');
@@ -4801,11 +4861,11 @@ document.querySelectorAll('input[name="leaderboardView"]').forEach(radio => {
         performFilter();
     });
 });
-document.querySelectorAll('input[name="agingClockView"]').forEach(input => {
+runtimeRoot.querySelectorAll('input[name="agingClockView"]').forEach(input => {
     input.addEventListener('change', function (event) {
         event.stopPropagation();
         const targetView = this.checked ? this.value : 'ultimate';
-        const viewRadio = document.getElementById(`view-${targetView}`);
+        const viewRadio = getRuntimeElementById(`view-${targetView}`);
         if (viewRadio) {
             viewRadio.checked = true;
         }
@@ -4813,12 +4873,12 @@ document.querySelectorAll('input[name="agingClockView"]').forEach(input => {
     });
 });
 // Clicking the active ranking badge again deselects it (none = Ultimate view)
-document.querySelectorAll('.leaderboard-view-switcher .view-badge').forEach(label => {
+runtimeRoot.querySelectorAll('.leaderboard-view-switcher .view-badge').forEach(label => {
     label.addEventListener('click', function (e) {
-        const radio = document.getElementById(label.getAttribute('for'));
+        const radio = getRuntimeElementById(label.getAttribute('for'));
         if (radio && radio.checked) {
             e.preventDefault();
-            document.getElementById('view-ultimate').checked = true;
+            getRuntimeElementById('view-ultimate').checked = true;
             performFilter();
         }
     });
@@ -4831,7 +4891,7 @@ function isRequestedNamedFilter(value) {
 }
 
 function generateDivisionFilters(athletes) {
-    const filterSection = document.querySelector('#division-filter-section ul');
+    const filterSection = runtimeRoot.querySelector('#division-filter-section ul');
     filterSection.innerHTML = ''; // Clear existing filters if any
 
     // Count occurrences of each division
@@ -4859,13 +4919,13 @@ function generateDivisionFilters(athletes) {
         const input = li.querySelector('input[type="checkbox"]');
         input.addEventListener('change', function (event) {
             event.stopPropagation(); // Prevent this event from affecting the sidebar toggle
-            performFilter();
+            performFilter({ animateLeague: event.isTrusted });
         });
     });
 }
 
 function generateFlagFilters(athletes) {
-    const filterSection = document.querySelector('#flag-filter-section ul');
+    const filterSection = runtimeRoot.querySelector('#flag-filter-section ul');
     filterSection.innerHTML = '';
 
     window.LwcFlags.countFlagUsage(athletes, athlete => athlete.canonicalFlag)
@@ -4875,7 +4935,7 @@ function generateFlagFilters(athletes) {
             li.innerHTML = `
         <label data-flag="${escapeHtml(name)}" data-flag-key="${escapeHtml(flagKey)}">
             <input type="checkbox" name="flag" value="${escapeHtml(name)}">
-            <span class="filter-label-copy">${renderFlagLabel(name)} <span class="filter-count-group">(<span class="filter-count">${count}</span>)</span></span>
+            <span class="filter-label-copy">${getFlagIconCode(name) ? renderFlagLabel(name) : renderFilterIcon('fa-flag') + escapeHtml(name)} <span class="filter-count-group">(<span class="filter-count">${count}</span>)</span></span>
         </label>
     `;
             filterSection.appendChild(li);
@@ -4883,13 +4943,13 @@ function generateFlagFilters(athletes) {
             const input = li.querySelector('input[type="checkbox"]');
             input.addEventListener('change', function (event) {
                 event.stopPropagation();
-                performFilter();
+                performFilter({ animateLeague: event.isTrusted });
             });
         });
 }
 
 function generateGenerationFilters(athletes) {
-    const filterSection = document.querySelector('#generation-filter-section ul');
+    const filterSection = runtimeRoot.querySelector('#generation-filter-section ul');
     filterSection.innerHTML = ''; // Clear existing filters if any
 
     // Count occurrences of each generation
@@ -4917,14 +4977,14 @@ function generateGenerationFilters(athletes) {
             const input = li.querySelector('input[type="checkbox"]');
             input.addEventListener('change', function (event) {
                 event.stopPropagation(); // Prevent this event from affecting the sidebar toggle
-                performFilter();
+                performFilter({ animateLeague: event.isTrusted });
             });
         }
     });
 }
 
 function generateExclusiveFilters(athletes) {
-    const filterSection = document.querySelector('#exclusive-filter-section ul');
+    const filterSection = runtimeRoot.querySelector('#exclusive-filter-section ul');
     filterSection.innerHTML = ''; // Clear existing filters if any
 
     const prosperanCount = athletes.reduce((count, athlete) => {
@@ -4936,7 +4996,7 @@ function generateExclusiveFilters(athletes) {
         li.innerHTML = `
         <label data-exclusive-league="Prosperan">
             <input type="checkbox" name="exclusiveLeague" value="Prosperan">
-            <span class="filter-label-copy"><i class="fas fa-umbrella-beach filter-icon" aria-hidden="true"></i> Prosperan <span class="filter-count-group">(<span class="filter-count">${prosperanCount}</span>)</span></span>
+            <span class="filter-label-copy">${renderFilterIcon(window.TryGetExclusiveLeagueFaIcon('Prosperan'))} Prosperan <span class="filter-count-group">(<span class="filter-count">${prosperanCount}</span>)</span></span>
         </label>
     `;
         filterSection.appendChild(li);
@@ -4944,13 +5004,13 @@ function generateExclusiveFilters(athletes) {
         const input = li.querySelector('input[type="checkbox"]');
         input.addEventListener('change', function (event) {
             event.stopPropagation(); // Prevent this event from affecting the sidebar toggle
-            performFilter();
+            performFilter({ animateLeague: event.isTrusted });
         });
     }
 }
 
 function generateLeagueTrackFilters(athletes) {
-    const filterSection = document.querySelector('#league-track-filter-section ul');
+    const filterSection = runtimeRoot.querySelector('#league-track-filter-section ul');
     filterSection.innerHTML = ''; // Clear existing filters if any
 
     const isPro = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
@@ -4976,7 +5036,7 @@ function generateLeagueTrackFilters(athletes) {
         const input = li.querySelector('input[type="checkbox"]');
         input.addEventListener('change', function (event) {
             event.stopPropagation();
-            performFilter();
+            performFilter({ animateLeague: event.isTrusted });
         });
     });
 }
@@ -5027,7 +5087,7 @@ function getModalTitleRankMarkup(rank) {
 }
 
 function renderProfileRankings(athleteData, ultimateRank) {
-    const rankings = document.getElementById('athleteRankings');
+    const rankings = getRuntimeElementById('athleteRankings');
     const ultimateRankText = getModalRankText(ultimateRank);
     const rankingViews = ['bortz', 'pheno', 'bortz-improvement', 'pheno-improvement', 'crowd'];
     const bestView = (athleteData.bestRankCandidates || [])
@@ -5035,7 +5095,7 @@ function renderProfileRankings(athleteData, ultimateRank) {
             && candidate.href && getModalRankText(candidate.rank)
             && (!ultimateRankText || candidate.rank < Number(ultimateRank)))
         .sort(compareBestRankCandidates)[0];
-    const athleteName = document.getElementById('athleteName');
+    const athleteName = getRuntimeElementById('athleteName');
     athleteName.querySelector('.modal-rank-text')?.remove();
     if (ultimateRankText && !bestView) {
         athleteName.insertAdjacentHTML('beforeend', getModalTitleRankMarkup(ultimateRank));
@@ -5062,7 +5122,7 @@ function getModalDetailRankMarkup(rank) {
 
 // The flag rides on the portrait's edge, opposite the PRO badge, and leads to the flag's team.
 function renderPortraitFlagMark(flag) {
-    const mark = document.getElementById('modalFlagMark');
+    const mark = getRuntimeElementById('modalFlagMark');
     if (!mark) return;
     // Loading can open before the flag module arrives; clearing the old mark
     // must not depend on the module that resolves the eventual athlete's flag.
@@ -5100,7 +5160,7 @@ document.addEventListener('keydown', function (event) {
 });
 function closeOpenComponents(options) {
     const closeAll = !!(options && options.closeAll);
-    const enlargedImg = document.querySelector('.lwc-viewer[open]');
+    const enlargedImg = runtimeRoot.querySelector('.lwc-viewer[open]');
     if (enlargedImg) {
         if (options && options.fromHistory) {
             closeEnlargedView(enlargedImg);
@@ -5114,7 +5174,7 @@ function closeOpenComponents(options) {
         if (!closeAll) return;
     }
 
-    const badgeShelf = document.getElementById('modalBadgeStrip');
+    const badgeShelf = getRuntimeElementById('modalBadgeStrip');
     if (badgeShelf?.querySelector('.modal-badge-item.expanded')) {
         setModalBadgeExplainer(badgeShelf, null);
         if (!closeAll) return;
@@ -5122,7 +5182,7 @@ function closeOpenComponents(options) {
 
     // Keep the parent details modal locked until the Guess My Age response is confirmed.
     // Its nested image viewer and share menu remain independently dismissible above this guard.
-    const modalContent = document.querySelector('.modal-content');
+    const modalContent = runtimeRoot.querySelector('.modal-content');
     if (isGuessMyAgeDismissBlocked(modalContent)) return;
 
     if (modal.style.display === "block") {
@@ -5297,7 +5357,7 @@ function getAthleteSlugFromProfileLink(link) {
     }
 }
 
-pageDocument.addEventListener('click', event => {
+document.addEventListener('click', event => {
     if (!isPlainLinkActivation(event) ||
         !(event.target instanceof Element)) {
         return;
@@ -5322,8 +5382,8 @@ pageDocument.addEventListener('click', event => {
 
     const returnFocusTo = link.getClientRects().length > 0
         ? link
-        : pageDocument.activeElement instanceof HTMLElement
-            ? pageDocument.activeElement
+        : document.activeElement instanceof HTMLElement
+            ? document.activeElement
             : null;
     const opened = window.openAthleteModalBySlug(athleteSlug, {
         suppressGuessMyAge: true,
@@ -5347,7 +5407,7 @@ function getLeaguelessURL() {
     const url = new URL(window.location.href);
     const isCanonicalLeaderboardRoute = /^\/(?:league|flag)\/[^/]+\/?$/i.test(url.pathname);
     if (isCanonicalLeaderboardRoute) {
-        url.pathname = pageDocument.querySelector('[data-leaderboard-page="full"]')
+        url.pathname = document.querySelector('[data-leaderboard-page="full"]')
             ? '/leaderboard'
             : '/';
     }
@@ -5374,7 +5434,7 @@ function getAthleteShareOrigin() {
         return window.location.origin;
     }
 
-    const canonicalLink = pageDocument.querySelector('link[rel="canonical"]');
+    const canonicalLink = document.querySelector('link[rel="canonical"]');
     try {
         return canonicalLink && canonicalLink.href
             ? new URL(canonicalLink.href).origin
@@ -5399,9 +5459,9 @@ function setShareButtonState(button, label, disabled) {
 }
 
 async function loadAthleteSharePreview(state, shareUrl) {
-    const previous = document.getElementById('athleteSharePreview');
+    const previous = getRuntimeElementById('athleteSharePreview');
     const figure = previous?.closest('.athlete-share-preview');
-    const menu = document.getElementById('athleteShareMenu');
+    const menu = getRuntimeElementById('athleteShareMenu');
     if (!previous || !figure || !menu) return;
 
     // A distinct element binds load/error events to this opening, including when
@@ -5417,7 +5477,7 @@ async function loadAthleteSharePreview(state, shareUrl) {
     const menuVersion = state.menuVersion;
     const current = () => isCurrentAthleteShare(state) && state.menuVersion === menuVersion
         && !menu.hidden && image.isConnected;
-    const recovery = document.getElementById('athleteShareRecovery');
+    const recovery = getRuntimeElementById('athleteShareRecovery');
     image.onload = () => {
         if (!current() || (recovery && !recovery.hidden)) return;
         figure.classList.add('is-loaded');
@@ -5462,8 +5522,8 @@ function resetAthleteShareState() {
     if (athleteShareState?.feedbackTimer) window.clearTimeout(athleteShareState.feedbackTimer);
     closeAthleteShareMenu();
     athleteShareState = null;
-    setShareButtonState(document.getElementById('shareAthleteProfile'), 'Share', false);
-    const status = document.getElementById('athleteShareStatus');
+    setShareButtonState(getRuntimeElementById('shareAthleteProfile'), 'Share', false);
+    const status = getRuntimeElementById('athleteShareStatus');
     if (status) status.textContent = '';
 }
 
@@ -5509,7 +5569,7 @@ function shouldUseNativeAthleteShare(sharePayload) {
 }
 
 function setShareMenuCopyState(label, disabled) {
-    const copyButton = document.getElementById('copyAthleteProfileLink');
+    const copyButton = getRuntimeElementById('copyAthleteProfileLink');
     if (!copyButton) return;
     copyButton.disabled = false;
     copyButton.setAttribute('aria-disabled', String(!!disabled));
@@ -5520,12 +5580,12 @@ function setShareMenuCopyState(label, disabled) {
 function closeAthleteShareMenu(options) {
     athleteShareLayoutCleanup?.();
     athleteShareLayoutCleanup = null;
-    const menu = document.getElementById('athleteShareMenu');
+    const menu = getRuntimeElementById('athleteShareMenu');
     if (!menu) return false;
     const wasOpen = !menu.hidden;
     if (athleteShareState) athleteShareState.menuVersion++;
     athleteShareState?.previewAbort?.abort();
-    const image = document.getElementById('athleteSharePreview');
+    const image = getRuntimeElementById('athleteSharePreview');
     if (image) {
         image.onload = null;
         image.onerror = null;
@@ -5542,10 +5602,10 @@ function closeAthleteShareMenu(options) {
     menu.style.removeProperty('--athlete-share-available-height');
     menu.style.removeProperty('--athlete-share-offset');
     setShareMenuCopyState('Copy link', false);
-    const recovery = document.getElementById('athleteShareRecovery');
+    const recovery = getRuntimeElementById('athleteShareRecovery');
     if (recovery) recovery.hidden = true;
 
-    const button = document.getElementById('shareAthleteProfile');
+    const button = getRuntimeElementById('shareAthleteProfile');
     if (button) {
         button.setAttribute('aria-expanded', 'false');
         if (wasOpen && options && options.restoreFocus && !button.disabled) {
@@ -5565,7 +5625,7 @@ function positionAthleteShareMenu(menu) {
     menu.style.removeProperty('--athlete-share-available-height');
     menu.style.removeProperty('--athlete-share-offset');
     menu.classList.remove('is-above');
-    const modalContent = document.querySelector('#detailsModal .modal-content');
+    const modalContent = runtimeRoot.querySelector('#detailsModal .modal-content');
     const modalRect = modalContent ? modalContent.getBoundingClientRect() : null;
     const viewportBottom = Math.min(window.innerHeight, modalRect ? modalRect.bottom : window.innerHeight);
     const chrome = [...(modalContent?.querySelectorAll('#closeAthleteDetailsModal, :scope > .athlete-steps button, .modal-sticky-header.visible') || [])]
@@ -5616,7 +5676,7 @@ function getAthleteSharePayload(button) {
 }
 
 function configureAthleteShareMenu(button, sharePayload) {
-    const menu = document.getElementById('athleteShareMenu');
+    const menu = getRuntimeElementById('athleteShareMenu');
     if (!menu) return;
     const state = athleteShareState;
     if (!isCurrentAthleteShare(state)) return;
@@ -5627,10 +5687,10 @@ function configureAthleteShareMenu(button, sharePayload) {
     const encodedUrl = encodeURIComponent(sharePayload.url);
     const encodedEmailBody = encodeURIComponent(`${text}\n\n${sharePayload.url}`);
 
-    const xLink = document.getElementById('shareAthleteProfileX');
-    const facebookLink = document.getElementById('shareAthleteProfileFacebook');
-    const linkedInLink = document.getElementById('shareAthleteProfileLinkedIn');
-    const emailLink = document.getElementById('shareAthleteProfileEmail');
+    const xLink = getRuntimeElementById('shareAthleteProfileX');
+    const facebookLink = getRuntimeElementById('shareAthleteProfileFacebook');
+    const linkedInLink = getRuntimeElementById('shareAthleteProfileLinkedIn');
+    const emailLink = getRuntimeElementById('shareAthleteProfileEmail');
 
     if (xLink) xLink.href = `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`;
     if (facebookLink) facebookLink.href = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
@@ -5643,7 +5703,7 @@ function configureAthleteShareMenu(button, sharePayload) {
         }
     });
 
-    const copyButton = document.getElementById('copyAthleteProfileLink');
+    const copyButton = getRuntimeElementById('copyAthleteProfileLink');
     if (copyButton) {
         setShareMenuCopyState(state.pending === 'copy' ? 'Copying…' : 'Copy link', state.pending === 'copy');
         copyButton.onclick = async (event) => {
@@ -5651,8 +5711,8 @@ function configureAthleteShareMenu(button, sharePayload) {
             event.stopPropagation();
             if (!isCurrentAthleteShare(state) || state.pending) return;
             const menuVersion = state.menuVersion;
-            const recovery = document.getElementById('athleteShareRecovery');
-            const manualLink = document.getElementById('athleteShareLink');
+            const recovery = getRuntimeElementById('athleteShareRecovery');
+            const manualLink = getRuntimeElementById('athleteShareLink');
             if (recovery) recovery.hidden = true;
             state.pending = 'copy';
             setShareMenuCopyState('Copying…', true);
@@ -5662,12 +5722,12 @@ function configureAthleteShareMenu(button, sharePayload) {
                 if (!isCurrentAthleteShare(state) || state.menuVersion !== menuVersion || menu.hidden) return;
                 closeAthleteShareMenu({ restoreFocus: menu.contains(document.activeElement) });
                 setShareButtonState(button, 'Copied', false);
-                document.getElementById('athleteShareStatus').textContent = 'Link copied.';
+                getRuntimeElementById('athleteShareStatus').textContent = 'Link copied.';
                 state.feedbackTimer = window.setTimeout(() => {
                     if (!isCurrentAthleteShare(state)) return;
                     state.feedbackTimer = null;
                     setShareButtonState(button, 'Share', false);
-                    document.getElementById('athleteShareStatus').textContent = '';
+                    getRuntimeElementById('athleteShareStatus').textContent = '';
                 }, 1600);
             } catch (error) {
                 if (!isCurrentAthleteShare(state) || state.menuVersion !== menuVersion || menu.hidden) return;
@@ -5694,7 +5754,7 @@ function configureAthleteShareMenu(button, sharePayload) {
 }
 
 function openAthleteShareMenu(button, sharePayload) {
-    const menu = document.getElementById('athleteShareMenu');
+    const menu = getRuntimeElementById('athleteShareMenu');
     const state = athleteShareState;
     if (!menu || !isCurrentAthleteShare(state)) {
         return;
@@ -5708,7 +5768,7 @@ function openAthleteShareMenu(button, sharePayload) {
     if (state.feedbackTimer) window.clearTimeout(state.feedbackTimer);
     state.feedbackTimer = null;
     setShareButtonState(button, 'Share', false);
-    document.getElementById('athleteShareStatus').textContent = '';
+    getRuntimeElementById('athleteShareStatus').textContent = '';
     state.menuVersion++;
     configureAthleteShareMenu(button, sharePayload);
     menu.hidden = false;
@@ -5716,7 +5776,7 @@ function openAthleteShareMenu(button, sharePayload) {
     void loadAthleteSharePreview(state, sharePayload.url);
     button.setAttribute('aria-expanded', 'true');
 
-    const copyButton = document.getElementById('copyAthleteProfileLink');
+    const copyButton = getRuntimeElementById('copyAthleteProfileLink');
     if (copyButton) {
         copyButton.focus({ preventScroll: true });
     }
@@ -5749,7 +5809,7 @@ function openAthleteShareMenu(button, sharePayload) {
 }
 
 function configureAthleteShareButton(displayName, athleteSlug, ultimateRank) {
-    const button = document.getElementById('shareAthleteProfile');
+    const button = getRuntimeElementById('shareAthleteProfile');
     if (!button || !athleteSlug) return;
     resetAthleteShareState();
     const state = { button, requestId: currentAthleteModalRequestId, pending: null, menuVersion: 0, feedbackTimer: null };
@@ -5773,7 +5833,7 @@ function configureAthleteShareButton(displayName, athleteSlug, ultimateRank) {
         if (!isCurrentAthleteShare(state) || state.pending === 'native') return;
         if (state.feedbackTimer) window.clearTimeout(state.feedbackTimer);
         state.feedbackTimer = null;
-        document.getElementById('athleteShareStatus').textContent = '';
+        getRuntimeElementById('athleteShareStatus').textContent = '';
 
         const sharePayload = getAthleteSharePayload(button);
 
@@ -5800,7 +5860,7 @@ function configureAthleteShareButton(displayName, athleteSlug, ultimateRank) {
 }
 
 document.addEventListener('click', function(event) {
-    const menu = document.getElementById('athleteShareMenu');
+    const menu = getRuntimeElementById('athleteShareMenu');
     const target = event.target && event.target.closest ? event.target : event.target?.parentElement;
     if (!menu || menu.hidden || !target || !target.closest) return;
     if (target.closest('#athleteShareMenu') || target.closest('#shareAthleteProfile')) return;
@@ -5819,23 +5879,23 @@ function handleAthleteModalLoadFailure(modalContent, athleteSlug, options, error
         modalContent.classList.remove('is-loading');
     }
 
-    const athleteNameElement = document.getElementById('athleteName');
+    const athleteNameElement = getRuntimeElementById('athleteName');
     if (athleteNameElement && !preserveServerProfile) athleteNameElement.textContent = 'Athlete details unavailable';
     if (preserveServerProfile && athleteNameElement) {
         // Sharing the readable server profile needs only its name and canonical
         // slug; a failed enhancement must not leave this action disabled.
         configureAthleteShareButton(athleteNameElement.textContent.trim(), athleteSlug);
     }
-    const stickyAthleteName = document.getElementById('stickyAthleteName');
+    const stickyAthleteName = getRuntimeElementById('stickyAthleteName');
     if (stickyAthleteName && !preserveServerProfile) stickyAthleteName.textContent = 'Athlete details unavailable';
-    const profilePic = document.getElementById('modalProfilePic');
+    const profilePic = getRuntimeElementById('modalProfilePic');
     if (profilePic && !preserveServerProfile) profilePic.alt = '';
-    const loadError = document.getElementById('athleteLoadError');
+    const loadError = getRuntimeElementById('athleteLoadError');
     if (loadError) {
         restoreInactiveProfileContent(loadError);
         loadError.hidden = false;
     }
-    const retryButton = document.getElementById('retryAthleteLoad');
+    const retryButton = getRuntimeElementById('retryAthleteLoad');
     if (retryButton) {
         const retryOptions = options
             ? { ...options, restoreEnlargedState: undefined }
@@ -5979,7 +6039,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
             else delete modalContent.dataset.profileImageId;
 
             // Hide sticky header initially
-            const stickyHeader = document.getElementById('modalStickyHeader');
+            const stickyHeader = getRuntimeElementById('modalStickyHeader');
             if (stickyHeader) {
                 stickyHeader.classList.remove('visible');
             }
@@ -5991,7 +6051,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
             // Setup scroll-to-section navigation (optional floating menu for long content)
             setupScrollToSectionNavigation(modalContent);
 
-            var frame = document.getElementById('events-frame');
+            var frame = getRuntimeElementById('events-frame');
             if (frame) {
                 const frameSrc = `/event-board-embed.html?athlete=${encodeURIComponent(athleteSlug)}&rows=all&viewAll=false&linkNames=false&embed=1&theme=dark`;
                 frame.addEventListener('load', function () {
@@ -6002,7 +6062,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
                 frame.src = frameSrc;
             }
 
-            const gmaCard = document.getElementById('guessAgeContainer');
+            const gmaCard = getRuntimeElementById('guessAgeContainer');
 
             // always reset the Guess-My-Age UI first:
             modalContent.classList.remove('guess-mode', 'gma-fast', 'gma-result-ready');
@@ -6036,7 +6096,7 @@ function fetchFullAthleteData(athleteNameText, athleteData, options) {
                 window.LwcGuessState?.markPromptSeen();
             }
 
-            const gmaSkipAllBtn = document.getElementById('gmaSkipAll');
+            const gmaSkipAllBtn = getRuntimeElementById('gmaSkipAll');
             if (gmaSkipAllBtn) {
                 // reveal “Skip All” once they've skipped at least one athlete,
                 // but hide it if they already chose skip-all
@@ -6134,7 +6194,7 @@ async function refreshAthleteAfterStaleGuess(athleteSlug) {
         await fetchFullAthleteData(athleteData.name, athleteData, {
             historyMode: 'preserve'
         });
-        const refreshedModalContent = document.querySelector('#detailsModal .modal-content');
+        const refreshedModalContent = runtimeRoot.querySelector('#detailsModal .modal-content');
         const refreshedProfileImageId = String(fullAthleteData.ProfileImageId || '')
             .trim()
             .toLowerCase();
@@ -6205,31 +6265,31 @@ function populateProfilePace(id, lowestAge, chronologicalAge, orderedAthletes, n
     const pace = Number.isFinite(lowestAge) && Number.isFinite(chronologicalAge) && chronologicalAge > 0
         ? lowestAge / chronologicalAge : null;
     const available = Number.isFinite(pace);
-    document.getElementById(id + 'Container').hidden = !available;
-    document.getElementById(id).textContent = available ? pace.toFixed(2) : '';
+    getRuntimeElementById(id + 'Container').hidden = !available;
+    getRuntimeElementById(id).textContent = available ? pace.toFixed(2) : '';
     const rank = available ? findAthleteIndexByName(orderedAthletes || [], name) + 1 : 0;
-    document.getElementById(id + 'Rank').textContent = rank > 0 ? '#' + rank : '';
+    getRuntimeElementById(id + 'Rank').textContent = rank > 0 ? '#' + rank : '';
 }
 
 function populateModal(fullAthleteData, athleteData, rankSummary) {
-    restoreInactiveProfileContent(document.querySelector('.athlete-info-table'));
+    restoreInactiveProfileContent(runtimeRoot.querySelector('.athlete-info-table'));
     const ultimateRank = rankSummary ? rankSummary.ultimateRank : athleteData.rank;
     const modalDisplayName = (fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name;
     const isPro = athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction);
-    document.querySelectorAll('#detailsModal .pro-badge, #stickyProBadge').forEach(badge => setProfileProBadge(badge, isPro));
+    runtimeRoot.querySelectorAll('#detailsModal .pro-badge, #stickyProBadge').forEach(badge => setProfileProBadge(badge, isPro));
     const shareSlugSource = String(fullAthleteData.AthleteSlug || athleteData.athleteSlug || athleteData.slug || modalDisplayName).replace(/_/g, '-');
     const shareAthleteSlug = window.slugifyName(shareSlugSource, true);
-    const athleteNameElement = document.getElementById('athleteName');
+    const athleteNameElement = getRuntimeElementById('athleteName');
     athleteNameElement.textContent = modalDisplayName;
     renderProfileRankings(athleteData, ultimateRank);
     configureAthleteShareButton(modalDisplayName, shareAthleteSlug, ultimateRank);
 
-    const stickyAthleteName = document.getElementById('stickyAthleteName');
+    const stickyAthleteName = getRuntimeElementById('stickyAthleteName');
     if (stickyAthleteName) {
         stickyAthleteName.textContent = modalDisplayName;
     }
 
-    const profilePic = document.getElementById('modalProfilePic');
+    const profilePic = getRuntimeElementById('modalProfilePic');
     profilePic.src = getAthletePortraitUrl(fullAthleteData);
     profilePic.dataset.fullSrc = fullAthleteData.ProfilePic || profilePic.src;
     profilePic.alt = `${modalDisplayName} Profile Picture`;
@@ -6238,7 +6298,7 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     profilePic.loading = 'eager';
     profilePic.classList.remove('portrait-fallback');
     wirePortraitFallback(profilePic, fullAthleteData);
-    const stickyPortrait = document.getElementById('stickyAthletePortrait');
+    const stickyPortrait = getRuntimeElementById('stickyAthletePortrait');
     if (stickyPortrait) {
         stickyPortrait.dataset.athleteName = modalDisplayName;
         stickyPortrait.dataset.lwcImageRole = profilePic.dataset.lwcImageRole || 'athlete';
@@ -6247,18 +6307,18 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
         stickyPortrait.onerror = () => { stickyPortrait.hidden = true; };
     }
 
-    const athleteProfileEl = document.getElementById('athlete-profile');
+    const athleteProfileEl = getRuntimeElementById('athlete-profile');
     if (athleteProfileEl) {
         if (isPro) athleteProfileEl.classList.add('is-pro');
         else athleteProfileEl.classList.remove('is-pro');
     }
-    const modalStickyHeader = document.getElementById('modalStickyHeader');
+    const modalStickyHeader = getRuntimeElementById('modalStickyHeader');
     if (modalStickyHeader) {
         if (isPro) modalStickyHeader.classList.add('is-pro');
         else modalStickyHeader.classList.remove('is-pro');
     }
 
-    const athleteBio = document.getElementById('athleteBio');
+    const athleteBio = getRuntimeElementById('athleteBio');
     const why = String(fullAthleteData.Why ?? '');
     athleteBio.textContent = why;
     // Match .NET TrimStart without changing any athlete-authored characters.
@@ -6266,18 +6326,18 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     athleteBio.hidden = whyStart.length === 0;
     athleteBio.toggleAttribute('data-leading-quote', /^["'“‘„«‹「『]/u.test(whyStart));
 
-    document.getElementById('athleteRank').innerHTML = renderBestRankLink(rankSummary && rankSummary.bestCandidate);
-    document.getElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${escapeHtml(athleteData.division)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.division])}`;
-    document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${escapeHtml(athleteData.generation)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.generation])}`;
-    document.getElementById('athleteFlag').innerHTML = renderAthleteFlagDetail(fullAthleteData.Flag || athleteData.canonicalFlag, athleteData);
+    getRuntimeElementById('athleteRank').innerHTML = renderBestRankLink(rankSummary && rankSummary.bestCandidate);
+    getRuntimeElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${escapeHtml(athleteData.division)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.division])}`;
+    getRuntimeElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${escapeHtml(athleteData.generation)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.generation])}`;
+    getRuntimeElementById('athleteFlag').innerHTML = renderAthleteFlagDetail(fullAthleteData.Flag || athleteData.canonicalFlag, athleteData);
     renderPortraitFlagMark(fullAthleteData.Flag || athleteData.canonicalFlag);
     const completedAge = getCompletedChronologicalAge(fullAthleteData, athleteData);
-    document.getElementById('chronologicalAge').textContent = Number.isFinite(completedAge) ? completedAge.toString() : '';
-    document.getElementById('chronologicalAgeContainer').hidden = !Number.isFinite(completedAge);
+    getRuntimeElementById('chronologicalAge').textContent = Number.isFinite(completedAge) ? completedAge.toString() : '';
+    getRuntimeElementById('chronologicalAgeContainer').hidden = !Number.isFinite(completedAge);
     updateCrowdContainer(athleteData.crowdAge, athleteData.crowdCount);
     updateYourGuess();
-    const lowestBortzAgeEl = document.getElementById('lowestBortzAge');
-    const lowestBortzAgeContainer = document.getElementById('lowestBortzAgeContainer');
+    const lowestBortzAgeEl = getRuntimeElementById('lowestBortzAge');
+    const lowestBortzAgeContainer = getRuntimeElementById('lowestBortzAgeContainer');
     if (athleteData.lowestBortzAge != null && Number.isFinite(athleteData.lowestBortzAge)) {
         lowestBortzAgeEl.textContent = athleteData.lowestBortzAge.toFixed(1);
         lowestBortzAgeContainer.hidden = false;
@@ -6286,25 +6346,25 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
         lowestBortzAgeContainer.hidden = true;
     }
     const hasPhenoAge = Number.isFinite(athleteData.lowestPhenoAge);
-    document.getElementById('lowestPhenoAge').textContent = hasPhenoAge ? athleteData.lowestPhenoAge.toFixed(1) : '';
-    document.getElementById('lowestPhenoAgeContainer').hidden = !hasPhenoAge;
-    const bortzAgeReductionContainer = document.getElementById('bortzAgeReductionContainer');
-    const bortzAgeReductionLabel = document.getElementById('bortzAgeReductionAccelerationLabel');
+    getRuntimeElementById('lowestPhenoAge').textContent = hasPhenoAge ? athleteData.lowestPhenoAge.toFixed(1) : '';
+    getRuntimeElementById('lowestPhenoAgeContainer').hidden = !hasPhenoAge;
+    const bortzAgeReductionContainer = getRuntimeElementById('bortzAgeReductionContainer');
+    const bortzAgeReductionLabel = getRuntimeElementById('bortzAgeReductionAccelerationLabel');
     if (athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction)) {
         bortzAgeReductionLabel.textContent = athleteData.bortzAgeReduction < 0 ? "Bortz Age reduction" : "Bortz Age acceleration";
-        document.getElementById('bortzAgeReduction').textContent = (athleteData.bortzAgeReduction >= 0 ? "+" : "") + athleteData.bortzAgeReduction.toFixed(1);
-        document.getElementById('bortzAgeReductionPercent').textContent = Number.isFinite(athleteData.bortzAgeReductionPercent) ? athleteData.bortzAgeReductionPercent.toFixed(1) : '';
-        document.getElementById('bortzAgeReductionPercent').parentElement.hidden = !Number.isFinite(athleteData.bortzAgeReductionPercent);
+        getRuntimeElementById('bortzAgeReduction').textContent = (athleteData.bortzAgeReduction >= 0 ? "+" : "") + athleteData.bortzAgeReduction.toFixed(1);
+        getRuntimeElementById('bortzAgeReductionPercent').textContent = Number.isFinite(athleteData.bortzAgeReductionPercent) ? athleteData.bortzAgeReductionPercent.toFixed(1) : '';
+        getRuntimeElementById('bortzAgeReductionPercent').parentElement.hidden = !Number.isFinite(athleteData.bortzAgeReductionPercent);
         bortzAgeReductionContainer.hidden = false;
     } else {
         bortzAgeReductionContainer.hidden = true;
     }
-    document.getElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Pheno Age reduction" : "Pheno Age acceleration";
-    document.getElementById('ageReduction').textContent = Number.isFinite(athleteData.ageReduction)
+    getRuntimeElementById('ageReductionAccelerationLabel').textContent = athleteData.ageReduction < 0 ? "Pheno Age reduction" : "Pheno Age acceleration";
+    getRuntimeElementById('ageReduction').textContent = Number.isFinite(athleteData.ageReduction)
         ? (athleteData.ageReduction >= 0 ? "+" : "") + athleteData.ageReduction.toFixed(1) : '';
-    document.getElementById('ageReductionContainer').hidden = !Number.isFinite(athleteData.ageReduction);
-    document.getElementById('ageReductionPercent').textContent = Number.isFinite(athleteData.ageReductionPercent) ? athleteData.ageReductionPercent.toFixed(1) : '';
-    document.getElementById('ageReductionPercent').parentElement.hidden = !Number.isFinite(athleteData.ageReductionPercent);
+    getRuntimeElementById('ageReductionContainer').hidden = !Number.isFinite(athleteData.ageReduction);
+    getRuntimeElementById('ageReductionPercent').textContent = Number.isFinite(athleteData.ageReductionPercent) ? athleteData.ageReductionPercent.toFixed(1) : '';
+    getRuntimeElementById('ageReductionPercent').parentElement.hidden = !Number.isFinite(athleteData.ageReductionPercent);
     populateProfilePace('bortzPaceOfAging', athleteData.lowestBortzAge, athleteData.chronoAtLowestBortzAge, athletesOrderedByBortzPace, athleteData.name);
     populateProfilePace('paceOfAging', athleteData.lowestPhenoAge, athleteData.chronoAtLowestPhenoAge, athletesOrderedByPace, athleteData.name);
     updateAthleteInfoGrouping();
@@ -6312,7 +6372,7 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     deferUnavailableProfileFacts();
 
     // Personal Link
-    const personalLinkElement = document.getElementById('personalLink');
+    const personalLinkElement = getRuntimeElementById('personalLink');
     const personalLink = window.normalizeWebUrl(athleteData.personalLink);
     if (personalLink) {
         personalLinkElement.href = personalLink;
@@ -6323,7 +6383,7 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     }
 
     // Media Contact
-    const mediaContactElement = document.getElementById('mediaContact');
+    const mediaContactElement = getRuntimeElementById('mediaContact');
     const mediaContact = window.parseMediaContact(athleteData.mediaContact);
     if (mediaContact) {
         if (mediaContact.href) {
@@ -6342,14 +6402,12 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     }
 
     // — Add badge strip into the modal —
-    const modalBadgeSection = document.getElementById('modalBadgeStrip');
+    const modalBadgeSection = getRuntimeElementById('modalBadgeStrip');
     setModalBadgeExplainer(modalBadgeSection, null);
     modalBadgeSection.replaceChildren();
     // Clone athleteData but disable personalLink for modal badges
     const athleteForBadges = { ...athleteData, personalLink: null };
-    window.setBadges(athleteForBadges, {
-        querySelector: () => modalBadgeSection
-    });
+    window.setBadges(athleteForBadges, modalBadgeSection);
 
     // wrap each badge in a column with its name
     const badges = Array.from(modalBadgeSection.children);
@@ -6665,14 +6723,14 @@ function resultUnit(text) {
 }
 
 function disposeBiomarkerHistory() {
-    const history = document.getElementById('athlete-biomarkers')?._biomarkerHistory;
+    const history = getRuntimeElementById('athlete-biomarkers')?._biomarkerHistory;
     history?.expanded?.chart?.destroy();
     history?.clockHistoryObserver?.disconnect();
     if (history) history.expanded = null;
 }
 
 function renderBiomarkerHistory(history, athletes) {
-    const section = document.getElementById('athlete-biomarkers');
+    const section = getRuntimeElementById('athlete-biomarkers');
     if (!section) return;
     disposeBiomarkerHistory();
     section._biomarkerHistory = history;
@@ -7156,7 +7214,7 @@ function prepareBiomarkerValues(entry, chronoAgeAtEntry) {
 }
 
 function populateProofsGallery(fullAthleteData) {
-    const proofsGallery = document.getElementById('proofsGallery');
+    const proofsGallery = getRuntimeElementById('proofsGallery');
     if (!proofsGallery) return;
     proofsGallery.innerHTML = '';
 
@@ -7164,6 +7222,8 @@ function populateProofsGallery(fullAthleteData) {
         ? fullAthleteData.Proofs.filter(Boolean)
         : [];
     const previewCount = 6;
+    const requestId = currentAthleteModalRequestId;
+    const retryDelays = [2000, 10000];
     const toggle = proofsGallery.closest('.proofs-section')?.querySelector('.proofs-toggle');
     proofsGallery.dataset.proofCount = String(proofs.length);
     const setExpanded = expanded => {
@@ -7193,19 +7253,36 @@ function populateProofsGallery(fullAthleteData) {
         const previewUrl = /^\/athletes\/[\w-]+\/proof_[\w.-]+\.(?:webp|png|jpe?g|bmp|gif)(?:\?|$)/i.test(proofUrl)
             ? proofUrl.replace('/athletes/', '/api/proof-previews/')
             : proofUrl;
-        if (previewUrl !== proofUrl) {
-            img.dataset.fullSrc = proofUrl;
-            img.onerror = () => {
-                img.onerror = null;
+        if (previewUrl !== proofUrl) img.dataset.fullSrc = proofUrl;
+        const label = `Enlarge proof image ${index + 1}`;
+        let retries = 0;
+        const isCurrent = () => img.isConnected && requestId === currentAthleteModalRequestId;
+        img.onerror = () => {
+            if (!isCurrent()) return;
+            if (img.getAttribute('src') !== proofUrl) {
                 img.src = proofUrl;
-            };
-        }
-        img.src = previewUrl;
+                return;
+            }
+            proofItem.classList.add('proof-preview-unavailable');
+            img.setAttribute('aria-label', `Open proof ${index + 1} (preview unavailable)`);
+            // Both sources may fail during the same interruption. Start each
+            // retry with the smaller preview and leave other sheets alone.
+            if (retries < retryDelays.length) {
+                window.setTimeout(() => {
+                    if (isCurrent() && proofItem.classList.contains('proof-preview-unavailable')) img.src = previewUrl;
+                }, retryDelays[retries++]);
+            }
+        };
+        img.onload = () => {
+            proofItem.classList.remove('proof-preview-unavailable');
+            img.setAttribute('aria-label', label);
+        };
         img.alt = `Proof image ${index + 1}`;
         img.setAttribute('role', 'button');
         img.setAttribute('tabindex', '0');
-        img.setAttribute('aria-label', `Enlarge proof image ${index + 1}`);
+        img.setAttribute('aria-label', label);
         img.loading = 'lazy';
+        img.src = previewUrl;
         proofItem.appendChild(img);
         const number = document.createElement('span');
         number.className = 'proof-number';
@@ -7251,7 +7328,7 @@ window.addEventListener('hashchange', reconcileRestoredLeaderboard);
 // Ensure modal history cleanup
 window.addEventListener('popstate', function (event) {
     if (event.state?.modal === 'enlarged') {
-        const viewer = document.querySelector('.lwc-viewer');
+        const viewer = runtimeRoot.querySelector('.lwc-viewer');
         if (viewer?.getAttribute('aria-hidden') === 'false') {
             return;
         }
@@ -7274,7 +7351,7 @@ window.addEventListener('popstate', function (event) {
     }
 
     if (event.state?.modal === 'details') {
-        const viewer = document.querySelector('.lwc-viewer[open]');
+        const viewer = runtimeRoot.querySelector('.lwc-viewer[open]');
         if (viewer) {
             closeEnlargedView(viewer);
         }
@@ -7290,7 +7367,7 @@ window.addEventListener('popstate', function (event) {
         return;
     }
 
-    const modalContent = document.querySelector('#detailsModal .modal-content');
+    const modalContent = runtimeRoot.querySelector('#detailsModal .modal-content');
     if (modal.style.display === 'block' && isGuessMyAgeDismissBlocked(modalContent)) {
         // Guess My Age deliberately cannot be abandoned mid-round. Undo a
         // Back-menu jump, then let the details-state pop close any viewer.
@@ -7301,11 +7378,11 @@ window.addEventListener('popstate', function (event) {
     closeOpenComponents({ fromHistory: true, closeAll: true });
 });
 
-const sidebar = document.querySelector('.sidebar');
+const sidebar = runtimeRoot.querySelector('.sidebar');
 const sidebarPanel = sidebar?.querySelector('.sidebar-panel');
 const sidebarRail = sidebar?.querySelector('.sidebar-rail');
-const sidebarToggle = document.querySelector('.sidebar-toggle');
-const sidebarClose = document.querySelector('.sidebar-close');
+const sidebarToggle = runtimeRoot.querySelector('.sidebar-toggle');
+const sidebarClose = runtimeRoot.querySelector('.sidebar-close');
 const hasLeaderboardSidebar = !!(sidebar && sidebarToggle && sidebarClose);
 const mobileDrawerMediaQuery = window.matchMedia('(max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape)');
 let leaderboardTableHeightFrame = 0;
@@ -7333,8 +7410,8 @@ function syncLeaderboardTableHeight() {
     leaderboardTableHeightFrame = 0;
     syncSidebarPanelInteractivity();
 
-    const leaderboard = document.querySelector('.leaderboard');
-    const table = document.querySelector('.leaderboard--flags > .flag-leaderboard') || document.querySelector('.leaderboard > table');
+    const leaderboard = runtimeRoot.querySelector('.leaderboard');
+    const table = runtimeRoot.querySelector('.leaderboard--flags > .flag-leaderboard') || runtimeRoot.querySelector('.leaderboard > table');
     if (!leaderboard || !table) return;
 
     // Complete geometry reads before writing styles. Sidebar measurements must
@@ -7351,7 +7428,7 @@ function syncLeaderboardTableHeight() {
     const tableHeight = table.getBoundingClientRect().height;
     // Hover/expansion temporarily hides the rail title. Keep its measured
     // footprint so opening the overlay cannot shorten the board beneath it.
-    const titleHeight = measureCollapsedTitleHeight()
+    const titleHeight = fullLeaderboard?.hasAttribute('data-league') ? 0 : measureCollapsedTitleHeight()
         ?? (parseFloat(sidebar.style.getPropertyValue('--leaderboard-title-height')) || 0);
     const sidebarTop = Math.max(0, Math.ceil(sidebar.getBoundingClientRect().top));
     if (headHeight > 0) sidebar.style.setProperty('--leaderboard-head-height', `${Math.ceil(headHeight)}px`);
@@ -7367,21 +7444,21 @@ function syncLeaderboardTableHeight() {
 }
 
 function installLeaderboardTableHeightObserver() {
-    const table = document.querySelector('.leaderboard > table');
+    const table = runtimeRoot.querySelector('.leaderboard > table');
     if (!table) return;
 
     if ('ResizeObserver' in window) {
         leaderboardTableResizeObserver = new ResizeObserver(scheduleLeaderboardTableHeightSync);
         leaderboardTableResizeObserver.observe(table);
         if (table.tHead) leaderboardTableResizeObserver.observe(table.tHead);
-        const flags = document.getElementById('flagLeaderboard');
+        const flags = getRuntimeElementById('flagLeaderboard');
         if (flags) leaderboardTableResizeObserver.observe(flags);
         if (sidebarPanel) leaderboardTableResizeObserver.observe(sidebarPanel);
-        const title = document.querySelector('.collapsed-title');
+        const title = runtimeRoot.querySelector('.collapsed-title');
         if (title) leaderboardTableResizeObserver.observe(title);
         // Updating the measured column-head height also resizes the rail icon.
         // Include that second layout pass before caching the title footprint.
-        const icon = document.querySelector('.sidebar-rail-icon');
+        const icon = runtimeRoot.querySelector('.sidebar-rail-icon');
         if (icon) leaderboardTableResizeObserver.observe(icon);
     }
 
@@ -7454,7 +7531,7 @@ document.addEventListener('keydown', (event) => {
     // Let the native disclosure consume Escape before its underlying filter deck.
     if (searchReasonPopover?.matches(':popover-open')) return;
 
-    const searchInput = document.getElementById('athleteSearch');
+    const searchInput = getRuntimeElementById('athleteSearch');
     if (document.activeElement === searchInput && searchInput.value.trim().length > 0) return;
 
     if (!sidebar.classList.contains('expanded')) return;
@@ -7585,9 +7662,9 @@ function placeSearchReason() {
     }
     const panel = searchReasonPopover;
     const margin = 8;
-    panel.style.maxWidth = `${Math.min(360, pageDocument.documentElement.clientWidth - margin * 2)}px`;
+    panel.style.maxWidth = `${Math.min(360, document.documentElement.clientWidth - margin * 2)}px`;
     panel.style.maxHeight = `${innerHeight - margin * 2}px`;
-    const left = Math.max(margin, Math.min(anchor.left + anchor.width / 2 - panel.offsetWidth / 2, pageDocument.documentElement.clientWidth - panel.offsetWidth - margin));
+    const left = Math.max(margin, Math.min(anchor.left + anchor.width / 2 - panel.offsetWidth / 2, document.documentElement.clientWidth - panel.offsetWidth - margin));
     const below = anchor.bottom + 8;
     const top = below + panel.offsetHeight <= innerHeight - margin ? below : anchor.top - panel.offsetHeight - 8;
     panel.style.left = `${left}px`;
@@ -7619,7 +7696,7 @@ function appendSearchReason(host, source, text, terms, className = '') {
             searchReasonPopover.className = 'search-reason-popover';
             searchReasonPopover.setAttribute('popover', 'auto');
             searchReasonPopover.setAttribute('role', 'region');
-            athleteDialogRuntime.appendChild(searchReasonPopover);
+            runtimeRoot.appendChild(searchReasonPopover);
             searchReasonPopover.addEventListener('beforetoggle', event => {
                 if (event.newState === 'closed') {
                     searchReasonOwner?.setAttribute('aria-expanded', 'false');
@@ -7630,7 +7707,7 @@ function appendSearchReason(host, source, text, terms, className = '') {
             // Font reflow, browser zoom and focus scrolling can settle after the
             // click. Follow the button instead of dismissing the new disclosure.
             window.addEventListener('resize', placeSearchReason, { passive: true });
-            pageDocument.addEventListener('scroll', event => {
+            document.addEventListener('scroll', event => {
                 if (!searchReasonPopover.contains(event.target)) placeSearchReason();
             }, { capture: true, passive: true });
         }
@@ -7654,14 +7731,14 @@ function clearSearchReasons(scope) {
 }
 
 function markSearchReasons(terms, entries, view) {
-    const board = document.querySelector('.leaderboard table tbody');
+    const board = runtimeRoot.querySelector('.leaderboard table tbody');
     if (!board) return;
-    if (!terms.length) { clearSearchReasons(athleteDialogRuntime); return; }
+    if (!terms.length) { clearSearchReasons(runtimeRoot); return; }
     closeSearchReason();
     // A longer query often keeps the same evidence. Retain those buttons and
     // marks so typing does not restart their animations or touch-target setup.
-    const unusedChips = new Set(athleteDialogRuntime.querySelectorAll('.search-reason'));
-    const unusedMarks = new Set(athleteDialogRuntime.querySelectorAll('.is-search-hit, .is-search-value'));
+    const unusedChips = new Set(runtimeRoot.querySelectorAll('.search-reason'));
+    const unusedMarks = new Set(runtimeRoot.querySelectorAll('.is-search-hit, .is-search-value'));
     const preceding = new Map();
     const reportReason = (host, ...args) => {
         const chip = appendSearchReason(host, ...args);
@@ -7725,16 +7802,28 @@ function markSearchReasons(terms, entries, view) {
 }
 
 function markFlagSearchReasons(terms, teams, badgeTextByName) {
-    clearSearchReasons(athleteDialogRuntime);
-    const board = document.getElementById('flagLeaderboard');
-    board.querySelectorAll('.flag-team').forEach(row => {
-        const team = teams.find(team => row.dataset.flag === team.flag);
-        if (!team) return;
+    const athleteTable = runtimeRoot.querySelector('.leaderboard table');
+    if (athleteTable) clearSearchReasons(athleteTable);
+    else closeSearchReason();
+    const board = getRuntimeElementById('flagLeaderboard');
+    board.querySelectorAll('.flag-team').forEach((row, index) => {
+        const team = teams[index];
         const name = row.querySelector('.flag-team-name > span:last-child');
-        name.textContent = team.flag;
-        if (!terms.length) return;
-        window.highlightText(name, terms);
-        const pending = terms.filter(term => !normalizeSearchText(team.flag).includes(term));
+        const normalized = normalizeSearchText(team.flag);
+        const matches = terms.filter(term => normalized.includes(term));
+        const key = matches.join(' ');
+        if ((name._flagHighlights || '') !== key) {
+            let label = name.querySelector(':scope > .flag-name-label');
+            if (!label) {
+                label = document.createElement('span');
+                label.className = 'flag-name-label';
+                label.textContent = team.flag;
+                name.firstChild.replaceWith(label);
+            }
+            window.highlightText(label, matches);
+            name._flagHighlights = key;
+        }
+        const pending = terms.filter(term => !normalized.includes(term));
         const evidence = new Set();
         pending.forEach(term => {
             for (const entry of team.entries) {
@@ -7747,6 +7836,7 @@ function markFlagSearchReasons(terms, teams, badgeTextByName) {
             }
         });
         if (evidence.size) appendSearchReason(name, { kind: 'member', icon: 'fa-magnifying-glass', label: 'Athlete match' }, [...evidence].join('\n'), pending);
+        else name.querySelector(':scope > .search-reason')?.remove();
     });
 }
 
@@ -7816,7 +7906,7 @@ function closeSidebar(options = {}) {
         // reader is still inside the deck, return to its controlling button.
         const desktop = !isMobileDrawerViewport();
         const stickyHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-sticky-height')) || 52;
-        const result = desktop && [...document.querySelectorAll('.leaderboard > table tbody tr, .flag-leaderboard .flag-team')]
+        const result = desktop && [...runtimeRoot.querySelectorAll('.leaderboard > table tbody tr, .flag-leaderboard .flag-team')]
             .find(row => { const r = row.getBoundingClientRect(); return r.height > 0 && r.bottom > stickyHeight && r.top < innerHeight; });
         const anchor = result || sidebarToggle;
         const before = anchor.getBoundingClientRect().top;
@@ -7905,15 +7995,15 @@ sidebar?.addEventListener('touchcancel', () => { sidebarDragStart = null; }, { p
 
 // Updates the document title for the selected athlete.
 function updatePageTitleForAthlete(athleteName, athleteRank) {
-    pageDocument.title = `${athleteName} (#${athleteRank}) - Longevity World Cup`;
+    document.title = `${athleteName} (#${athleteRank}) - Longevity World Cup`;
 }
 
 // Restore the latest leaderboard title rather than the title captured before filters changed.
 function resetPageTitle() {
-    pageDocument.title = currentLeaderboardDocumentTitle;
+    document.title = currentLeaderboardDocumentTitle;
 }
 function addClickListenerToImages(selector, callback, accessibleLabel) {
-    document.querySelectorAll(selector).forEach(img => {
+    runtimeRoot.querySelectorAll(selector).forEach(img => {
         if (!img.dataset.listenerAdded) {
             if (img.closest('a[href]')) return;
             if (typeof accessibleLabel === 'function') {
@@ -7944,7 +8034,7 @@ function updateAthleteInfoGrouping() {
         'ageReductionContainer'
     ];
     const groupedRows = groupedRowIds
-        .map(id => document.getElementById(id))
+        .map(id => getRuntimeElementById(id))
         .filter(Boolean);
 
     // These rows are controlled by their native hidden state. Reading computed
@@ -7977,41 +8067,41 @@ function updateAthleteCrowdAge(athleteSlug, crowdAge, crowdCount) {
         assignBestRankCandidates(athleteResults);
     }
 
-    const modalContent = document.querySelector('#detailsModal .modal-content');
+    const modalContent = runtimeRoot.querySelector('#detailsModal .modal-content');
     if (normalizeAthleteSlugForLookup(modalContent?.dataset.athleteSlug) !== normalizedSlug) return;
     updateCrowdContainer(age, count);
     if (athleteData) {
         const rankSummary = computeBestLeagueRank(athleteData);
         renderProfileRankings(athleteData, rankSummary.ultimateRank);
-        document.getElementById('athleteRank').innerHTML = renderBestRankLink(rankSummary.bestCandidate);
+        getRuntimeElementById('athleteRank').innerHTML = renderBestRankLink(rankSummary.bestCandidate);
     }
 }
 
 function updateCrowdContainer(crowdAge, crowdCount) {
-    const crowdContainer = document.getElementById('crowdAgeContainer');
+    const crowdContainer = getRuntimeElementById('crowdAgeContainer');
     restoreInactiveProfileContent(crowdContainer);
-    const notEmptyCrowdContainer = document.getElementById('notEmptyCrowdAgeContainer');
+    const notEmptyCrowdContainer = getRuntimeElementById('notEmptyCrowdAgeContainer');
     const hasCrowdAge = Number.isFinite(crowdAge) && Number.isFinite(crowdCount) && crowdCount > 0;
 
     if (!hasCrowdAge) {
         crowdContainer.hidden = true;
         notEmptyCrowdContainer.hidden = true;
-        document.getElementById('crowdAge').textContent = '';
-        document.getElementById('crowdCount').textContent = '0';
+        getRuntimeElementById('crowdAge').textContent = '';
+        getRuntimeElementById('crowdCount').textContent = '0';
     } else {
         crowdContainer.hidden = false;
         notEmptyCrowdContainer.hidden = false;
-        document.getElementById('crowdAge').textContent = crowdAge.toFixed(0);
-        document.getElementById('crowdCount').textContent = crowdCount.toFixed(0);
+        getRuntimeElementById('crowdAge').textContent = crowdAge.toFixed(0);
+        getRuntimeElementById('crowdCount').textContent = crowdCount.toFixed(0);
     }
     if (crowdContainer.hidden) deferInactiveProfileContent(crowdContainer);
 }
 
 function updateYourGuess() {
-    const yourGuessContainer = document.getElementById('yourGuessContainer');
+    const yourGuessContainer = getRuntimeElementById('yourGuessContainer');
     restoreInactiveProfileContent(yourGuessContainer);
-    const yourGuessSpan = document.getElementById('yourGuess');
-    const modalContent = document.querySelector('#detailsModal .modal-content');
+    const yourGuessSpan = getRuntimeElementById('yourGuess');
+    const modalContent = runtimeRoot.querySelector('#detailsModal .modal-content');
     const guessData = window.LwcGuessState?.get({
         AthleteSlug: modalContent?.dataset.athleteSlug,
         ProfileImageId: modalContent?.dataset.profileImageId
@@ -8021,18 +8111,13 @@ function updateYourGuess() {
     if (Number.isFinite(guess)) {
         yourGuessContainer.hidden = false;
 
-        // grab the displayed chrono & crowd ages
-        const chrono = parseInt(document.getElementById('chronologicalAge').textContent, 10);
-        const crowd = parseFloat(document.getElementById('crowdAge')?.textContent);
-
-        // compute how far you and the crowd are from the true age
-        const diffYou = Math.abs(guess - chrono);
-        const diffCrowd = Math.abs(crowd - chrono);
+        const isExact = guessData.exact ?? (guess === parseInt(getRuntimeElementById('chronologicalAge').textContent, 10));
+        const beatCrowd = guessData.beatCrowd === true;
 
         // collect any matching icons
         const iconClasses = [];
-        if (diffYou === 0) iconClasses.push('fa-bullseye');
-        if (!document.getElementById('crowdAgeContainer').hidden && diffYou < diffCrowd) iconClasses.push('fa-trophy');
+        if (isExact) iconClasses.push('fa-bullseye');
+        if (beatCrowd) iconClasses.push('fa-trophy');
         if (guessData.first) iconClasses.push('fa-medal');
 
         // build and render
@@ -8041,9 +8126,9 @@ function updateYourGuess() {
 
         // apply stamp to the value span only so the row stays a normal table row
         yourGuessSpan.classList.remove('first-guess-stamp', 'primary-stamp', 'golden-stamp');
-        if (diffYou === 0) {
+        if (isExact) {
             yourGuessSpan.classList.add('golden-stamp');
-        } else if (!document.getElementById('crowdAgeContainer').hidden && diffYou < diffCrowd) {
+        } else if (beatCrowd) {
             yourGuessSpan.classList.add('primary-stamp');
         } else if (guessData.first) {
             yourGuessSpan.classList.add('first-guess-stamp');

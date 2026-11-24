@@ -94,15 +94,34 @@ public sealed class AthleteDataAnalyticsBrowserTests(
     }
 
     [Theory]
-    [InlineData(1440, true)]
-    [InlineData(390, false)]
-    public async Task ProfileRadar_WearsTheSelectedClockAndLabelsEachPercentile(int width, bool dark)
+    [InlineData(1440, true, false)]
+    [InlineData(390, false, false)]
+    [InlineData(390, false, true)]
+    public async Task ProfileRadar_WearsTheSelectedClockAndLabelsEachPercentile(int width, bool dark, bool rejectGradients)
     {
-        await using var context = await NewContextAsync(width, dark);
+        await using var context = await NewContextAsync(width, dark, reducedMotion: !rejectGradients);
+        if (rejectGradients)
+        {
+            await context.AddInitScriptAsync("""
+                const proto = CanvasRenderingContext2D.prototype;
+                for (const name of ['createRadialGradient', 'createConicGradient', 'createLinearGradient']) {
+                    const native = proto[name];
+                    proto[name] = function (...args) {
+                        if (this.canvas.id === 'ageRadarChart') {
+                            this.canvas.dataset[name] = 'rejected';
+                            args[0] = NaN;
+                        }
+                        return native.apply(this, args);
+                    };
+                }
+                """);
+        }
         var page = await OpenAsync(context);
         await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart'))?.scales?.r?.drawingArea > 0");
+        var canvas = page.Locator("#detailsModal .modal-content:not(.is-loading) #ageRadarChart[tabindex]");
+        await canvas.ScrollIntoViewIfNeededAsync();
 
-        // Chart.js may rewrite the colour (for example to hex while it eases between clocks), so compare painted pixels.
+        // Sample the plotted reading itself: the labels can still exist around a blank radar.
         const string wears = """
             token => {
                 const chart = Chart.getChart(document.getElementById('ageRadarChart'));
@@ -113,11 +132,28 @@ public sealed class AthleteDataAnalyticsBrowserTests(
                     context.fillRect(0, 0, 1, 1);
                     return [...context.getImageData(0, 0, 1, 1).data];
                 };
-                const actual = paint(String(chart.getDatasetMeta(0).dataset.options.borderColor));
-                return paint(expected).every((channel, index) => Math.abs(channel - actual[index]) <= 3);
+                const point = chart.scales.r.getPointPositionForValue(0, chart.data.datasets[0].data[0]);
+                const ratio = chart.currentDevicePixelRatio;
+                const actual = chart.ctx.getImageData(Math.round(point.x * ratio), Math.round(point.y * ratio), 1, 1).data;
+                // The clock colours are slightly translucent and composite against the web.
+                return paint(expected).every((channel, index) => Math.abs(channel - actual[index]) <= 12);
             }
             """;
         await page.WaitForFunctionAsync(wears, "--athlete-modal-chart-bortz");
+        if (rejectGradients)
+        {
+            await Expect(canvas).ToHaveAttributeAsync("data-create-conic-gradient", "rejected");
+            await canvas.PressAsync("Home");
+            await Expect(canvas).ToHaveAttributeAsync("data-create-linear-gradient", "rejected");
+            Assert.True(await canvas.EvaluateAsync<bool>("""
+                element => {
+                    const chart = Chart.getChart(element);
+                    chart.draw();
+                    return chart.tooltip.getActiveElements()[0]?.index === 0 &&
+                        chart.tooltip.title[0] === chart.data.datasets[0].data[0] + 'th percentile';
+                }
+                """));
+        }
         var label = await page.EvaluateAsync<string[]>("""
             () => {
                 const chart = Chart.getChart(document.getElementById('ageRadarChart'));
@@ -463,11 +499,13 @@ public sealed class AthleteDataAnalyticsBrowserTests(
             {
                 Response = response,
                 Body = script.Insert(closureEnd,
-                    "window.radarMotionTest = () => ({frame: radarTweenFrame, values: radarDisplayValues, folds: radarFoldAnimations.length});\n")
+                    "window.radarMotionTest = () => ({entering: radarAwaitingView || radarDrawInFrame !== 0, frame: radarTweenFrame, values: radarDisplayValues, folds: radarFoldAnimations.length});\n")
             });
         });
         var page = await OpenAsync(context);
         await page.WaitForFunctionAsync("() => window.Chart?.getChart(document.getElementById('ageRadarChart'))?.scales?.r?.drawingArea > 0");
+        await page.Locator("#ageRadarChart").ScrollIntoViewIfNeededAsync();
+        await page.WaitForFunctionAsync("() => !window.radarMotionTest().entering");
         var failures = await page.EvaluateAsync<string[]>("""
             async () => {
                 const failures = [], chart = Chart.getChart(document.getElementById('ageRadarChart'));
@@ -517,37 +555,77 @@ public sealed class AthleteDataAnalyticsBrowserTests(
         Assert.Empty(failures);
     }
 
-    [Fact]
-    public async Task Radar_WaitsForVisibilityEvenAfterTheNativeChartEntranceWouldFinish()
+    [Theory]
+    [InlineData(1440, 900, false)]
+    [InlineData(390, 844, false)]
+    [InlineData(1280, 350, true)]
+    public async Task Radar_OnlyPaintsTheReadingOnceTheWholeDialIsInView(int width, int height, bool reducedMotion)
     {
-        await using var context = await NewContextAsync(390, true, reducedMotion: false);
+        await using var context = await NewContextAsync(width, true, reducedMotion);
         var page = await OpenAsync(context);
+        await page.SetViewportSizeAsync(width, height);
         await page.WaitForFunctionAsync("() => window.Chart?.getChart('ageRadarChart')?.scales.r.drawingArea > 0");
-        Assert.True(await page.EvaluateAsync<bool>("""
-            async () => {
-                const host = document.getElementById('ageRadarWrapper'), scroller = host.closest('.modal-content');
-                const place = () => {
-                    const box = host.getBoundingClientRect();
-                    scroller.scrollBy({ top: box.top - scroller.getBoundingClientRect().top + box.height * .72, behavior: 'instant' });
+        await page.EvaluateAsync("""
+            () => {
+                const chart = Chart.getChart('ageRadarChart'), canvas = chart.canvas;
+                const scroller = canvas.closest('.modal-content'), header = document.getElementById('modalStickyHeader');
+                const frame = () => new Promise(requestAnimationFrame);
+                window.placeRadar = async (fraction, behindHeader = false) => {
+                    // Reposition after the sticky header has appeared and taken its space.
+                    for (let i = 0; i < 3; i++) {
+                        const box = canvas.getBoundingClientRect(), port = scroller.getBoundingClientRect();
+                        const top = behindHeader ? header.getBoundingClientRect().bottom - 12
+                            : port.top + scroller.clientTop + scroller.clientHeight - box.height * fraction - 1;
+                        scroller.scrollBy({ top: box.top - top, behavior: 'instant' });
+                        await frame();
+                    }
+                    await frame();
                 };
-                place();
-                const values = [46, 45, 88, 5, -2, 6, 26, 92, 12.5, 51];
-                const peer = { bestBiomarkerValues: values, chronoAtLowestPhenoAge: 46, lowestPhenoAge: 40 };
-                generateAgeVisualization(40, 46, peer, [peer]);
-                place();
-                const ratio = await new Promise(resolve => {
-                    const obs = new IntersectionObserver(([entry]) => { obs.disconnect(); resolve(entry.intersectionRatio); }, { root: scroller });
-                    obs.observe(host);
-                });
-                const chart = Chart.getChart('ageRadarChart');
-                // Intentional wait: the web must stay parked for the entire native constructor animation.
-                await new Promise(resolve => setTimeout(resolve, chart.options.animation.duration + 100));
-                const scale = chart.scales.r;
-                return ratio > .1 && ratio < .45 && chart.getDatasetMeta(0).data.every((p, i) =>
-                    Math.hypot(p.x - scale.xCenter, p.y - scale.yCenter) < .1
-                    && scale._pointLabels[i].at(-1) === String(chart.data.datasets[0].data[i]));
+                window.radarInk = () => {
+                    const pixels = chart.ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                    let ink = 0, coloured = 0;
+                    for (let i = 0; i < pixels.length; i += 4) {
+                        if (pixels[i + 3] < 32) continue;
+                        ink++;
+                        if (pixels[i + 1] - pixels[i] > 40) coloured++;
+                    }
+                    return { ink, coloured };
+                };
+                window.sweepFrames = 0;
+                const conic = chart.ctx.createConicGradient.bind(chart.ctx);
+                chart.ctx.createConicGradient = (...args) => { window.sweepFrames++; return conic(...args); };
             }
-            """));
+            """);
+        await page.EvaluateAsync("() => placeRadar(.3)");
+        Assert.True(await page.EvaluateAsync<bool>("radarInk().ink > 0"), "The neutral grid should already be drawn.");
+        Assert.Equal(0, await page.EvaluateAsync<int>("radarInk().coloured"));
+        await page.EvaluateAsync("() => placeRadar(.92)");
+        await page.EvaluateAsync("""
+            () => {
+                document.getElementById('ageTabPheno').click();
+                const picker = document.getElementById('ageResultSelect');
+                picker.value = '1';
+                picker.dispatchEvent(new Event('change'));
+            }
+            """);
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        Assert.Equal(0, await page.EvaluateAsync<int>("radarInk().coloured"));
+        await page.EvaluateAsync("() => placeRadar(1, true)");
+        Assert.Equal(0, await page.EvaluateAsync<int>("radarInk().coloured"));
+        Assert.Equal(0, await page.EvaluateAsync<int>("sweepFrames"));
+
+        // Align the bottom edge inside the dialog. On a short screen the dial must fit below the header.
+        await page.EvaluateAsync("() => placeRadar(1)");
+        await page.WaitForFunctionAsync("""
+            () => {
+                const chart = Chart.getChart('ageRadarChart');
+                return radarInk().coloured > 0 && chart.getDatasetMeta(0).data.every((point, i) => {
+                    const end = chart.scales.r.getPointPositionForValue(i, chart.data.datasets[0].data[i]);
+                    return Math.hypot(point.x - end.x, point.y - end.y) < .01;
+                });
+            }
+            """);
+        Assert.Equal(!reducedMotion, await page.EvaluateAsync<bool>("sweepFrames > 0"));
     }
 
     [Fact]
@@ -608,6 +686,13 @@ public sealed class AthleteDataAnalyticsBrowserTests(
             }
             """));
         await canvas.PressAsync("Home");
+        var contributors = await canvas.EvaluateAsync<string[]>("canvas => Chart.getChart(canvas)._radarTooltipContributors[0]");
+        Assert.NotEmpty(contributors);
+        foreach (var contributor in contributors)
+        {
+            await Expect(page.Locator("#ageRadarFocus")).ToContainTextAsync(contributor);
+            Assert.Contains(contributor, await canvas.GetAttributeAsync("aria-description"));
+        }
         await canvas.PressAsync("ArrowRight");
         await canvas.PressAsync("ArrowRight");
         Assert.True(await canvas.EvaluateAsync<bool>("""
@@ -618,6 +703,7 @@ public sealed class AthleteDataAnalyticsBrowserTests(
             """));
         await canvas.PressAsync("Escape");
         Assert.True(await canvas.EvaluateAsync<bool>("canvas => !Chart.getChart(canvas).tooltip.getActiveElements().length"));
+        await Expect(page.Locator("#ageRadarFocus")).ToBeEmptyAsync();
         await Expect(canvas).ToBeFocusedAsync();
         await Expect(page.Locator("#detailsModal")).ToBeVisibleAsync();
     }

@@ -16,7 +16,7 @@ internal static class BrowserIconAssertions
             if (!svg) {
                 const style = getComputedStyle(host, '::before');
                 if (['', 'none', 'normal', '""'].includes(style.content)
-                    || !document.fonts.check(`${style.fontWeight} ${style.fontSize} ${style.fontFamily}`)) return null;
+                    || !document.fonts.check(`${style.fontWeight} ${style.fontSize} ${style.fontFamily}`, style.content.slice(1, -1))) return null;
                 return host.getBoundingClientRect().toJSON();
             }
             if (!visible(svg)) return null;

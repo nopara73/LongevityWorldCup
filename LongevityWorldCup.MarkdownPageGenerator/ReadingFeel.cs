@@ -385,5 +385,100 @@ internal static class ReadingFeel
                 transition: none !important;
             }
         }
+
+        /* Apply the reading measure to the actual parents of body blocks.
+           The cover, its caption, closing links and compact FAQ have their own type. */
+        .documentation-page :is(.documentation-document, .documentation-document .documentation-timeline-entry, .documentation-document .ruleset-rule-body) {
+            & > p:where(:not(:has(> img), p:has(> img) + p:has(> em:only-child))) {
+                max-width: 68ch;
+                line-height: 1.72;
+            }
+
+            & > h2 + p:not(:has(> img)),
+            &.ruleset-rule-body > p:first-child:not(:has(> img)) {
+                max-width: 61ch;
+                color: var(--lwc-ink);
+                font-size: 1.18rem;
+                line-height: 1.6;
+            }
+
+            & > ul:not(#where-to-go-next + ul, .ruleset-term-list) {
+                --rail-indent: 1.9rem;
+                max-width: 68ch;
+                margin-inline-start: 0;
+                padding-inline-start: var(--rail-indent);
+                list-style: none;
+
+                & li {
+                    position: relative;
+                    margin: 0;
+                    padding: .275rem 0;
+                    line-height: 1.65;
+                }
+
+                & > li::before {
+                    content: "";
+                    position: absolute;
+                    z-index: 1;
+                    inset-inline-start: calc(.55rem - var(--rail-indent) - 6px);
+                    top: calc(.275rem + .52em);
+                    width: 12px;
+                    height: 12px;
+                    border: 0;
+                    border-radius: 50%;
+                    background: var(--lwc-surface);
+                    box-shadow: inset 0 0 0 3px var(--lwc-accent), 0 0 0 3px var(--lwc-surface);
+                }
+
+                /* Each segment ends at the center of the following stop. */
+                & > li:not(:last-child)::after {
+                    content: "";
+                    position: absolute;
+                    inset-inline-start: calc(.55rem - var(--rail-indent) - 1px);
+                    top: calc(.275rem + .52em + 6px);
+                    bottom: calc(-.275rem - .52em - 6px);
+                    width: 2px;
+                    background: color-mix(in srgb, var(--lwc-accent) 35%, var(--lwc-border));
+                }
+
+                & ul {
+                    margin: .3rem 0 0;
+                    padding: 0;
+                    padding-inline-start: 1.4rem;
+                    border: 0;
+                    list-style: none;
+                }
+
+                & ul > li::before {
+                    inset-inline-start: -1.1rem;
+                    top: calc(.275rem + .6em);
+                    width: 8px;
+                    height: 8px;
+                    box-sizing: border-box;
+                    border: 2px solid color-mix(in srgb, var(--lwc-accent) 55%, var(--lwc-border));
+                    border-radius: 50%;
+                    background: transparent;
+                }
+            }
+
+            @media (max-width: 600px) {
+                & > h2 + p:not(:has(> img)),
+                &.ruleset-rule-body > p:first-child:not(:has(> img)) {
+                    font-size: 1.08rem;
+                }
+
+                /* Retain the phone reading column when the list gains a rail. */
+                & > ul:not(#where-to-go-next + ul, .ruleset-term-list) {
+                    --rail-indent: 1.55rem;
+                }
+            }
+        }
+
+        .documentation-page:not(.documentation-page-about) .documentation-document :is(.documentation-timeline-entry, .ruleset-rule-body) > p:has(> img:only-child) {
+            grid-template-columns: minmax(0, 1fr);
+            padding: clamp(8px, 1.4vw, 14px);
+            background: var(--lwc-surface);
+            box-shadow: 0 1px 0 color-mix(in srgb, var(--lwc-ink) 6%, transparent), 0 18px 32px -26px color-mix(in srgb, var(--lwc-ink) 55%, transparent);
+        }
 """;
 }

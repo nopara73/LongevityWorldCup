@@ -13,6 +13,10 @@ internal static partial class ScopedStylesheetGenerator
         foreach (var name in new[] { "leaderboard-content", "guess-my-age", "age-visualization" })
         {
             var source = File.ReadAllText(Path.Combine(cssRoot, name + ".css"));
+            // The board's shared portrait and athlete-name rules live in the podium sheet.
+            if (name == "leaderboard-content")
+                source = File.ReadAllText(Path.Combine(cssRoot, "leaderboard-podium.css")) + "\n" + source;
+
             var scoped = "@scope (#athleteDialogRuntime) {\n" + RootSelector().Replace(source, ":scope") + "}\n";
             File.WriteAllText(Path.Combine(outputRoot, name + ".css"), scoped);
         }

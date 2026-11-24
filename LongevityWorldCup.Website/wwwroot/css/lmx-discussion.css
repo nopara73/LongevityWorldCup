@@ -190,11 +190,11 @@
     /* The implicit endpoint restores each post's own surface and accent edge. */
 }
 
-/* The "New posts" pill floats in. */
-.lmx-page .lmx-feed-new:not([hidden]) {
-    animation: lmx-pill-in 300ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1)) both;
+/* Signal an arrival without moving the tap target. */
+.lmx-page .lmx-feed-new:not([hidden]) > i {
+    animation: lmx-feed-icon-in 300ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1)) both;
 }
-@keyframes lmx-pill-in { from { opacity: 0; transform: translateY(-8px) scale(.92); } }
+@keyframes lmx-feed-icon-in { from { opacity: 0; transform: translateY(3px); } }
 
 /* ------------------------------------------------------------ phones */
 @media (max-width: 600px) {
@@ -205,7 +205,7 @@
     .lmx-page .lmx-discussion-copy-link:has(> .fa-check),
     .lmx-page .lmx-note.lmx-discussion-target,
     .lmx-page .lmx-discussion-reply-item.lmx-discussion-target,
-    .lmx-page .lmx-feed-new:not([hidden]),
+    .lmx-page .lmx-feed-new:not([hidden]) > i,
     .lmx-page .lmx-discussion-reply-item.lmx-arriving::before,
     .lmx-page .lmx-discussion-replies-toggle::before { animation: none; }
     .lmx-page .lmx-discussion-author-avatar { transition: none; }

@@ -83,7 +83,7 @@
     box-sizing: border-box;
     background: linear-gradient(135deg, var(--lwc-accent) 50%, transparent 50%);
     color: var(--lwc-on-accent, #fff);
-    font: 900 .7rem/1 "Font Awesome 6 Free", "Font Awesome 5 Free";
+    font: 900 .7rem/1 var(--fa-style-family-classic, "Font Awesome 6 Free"), "Font Awesome 5 Free";
     pointer-events: none;
     animation: media-stamp-in 420ms var(--lwc-ease-pop, cubic-bezier(.34, 1.4, .64, 1));
 }

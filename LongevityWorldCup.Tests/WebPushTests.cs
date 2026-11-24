@@ -317,6 +317,15 @@ public sealed class WebPushTests
         await Service().DispatchAsync();
         Assert.Equal(0, requests);
 
+        if (type == EventType.NewRank)
+        {
+            Assert.True(EventHelpers.TryExtractRank(raw, out var publishedPlace));
+            fixture.Athletes.UpdateAthletesJsonInPlace(athlete =>
+            {
+                if ((string?)athlete["AthleteSlug"] == "benjamin_garden") athlete["CurrentPlacement"] = publishedPlace;
+            });
+            fixture.InsertEvent(EventType.NewRank, "slug[benjamin_garden] rank[2]", now.GetUtcNow().UtcDateTime);
+        }
         var rank = fixture.InsertEvent(type, raw, now.GetUtcNow().UtcDateTime);
         await Service().DispatchAsync();
         Assert.Equal(1, requests);
