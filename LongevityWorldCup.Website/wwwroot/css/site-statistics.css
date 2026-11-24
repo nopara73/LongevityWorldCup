@@ -1588,8 +1588,10 @@ select:focus-visible,
     to { background-position: 140% 0; }
 }
 
-.stats-page > :is(.traffic-overview, .ai-referral-report, .data-quality-strip, .decision-grid, .decision-support-grid, .outcome-strip, .drilldown-panel, .stats-main-grid, .detail-sections) {
-    transition: opacity 200ms ease, filter 200ms ease;
+@media (prefers-reduced-motion: no-preference) {
+    .stats-page > :is(.traffic-overview, .ai-referral-report, .data-quality-strip, .decision-grid, .decision-support-grid, .outcome-strip, .drilldown-panel, .stats-main-grid, .detail-sections) {
+        transition: opacity 200ms ease, filter 200ms ease;
+    }
 }
 
 .stats-page[aria-busy="true"] > :is(.traffic-overview:not(:empty), .ai-referral-report, .data-quality-strip, .decision-grid, .decision-support-grid, .outcome-strip, .drilldown-panel, .stats-main-grid, .detail-sections) {

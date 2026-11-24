@@ -85,18 +85,19 @@ public sealed class AestheticResponsiveMediaBrowserTests(
                 return await routePage.EvaluateAsync<ResponsiveLayoutProbeResult[]>(
                     """
                     async ({ BaseUrl, RouteGroups }) => {
-                        const frame = document.createElement('iframe');
-                        frame.style.cssText = 'display:block;border:0;position:fixed;inset:0 auto auto 0';
-                        document.body.append(frame);
                         const results = [];
                         for (const group of RouteGroups) {
                             const firstProbe = group.Probes[0];
+                            // Keep viewport changes for one route out of the previous document.
+                            const frame = document.createElement('iframe');
+                            frame.style.cssText = 'display:block;border:0;position:fixed;inset:0 auto auto 0';
                             frame.style.width = `${firstProbe.Width}px`;
                             frame.style.height = `${firstProbe.Height}px`;
                             await new Promise((resolve, reject) => {
                                 frame.onload = resolve;
                                 frame.onerror = () => reject(new Error(`Failed to load ${group.Route}`));
                                 frame.src = new URL(group.Route, BaseUrl).href;
+                                document.body.append(frame);
                             });
 
                             const frameWindow = frame.contentWindow;
@@ -130,9 +131,8 @@ public sealed class AestheticResponsiveMediaBrowserTests(
                                     HasVisibleContent: hasVisibleContent
                                 });
                             }
+                            frame.remove();
                         }
-
-                        frame.remove();
                         return results;
                     }
                     """,

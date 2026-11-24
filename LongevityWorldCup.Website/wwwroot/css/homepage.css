@@ -33,7 +33,7 @@
 
 .checkmark-container::before {
     content: '\f058'; /* Font Awesome checkmark unicode */
-    font-family: 'Font Awesome 6 Free'; /* Ensure the correct font family */
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free"); /* Ensure the correct font family */
     font-weight: 900; /* Use solid style */
     display: block; /* Ensure it occupies space */
     margin: 0 auto; /* Center horizontally */
@@ -1343,11 +1343,11 @@ button:hover {
         gap: 0.45rem;
     }
 
-    .lwc-merch-body.has-merch-carousel .lwc-merch-grid {
+    .lwc-merch-body:has(> .lwc-merch-mobile-carousel) > .lwc-merch-grid {
         display: none;
     }
 
-    .lwc-merch-body.has-merch-carousel .lwc-merch-mobile-carousel {
+    .lwc-merch-body > .lwc-merch-mobile-carousel {
         display: flex;
         flex-direction: column;
         gap: 0.44rem;
