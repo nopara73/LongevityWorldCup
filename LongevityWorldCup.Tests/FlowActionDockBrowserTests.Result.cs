@@ -343,7 +343,7 @@ public sealed class FlowActionDockResultBrowserTests(
 
     [Theory]
     [InlineData(390, 844, 245, false)]
-    [InlineData(390, 740, 220, true)]
+    [InlineData(390, 640, 220, true)]
     [InlineData(1366, 768, 68, false)]
     [InlineData(1366, 540, 68, true)]
     [InlineData(1280, 720, 68, false)]

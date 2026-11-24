@@ -578,6 +578,41 @@ public sealed class PlayFlowMotionBrowserTests(
     }
 
     [Theory]
+    [InlineData(1280, 800, ".play-dashboard-actions:not(.flow-action-stack--docked) [data-dashboard-destination='/bortz-age']")]
+    [InlineData(390, 640, ".flow-action-stack--docked #playDashboardBackBtn")]
+    public async Task Dashboard_HoverKeepsTheCommandEdgeUnderThePointer(int width, int height, string selector)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = ColorScheme.Dark
+        });
+        await context.AddInitScriptAsync(FlowActionDockBrowserTests.FlowAuditStateScript);
+        var page = await OpenAsync(context, "/dashboard");
+        var command = page.Locator(selector);
+        var bounds = await command.BoundingBoxAsync();
+        Assert.NotNull(bounds);
+        await command.HoverAsync();
+        await WaitForFiniteAnimationsAsync(page, "#athleteDashboardActions button, #athleteDashboardActions button > i");
+        var hovered = await command.BoundingBoxAsync();
+        Assert.NotNull(hovered);
+        Assert.InRange(Math.Abs(hovered.Y - bounds.Y), 0, 0.25f);
+
+        var x = bounds.X + bounds.Width / 2;
+        var y = bounds.Y + bounds.Height - 0.5f;
+        await page.Mouse.MoveAsync(x, y);
+        Assert.True(await command.EvaluateAsync<bool>("""
+            async (button, [x, y]) => {
+                for (let frame = 0; frame < 20; frame++) {
+                    await new Promise(requestAnimationFrame);
+                    if (!button.matches(':hover') || !button.contains(document.elementFromPoint(x, y))) return false;
+                }
+                return true;
+            }
+            """, new double[] { x, y }));
+    }
+
+    [Theory]
     [InlineData(1280, 800, true, false)]
     [InlineData(1440, 900, false, false)]
     [InlineData(390, 844, false, false)]

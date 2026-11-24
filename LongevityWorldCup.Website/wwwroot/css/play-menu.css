@@ -3334,7 +3334,6 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     .play-dashboard-panel:not([hidden]) .pro-discount-line:nth-child(n + 4) { animation-delay: 310ms; }
 
     .play-dashboard-panel:not([hidden]) .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(:disabled):hover {
-        translate: 0 -2px;
         box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
     }
 }
@@ -3529,6 +3528,12 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
 }
 
 @media (hover: hover) {
+    /* Let the icon tilt while the command stays under a pointer at its edge. */
+    #athleteDashboardActions .flow-action:not(:disabled, :active):hover {
+        translate: none;
+        transform: none;
+    }
+
     #athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn):hover > i {
         transform: rotate(-10deg) scale(1.1);
     }
