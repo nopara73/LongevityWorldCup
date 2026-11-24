@@ -50,8 +50,75 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
         Assert.Equal("Opening post.", Assert.Single(restarted.GetParticipantState(author, now).Notes).Note);
         Assert.Throws<UnauthorizedAccessException>(() => restarted.DeleteDiscussionReply(new(author, request.ReplyId), now));
         Assert.Equal(2, Directory.GetFiles(PhotoDirectory(fixture)).Length);
+        var firstName = Path.GetFileName(new Uri($"https://example.test{urls[0]}").AbsolutePath);
+        var editedPhotos = restarted.EditDiscussionReply(new(replier, request.ReplyId, "", [firstName]), now);
+        Assert.Equal(urls[1], Assert.Single(editedPhotos.Images).Url);
+        Assert.False(File.Exists(Path.Combine(PhotoDirectory(fixture), firstName)));
+        var lastName = Path.GetFileName(new Uri($"https://example.test{urls[1]}").AbsolutePath);
+        Assert.Throws<InvalidOperationException>(() => restarted.EditDiscussionReply(new(replier, request.ReplyId, "", [lastName]), now));
+        Assert.Single(Directory.GetFiles(PhotoDirectory(fixture)));
         restarted.DeleteDiscussionReply(new(replier, request.ReplyId), now);
         Assert.Empty(Directory.GetFiles(PhotoDirectory(fixture)));
+    }
+
+    [Fact]
+    public async Task SavedPhotos_ReplaceAtCapacityAndReplayWithoutDeletingAnotherPhoto()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var token = await fixture.ConfirmParticipantAsync("photos@example.com", "Photo Author");
+        var now = DateTimeOffset.Parse("2026-06-20T08:00:00Z");
+        var request = new LongevitymaxxingCheckInRequest(token, 12, 1, 2, 2, 2, "Saved remarks.");
+        using var png = CreatePngStream();
+        var state = await fixture.Service.SubmitCheckInAsync(request, Enumerable.Range(0, 4).Select(_ => CreatePngFormFile(png)).ToList(), now);
+        var photos = Assert.Single(state.Notes).Images;
+        var remove = Path.GetFileName(new Uri($"https://example.test{photos[1].Url}").AbsolutePath);
+        var edit = request with { SubmissionId = Guid.NewGuid().ToString(), RemovedPhotoNames = [remove] };
+        using var replacement = CreatePngStream(16, 8);
+        var saved = await fixture.Service.SubmitCheckInAsync(edit, [CreatePngFormFile(replacement)], now);
+        var images = Assert.Single(saved.Notes).Images;
+        Assert.Equal(4, images.Count);
+        Assert.Equal(photos.Where((_, i) => i != 1), images.Take(3));
+        Assert.False(File.Exists(Path.Combine(PhotoDirectory(fixture), remove)));
+        Assert.Equal(images, saved.EligibleDays.Single(day => day.ChallengeDay == 12).Existing!.Images);
+        using var retry = CreatePngStream(16, 8);
+        var replay = await fixture.Service.SubmitCheckInAsync(edit, [CreatePngFormFile(retry)], now);
+        Assert.Equal(images, Assert.Single(replay.Notes).Images);
+        using var changed = CreatePngStream(16, 8);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Service.SubmitCheckInAsync(
+            edit with { RemovedPhotoNames = [] }, [CreatePngFormFile(changed)], now));
+        Assert.Equal(4, Directory.GetFiles(PhotoDirectory(fixture)).Length);
+    }
+
+    [Fact]
+    public async Task SavedPhotos_EditAClosedPostPreservesScoresRepliesAndOtherParticipantsFiles()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var author = await fixture.ConfirmParticipantAsync("author@example.com", "Photo Author");
+        var other = await fixture.ConfirmParticipantAsync("other@example.com", "Other Author");
+        var now = DateTimeOffset.Parse("2026-06-20T08:00:00Z");
+        using var first = CreatePngStream();
+        var state = await fixture.Service.SubmitCheckInAsync(new(author, 12, 1, 2, 0, 2, "Original."), [CreatePngFormFile(first)], now);
+        var owner = state.Participant.Id;
+        var photo = Assert.Single(Assert.Single(state.Notes).Images);
+        var file = Path.GetFileName(new Uri($"https://example.test{photo.Url}").AbsolutePath);
+        fixture.Service.SubmitCheckIn(new(other, 12, 2, 2, 2, 2, "My post."), now);
+        fixture.Service.SubmitDiscussionReply(new(other, owner, 12, "Keep this reply.", Guid.NewGuid().ToString("N")), now);
+        var later = now.AddDays(6);
+        Assert.DoesNotContain(fixture.Service.GetParticipantState(author, later).EligibleDays, day => day.ChallengeDay == 12);
+        var before = fixture.Service.GetPublicState(later).Leaderboard.Single(row => row.ParticipantId == owner).Cells.Single(cell => cell.ChallengeDay == 12);
+        fixture.Service.EditDiscussionPost(new(other, 12, "My post.", "Mine.", [file]), later);
+        Assert.Throws<InvalidOperationException>(() => fixture.Service.EditDiscussionPost(new(author, 12, "Original.", "", [file]), later));
+        Assert.True(File.Exists(Path.Combine(PhotoDirectory(fixture), file)));
+        var updated = fixture.Service.EditDiscussionPost(new(author, 12, "Original.", "Corrected.", [file]), later);
+        var note = updated.UpdatedDiscussionThread!;
+        Assert.Equal("Corrected.", note.Note);
+        Assert.Empty(note.Images);
+        Assert.Equal("Keep this reply.", Assert.Single(note.Replies).Body);
+        Assert.Equal(before, updated.Public.Leaderboard.Single(row => row.ParticipantId == owner).Cells.Single(cell => cell.ChallengeDay == 12));
+        Assert.False(File.Exists(Path.Combine(PhotoDirectory(fixture), file)));
+        Assert.Throws<LongevitymaxxingDiscussionPostChangedException>(() => fixture.Service.EditDiscussionPost(new(author, 12, "Original.", "Stale edit."), later));
+        fixture.Service.EditDiscussionPost(new(author, 12, "Original.", "Original.", [file]), later);
+        Assert.Equal("Corrected.", fixture.Service.GetDiscussionThread(owner, 12).Note!.Note);
     }
 
     [Fact]

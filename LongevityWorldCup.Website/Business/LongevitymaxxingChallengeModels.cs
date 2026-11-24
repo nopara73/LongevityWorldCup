@@ -14,7 +14,14 @@ public sealed record LongevitymaxxingCheckInRequest(
     int Nutrition,
     int Vices,
     string? Note,
-    string? SubmissionId = null);
+    string? SubmissionId = null,
+    IReadOnlyList<string>? RemovedPhotoNames = null);
+
+public sealed record LongevitymaxxingDiscussionPostEditRequest(
+    string AccessToken, int ChallengeDay, string? OriginalNote, string? Note, IReadOnlyList<string>? RemovedPhotoNames = null);
+
+public sealed class LongevitymaxxingDiscussionPostChangedException() : InvalidOperationException(
+    "These remarks have changed. Reopen the editor to use the latest text.");
 
 public sealed record LongevitymaxxingDiscussionReplyRequest(
     string AccessToken,
@@ -30,7 +37,8 @@ public sealed record LongevitymaxxingDiscussionReplyRequest(
 public sealed record LongevitymaxxingDiscussionReplyEditRequest(
     string AccessToken,
     string ReplyId,
-    string? Body);
+    string? Body,
+    IReadOnlyList<string>? RemovedPhotoNames = null);
 
 public sealed record LongevitymaxxingDiscussionReplyDeleteRequest(
     string AccessToken,
