@@ -212,13 +212,10 @@ public sealed class HomepageLoadingBrowserTests(
             {
                 var image = link.Locator("img");
                 await image.HoverAsync();
-                if (reduceMotion)
-                {
-                    await Assertions.Expect(link).ToHaveCSSAsync("translate", "none");
-                    await Assertions.Expect(image).ToHaveCSSAsync("transform", "none");
-                    await Assertions.Expect(image).ToHaveCSSAsync("outline-style", "solid");
-                }
-                else await Assertions.Expect(link).ToHaveCSSAsync("translate", "0px -5px");
+                await Assertions.Expect(link).ToHaveCSSAsync("translate", "none");
+                await Assertions.Expect(image).ToHaveCSSAsync("translate", "none");
+                await Assertions.Expect(image).ToHaveCSSAsync("transform", "none");
+                await Assertions.Expect(image).ToHaveCSSAsync("outline-style", "solid");
                 await page.Keyboard.PressAsync("Tab");
                 await link.FocusAsync();
                 await Assertions.Expect(link).ToHaveCSSAsync("outline-style", "solid");

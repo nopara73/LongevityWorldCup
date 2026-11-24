@@ -197,8 +197,7 @@ img[data-lwc-portrait-fallback] {
 
         @media (hover: hover) and (pointer: fine) {
             /* The photo zooms a touch inside its frame and leans towards the pointer. */
-            img[data-lwc-portrait][data-lwc-portrait-tier="md"]:hover,
-            img[data-lwc-portrait][data-lwc-portrait-tier="lg"]:hover {
+            img[data-lwc-portrait]:is([data-lwc-portrait-tier="md"], [data-lwc-portrait-tier="lg"]):not(.podium-portrait):hover {
                 object-view-box: inset(
                     calc(7% + var(--lwc-portrait-dy) * 4%)
                     calc(7% - var(--lwc-portrait-dx) * 4%)

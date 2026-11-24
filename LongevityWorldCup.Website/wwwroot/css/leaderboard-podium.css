@@ -98,7 +98,7 @@ html body main .podium .podium-item.first img.podium-portrait{
  /* PODIUM portrait (bounded even if not wrapped) */
  .podium-item .podium-portrait{
      width:var(--podium-portrait-size); height:var(--podium-portrait-size); aspect-ratio:1 / 1; border-radius:50%; object-fit:cover;
-     border:3px solid var(--podium-metal); box-shadow:var(--lwc-shadow-md, 0 10px 28px rgba(15,23,42,.1)); margin:0 0 1.6rem; cursor:pointer; transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); will-change:transform;
+     border:3px solid var(--podium-metal); box-shadow:var(--lwc-shadow-md, 0 10px 28px rgba(15,23,42,.1)); margin:0 0 1.6rem; cursor:pointer;
      flex:0 0 auto; box-sizing:border-box; /* include border in the height */
  }
 
@@ -114,8 +114,6 @@ html body main .podium .podium-item.first img.podium-portrait{
  .athlete-portrait-still, .athlete-portrait-frame{ opacity:0; }
  @media (prefers-reduced-motion: no-preference) {
      .athlete-portrait-still{ transition:opacity 180ms ease-out; }
-     .podium-item .podium-portrait:hover,
-     .podium-item .rank-change img.podium-portrait:hover{ transform:scale(1.04); }
  }
  .podium-item .athlete-portrait-motion{
      width:calc(var(--podium-portrait-size) - 6px); height:calc(var(--podium-portrait-size) - 6px);
@@ -124,7 +122,7 @@ html body main .podium .podium-item.first img.podium-portrait{
  /* When wrapped on podium: wrapper defines circle, img fills it */
  .podium-item .rank-change{ display:block; width:var(--podium-portrait-size); height:var(--podium-portrait-size); margin:0 0 1.6rem; flex:0 0 auto; }
  .podium-item .rank-change img.podium-portrait{
-     width:100%; height:100%; border-radius:50%; object-fit:cover; transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); box-sizing:border-box;
+     width:100%; height:100%; border-radius:50%; object-fit:cover; box-sizing:border-box;
  }
  .podium-item .rank-change img.podium-portrait{ margin:0; }
 

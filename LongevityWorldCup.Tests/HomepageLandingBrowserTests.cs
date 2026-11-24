@@ -1,4 +1,6 @@
 using Microsoft.Playwright;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using System.Text.Json;
 using Xunit;
 
@@ -15,6 +17,8 @@ public sealed class HomepageLandingBrowserTests(
     [InlineData(1024, 768, 100)]
     [InlineData(768, 1024, 100)]
     [InlineData(390, 844, 100)]
+    [InlineData(320, 640, 100)]
+    [InlineData(320, 640, 200)]
     [InlineData(1024, 768, 200)]
     [InlineData(800, 900, 200)]
     public async Task Podium_StandsOnOneStageCardWhoseFloorIsThePrizeSteps(int width, int height, int textPercent)
@@ -30,16 +34,18 @@ public sealed class HomepageLandingBrowserTests(
                 const podium = document.querySelector('.podium');
                 const style = getComputedStyle(podium);
                 const box = podium.getBoundingClientRect();
-                // The heading band caps the stage card when it sits flush on the podium.
                 const band = document.querySelector('main.homepage-main > .game-description');
-                const capped = band && Math.abs(band.getBoundingClientRect().bottom - box.top) <= 1;
-                const top = capped ? getComputedStyle(band) : style;
+                const cap = band.getBoundingClientRect();
+                const label = document.createRange();
+                label.selectNodeContents(band.querySelector('a'));
                 const cards = [...podium.querySelectorAll('.podium-item:not(.podium-skeleton-item)')];
                 const rect = rank => cards.find(card => card.classList.contains(rank)).getBoundingClientRect();
                 const steps = [...podium.querySelectorAll('.podium-item-lower')].map(step => step.getBoundingClientRect());
                 return {
                     BorderWidth: parseFloat(style.outlineWidth) * (style.outlineStyle === 'solid' && parseFloat(style.outlineOffset) === -parseFloat(style.outlineWidth) ? 1 : 0),
-                    Radius: Math.min(parseFloat(top.borderTopLeftRadius), parseFloat(style.borderBottomLeftRadius)),
+                    Radius: Math.min(parseFloat(getComputedStyle(band).borderTopLeftRadius), parseFloat(style.borderBottomLeftRadius)),
+                    CapMisalignment: Math.max(Math.abs(cap.bottom - box.top), Math.abs(cap.left - box.left), Math.abs(cap.right - box.right)),
+                    HeadingLines: label.getClientRects().length,
                     Overflow: style.overflowX,
                     Left: box.left,
                     Right: box.right,
@@ -59,6 +65,8 @@ public sealed class HomepageLandingBrowserTests(
             """);
 
         Assert.Equal(1, stage.BorderWidth);
+        Assert.InRange(stage.CapMisalignment, 0, 1);
+        Assert.InRange(stage.HeadingLines, 1, 2);
         Assert.True(stage.Radius >= 8, "The stage must be a rounded card.");
         Assert.Equal("hidden", stage.Overflow);
         Assert.Equal(0, stage.CardShadows);
@@ -75,6 +83,25 @@ public sealed class HomepageLandingBrowserTests(
         {
             Assert.InRange(stage.FirstLeft - stage.Left, 0, 2);
             Assert.InRange(stage.Right - stage.FirstRight, 0, 2);
+        }
+    }
+
+    [Theory]
+    [InlineData(1440, 900)]
+    [InlineData(390, 844)]
+    public async Task ChampionLight_ReachesTheVisibleSurfaceAboveFirstPlace(int width, int height)
+    {
+        var (context, page) = await OpenHomepageAsync(width, height);
+        await using var _ = context;
+        foreach (var theme in new[] { ColorScheme.Light, ColorScheme.Dark })
+        {
+            await page.EmulateMediaAsync(new() { ColorScheme = theme });
+            using var image = Image.Load<Rgba32>(await page.Locator(".podium").ScreenshotAsync());
+            // The strip above the portraits shows the gold beam against the rest of the stage.
+            var center = image[image.Width / 2, 5];
+            var side = image[image.Width / 4, 5];
+            Assert.True(center.R - center.B > side.R - side.B + 8,
+                $"Expected a warmer center at {width}px in {theme}. Center {center}, side {side}.");
         }
     }
 
@@ -407,6 +434,8 @@ public sealed class HomepageLandingBrowserTests(
     {
         public double BorderWidth { get; set; }
         public double Radius { get; set; }
+        public double CapMisalignment { get; set; }
+        public int HeadingLines { get; set; }
         public string Overflow { get; set; } = "";
         public double Left { get; set; }
         public double Right { get; set; }
