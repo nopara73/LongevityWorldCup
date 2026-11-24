@@ -215,7 +215,12 @@ public sealed class AthletePortraitMotionBrowserTests(
             await AssertFollowingAsync(overlay);
         }
         var crop = await image.EvaluateAsync<string>("image => getComputedStyle(image).objectViewBox");
-        if (surface != "table") Assert.NotEqual("inset(0%)", crop);
+        if (surface == "podium")
+        {
+            Assert.Equal("inset(0%)", crop);
+            Assert.Equal("", await image.EvaluateAsync<string>("img => img.style.getPropertyValue('--lwc-portrait-dx')"));
+        }
+        if (surface == "profile") Assert.NotEqual("inset(0%)", crop);
         if (Environment.GetEnvironmentVariable("LWC_UI_ARTIFACT_DIR") is { Length: > 0 } directory)
         {
             Directory.CreateDirectory(directory);

@@ -43,5 +43,11 @@ public sealed class HomepageVisitLayoutTests(
             "Number(localStorage.getItem('lwcHomepageVisitCount:v1'))"));
         await Assertions.Expect(page.Locator("main")).ToHaveAttributeAsync(
             "data-homepage-visit-layout", expectedVisits == 4 ? "repeat" : "default");
+
+        var band = await page.Locator(".game-description").BoundingBoxAsync();
+        var standings = await page.Locator(".podium:visible, .leaderboard-controls").First.BoundingBoxAsync();
+        Assert.NotNull(band);
+        Assert.NotNull(standings);
+        Assert.InRange(Math.Abs(band.Y + band.Height - standings.Y), 0, 1);
     }
 }
