@@ -1370,6 +1370,11 @@ html body #biomarker-checklist .biomarker-checkbox:focus-visible { outline: 3px 
 .proof-copy-dialog .proof-password-heading { margin-bottom: 0; }
 .proof-copy-dialog figure { margin: var(--lwc-space-2) 0 0; text-align: center; }
 .proof-copy-dialog figure img { display: block; width: 100%; height: clamp(5rem, 21vh, 9rem); object-fit: contain; }
+.proof-print-viewport { max-height: min(32vh, 15rem); overflow: auto; overscroll-behavior: contain; background: white; border-radius: .35rem; }
+.proof-print-viewport:focus-visible { outline: 2px solid var(--lwc-accent); outline-offset: 2px; }
+.proof-print-sheet { position: relative; min-width: 30rem; }
+.proof-copy-dialog .proof-print-sheet img { height: auto; }
+.proof-print-sheet span { position: absolute; box-sizing: border-box; border: 2px dashed #00665c; box-shadow: 0 0 0 1px white, inset 0 0 0 1px white; pointer-events: none; }
 .proof-copy-dialog figcaption { margin-top: .4rem; overflow-wrap: anywhere; color: var(--lwc-muted); font-size: var(--lwc-type-sm); }
 .proof-copy-dialog .proof-password-actions { margin-top: var(--lwc-space-2); }
 .proof-copy-dialog .proof-copy-skip { justify-self: center; width: auto; min-height: 44px; margin: 0; padding: 0 .5rem; color: var(--lwc-muted); background: none; border: none; font: inherit; text-decoration: underline; cursor: pointer; }

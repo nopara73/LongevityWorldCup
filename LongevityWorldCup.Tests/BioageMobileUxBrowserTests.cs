@@ -225,7 +225,7 @@ public sealed class BioageMobileUxBrowserTests(
         Assert.Equal("0 new biomarkers",
             await page.Locator(".bioage-biomarker-progress").InnerTextAsync());
         Assert.Equal(biomarkerCount, await page.Locator(
-            "#lwc-step-2 .biomarker-card input[inputmode=\"decimal\"][required]").CountAsync());
+            "#lwc-step-2 .biomarker-card input[type=\"text\"][required]").CountAsync());
 
         var bloodDrawDate = page.Locator("#blood-draw-date");
         await bloodDrawDate.FillAsync("");
@@ -407,7 +407,7 @@ public sealed class BioageMobileUxBrowserTests(
         await page.WaitForFunctionAsync(
             "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
 
-        var requiredInputs = page.Locator("#lwc-step-2 .biomarker-card input[inputmode=\"decimal\"][required]");
+        var requiredInputs = page.Locator("#lwc-step-2 .biomarker-card input[type=\"text\"][required]");
         Assert.Equal(biomarkerCount, await requiredInputs.CountAsync());
         Assert.True(
             await requiredInputs.EvaluateAllAsync<bool>(

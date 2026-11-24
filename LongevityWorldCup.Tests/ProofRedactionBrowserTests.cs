@@ -39,19 +39,7 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
             Assert.Matches("^[0-9a-f]{64}:image$", saved.GetProperty("keys")[0].GetString()!);
         }
 
-        await page.ReloadAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-        if (onboarding)
-        {
-            foreach (var heading in new[] { "Finding your why", "The price of glory", "Almost there", "Don't trust, verify" })
-            {
-                await page.Locator("#nextButton").ClickAsync();
-                await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
-            }
-            // The fake application includes its own small sample page.
-            while (await page.Locator(".proof-page-remove").CountAsync() > 0) await page.Locator(".proof-page-remove").First.ClickAsync();
-        }
-        await page.WaitForFunctionAsync("() => document.querySelector('#proofPicInput')?.hasAttribute('data-listener')");
-        Assert.Empty(await SourcesAsync(page));
+        await RefreshProofStepAsync(page, onboarding);
         await UploadAsync(page, [new FilePayload { Name = files[0].Name, MimeType = files[1].MimeType, Buffer = files[1].Buffer }]);
         var unrelated = (await SourcesAsync(page)).Single();
         await UploadAsync(page, [new FilePayload { Name = "Renamed proof.png", MimeType = files[0].MimeType, Buffer = files[0].Buffer }]);
@@ -114,6 +102,98 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
         await page.Locator(".proof-page-remove").Last.ClickAsync();
         await UploadAsync(page, [Copy(5)]);
         Assert.Equal(redacted, await SourcesAsync(page));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Refresh_SubmitsTheRedactedReprintAndKeepsAnotherSpecimenClean(bool onboarding)
+    {
+        await using var context = await NewContextAsync(Browser, App, new() { ReducedMotion = ReducedMotion.Reduce });
+        var page = await PrepareAsync(context, onboarding);
+        page.Dialog += async (_, dialog) => await dialog.AcceptAsync();
+        var original = Assert.Single(await ReportsAsync(page, pdf: true));
+        FilePayload Sheet(byte variant) => new() { Name = "Report.pdf", MimeType = original.MimeType, Buffer = [.. original.Buffer, variant] };
+        var reprint = Sheet(1);
+        var other = Sheet(3); // Same form, different specimen number.
+        var sharedSheet = Sheet(6); // A different file with exactly the same printed page as the reprint.
+        await UploadAsync(page, [other, sharedSheet]);
+        var clean = await SourcesAsync(page);
+        Assert.Equal(2, clean.Length);
+        await page.Locator(".proof-page-remove").Last.ClickAsync();
+        await page.Locator(".proof-page-remove").ClickAsync();
+        await UploadAsync(page, [original]);
+        await page.Locator(".proof-page-preview").Nth(1).ClickAsync();
+        await ReadyAsync(page);
+        await DrawAsync(page, 50, 170, 600, 170);
+        await SavedAsync(page);
+        await DrawAsync(page, 60, 510, 500, 65);
+        await SavedAsync(page);
+        await RefreshProofStepAsync(page, onboarding);
+        await ReportsAsync(page, pdf: true);
+
+        var dialog = page.GetByRole(AriaRole.Dialog, new() { Name = "Keep earlier redactions?" });
+        await page.Locator("#proofPicInput").SetInputFilesAsync([reprint]);
+        await dialog.WaitForAsync();
+        Assert.Empty(await SourcesAsync(page));
+        await Assertions.Expect(page.Locator(onboarding ? "#nextButton" : "#submitButton")).ToBeDisabledAsync();
+        await dialog.PressAsync("Escape");
+        await SavedAsync(page);
+        Assert.Empty(await SourcesAsync(page));
+        await page.Locator("#proofPicInput").SetInputFilesAsync([reprint]);
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Keep redactions" }).ClickAsync();
+        await SavedAsync(page);
+        var applied = Assert.Single(await SourcesAsync(page));
+        await page.Locator("#proofPicInput").SetInputFilesAsync([other]);
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Different report" }).ClickAsync();
+        await SavedAsync(page);
+
+        // A confirmed reprint must not give another file with identical pixels the same decision.
+        await RefreshProofStepAsync(page, onboarding);
+        await ReportsAsync(page, pdf: true);
+        await page.Locator("#proofPicInput").SetInputFilesAsync([sharedSheet]);
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Different report" }).ClickAsync();
+        await SavedAsync(page);
+        await RefreshProofStepAsync(page, onboarding);
+        await ReportsAsync(page, pdf: true);
+        await UploadAsync(page, [other, sharedSheet, reprint]);
+        var expected = new[] { clean[0], clean[1], applied };
+        Assert.Equal(expected, await SourcesAsync(page));
+        foreach (var box in await page.Locator(".biomarker-checkbox").AllAsync()) await box.CheckAsync();
+        if (onboarding)
+        {
+            foreach (var heading in new[] { "Final details", "Application" })
+            {
+                await page.Locator("#nextButton").ClickAsync();
+                await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
+            }
+        }
+        var submitted = await page.RunAndWaitForRequestAsync(() => page.Locator(onboarding ? "#nextButton" : "#submitButton").ClickAsync(),
+            r => r.Method == "POST" && r.Url.EndsWith("/api/application/application"));
+        using var payload = JsonDocument.Parse(submitted.PostData!);
+        var images = payload.RootElement.GetProperty("proofPics").EnumerateArray().Select(p => p.GetString()!).ToArray();
+        Assert.Equal(expected, images);
+        using var masked = Image.Load<Rgba32>(Convert.FromBase64String(images[2].Split(',')[1]));
+        AssertReprintMask(masked);
+        // The reprint adds 125,88 margins and scales the original content to 95%.
+        Assert.Equal(new Rgba32(0, 0, 0, 255), masked[500, 600]);
+    }
+
+    private static async Task RefreshProofStepAsync(IPage page, bool onboarding)
+    {
+        await page.ReloadAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        if (onboarding)
+        {
+            foreach (var heading in new[] { "Finding your why", "The price of glory", "Almost there", "Don't trust, verify" })
+            {
+                await page.Locator("#nextButton").ClickAsync();
+                await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
+            }
+            // The sample application adds its own proof, independently of uploaded files.
+            while (await page.Locator(".proof-page-remove").CountAsync() > 0) await page.Locator(".proof-page-remove").First.ClickAsync();
+        }
+        await page.WaitForFunctionAsync("() => document.querySelector('#proofPicInput')?.hasAttribute('data-listener')");
+        Assert.Empty(await SourcesAsync(page));
     }
 
     [Theory]
@@ -825,7 +905,7 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
                     GlobalWorkerOptions: {},
                     getDocument({ data }) {
                         const variant = new Uint8Array(data).at(-1);
-                        const singlePage = variant >= 1 && variant <= 3;
+                        const singlePage = (variant >= 1 && variant <= 3) || variant === 6;
                         const reprint = variant === 0 || singlePage;
                         const width = reprint ? 1200 : 1000, height = reprint ? 1520 : 1300;
                         return { promise: Promise.resolve({
@@ -835,7 +915,7 @@ public sealed class ProofRedactionBrowserTests(PlaywrightBrowserFixture browserF
                                 getViewport: () => ({ width, height }),
                                 render: ({ canvasContext }) => ({ promise: (async () => {
                                     const image = new Image();
-                                    const index = singlePage ? variant : n - 1;
+                                    const index = singlePage ? (variant === 6 ? 1 : variant) : n - 1;
                                     image.src = images[variant === 4 && n === 1 ? 2 : index];
                                     await image.decode();
                                     canvasContext.fillStyle = '#fff';

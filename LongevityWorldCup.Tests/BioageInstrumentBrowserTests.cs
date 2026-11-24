@@ -31,7 +31,7 @@ public sealed class BioageInstrumentBrowserTests(
         await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
         Assert.Equal(0, await SegmentFillAsync(page));
         await SetFormValuesAsync(page, new Dictionary<string, string> { ["wbc"] = "6.54", ["mcv"] = "92" });
-        var total = await page.Locator("#lwc-step-2 .biomarker-card input[inputmode=decimal][required]").CountAsync();
+        var total = await page.Locator("#lwc-step-2 .biomarker-card input[type=text][required]").CountAsync();
         var expected = Math.Round(2.0 / total * 100);
         Assert.InRange(await SegmentFillAsync(page), expected - 1, expected + 1);
         await ExpectNoHorizontalOverflowAsync(page);
