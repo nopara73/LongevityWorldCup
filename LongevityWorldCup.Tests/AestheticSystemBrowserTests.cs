@@ -1258,6 +1258,9 @@ public sealed class AestheticSystemBrowserTests(
                 case "css/leaderboard-ordering.css":
                     await AssertOrderingContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "css/leaderboard-feel.css":
+                    await LeaderboardSelectionBrowserTests.AssertMastheadContainerBoundaryAsync(page, source.ToArray());
+                    break;
                 case "css/disclosure.css":
                     await AssertFlagContainerBoundariesAsync(page, source.ToArray(), disclosure: true);
                     break;

@@ -3594,10 +3594,10 @@ function updateLeaderboardSelectionSummary(count, allowMotion) {
             close.textContent = '×';
             close.setAttribute('aria-hidden', 'true');
             button.append(document.createElement('span'), close);
-            button.addEventListener('click', () => {
+            button.addEventListener('click', event => {
                 const neighbor = button.nextElementSibling || button.previousElementSibling || toggle;
                 currentSelectionChoices.find(item => item.key === button.dataset.chipKey)?.remove();
-                performFilter();
+                performFilter({ animateLeague: event.isTrusted });
                 (neighbor?.isConnected ? neighbor : toggle)?.focus({ preventScroll: true });
             });
         }
@@ -4041,7 +4041,7 @@ function leaderboardSearchEntry(athlete) {
     return entry;
 }
 
-function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
+function performFilter({ updateUrl = true, orderingOnly = false, animateLeague = false } = {}) {
     // Immediate filter changes already consume the current query. A stale timer
     // must not rewrite a profile URL opened from those freshly filtered rows.
     debouncedFilter.cancel();
@@ -4218,7 +4218,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
         markFlagSearchReasons(uniqueSearchTerms, matchingTeams, athleteBadgeTextByName);
         updateViewAllAthletesButton(matchingTeams.length, true, updateUrl);
         updateFilterCounts(selectedState, getMatchingFlagEntries, getMatchingFlagEntries(selectedState));
-        updateLeaderboardTitles(selectedState);
+        updateLeaderboardTitles(selectedState, animateLeague);
         runtimeRoot.querySelector('.podium')?.style.setProperty('display', 'none');
         updateLeaderboardStructuredData(matchingTeams.slice(0, maxAthletesGlobal));
         finishLeaderboardFilter(selectedState, query, updateUrl);
@@ -4372,7 +4372,7 @@ function performFilter({ updateUrl = true, orderingOnly = false } = {}) {
         }
     });
 
-    if (!orderingSnapshot) updateLeaderboardTitles(selectedState);
+    if (!orderingSnapshot) updateLeaderboardTitles(selectedState, animateLeague);
 
     // Display "No Results Found" if Necessary
     displayNoResults(tableRows, podiumItems, query);
@@ -4557,10 +4557,6 @@ function buildLeaderboardPresentation(state) {
     return { ...viewPresentation, accessibleLabel: viewPresentation.documentTitle };
 }
 
-function syncCollapsedTitleHeight() {
-    scheduleLeaderboardTableHeightSync();
-}
-
 function measureCollapsedTitleHeight() {
     const collapsedTitle = runtimeRoot.querySelector('.collapsed-title');
     if (!collapsedTitle || collapsedTitle.getClientRects().length === 0 || collapsedTitle.clientHeight <= 0) return null;
@@ -4573,21 +4569,91 @@ function measureCollapsedTitleHeight() {
     return Math.ceil(heading.getBoundingClientRect().height + collapsedTitle.scrollHeight);
 }
 
-function updateLeaderboardTitles(state) {
+const fullLeaderboard = runtimeRoot.closest('main[data-leaderboard-page="full"]');
+const leagueEmblem = fullLeaderboard?.querySelector('.league-emblem');
+
+function leagueEmblemClasses(state) {
+    // Follow the filter panel's group order. Sort within a group so server
+    // rendering and hydration agree even when flag counts or row order differ.
+    const glyph = icon => 'fas ' + (icon || 'fa-trophy') + ' filter-icon';
+    const classes = [];
+    function add(values, iconClass) {
+        if (!values.length || classes.length === 2) return;
+        const ordered = values.length === 1 ? values : [...values].sort();
+        for (const value of ordered) {
+            classes.push(iconClass(value));
+            if (classes.length === 2) break;
+        }
+    }
+    if (state.leagueTracks.length === 1) add(state.leagueTracks, value => glyph(window.TryGetLeagueTrackFaIcon(value)));
+    add(state.divisions, value => glyph(window.TryGetDivisionFaIcon(value)));
+    add(state.generations, value => glyph(window.TryGetGenerationFaIcon(value)));
+    add(state.exclusiveLeagues, value => glyph(window.TryGetExclusiveLeagueFaIcon(value)));
+    add(state.flags, value => {
+        const code = getFlagIconCode(value);
+        return code ? 'fi fi-' + code + ' lwc-flag-icon' : glyph('fa-flag');
+    });
+    return classes;
+}
+
+function updateLeagueMasthead(state, heading, titleChanged, animateLeague) {
+    if (!leagueEmblem) return;
+    const active = !heading.hidden;
+    if (fullLeaderboard.hasAttribute('data-league') !== active) {
+        fullLeaderboard.toggleAttribute('data-league', active);
+        scheduleLeaderboardTableHeightSync();
+    }
+    const classes = (active ? leagueEmblemClasses(state) : [])
+        .map((value, index) => value + (index ? ' league-emblem-badge' : ' league-emblem-mark'));
+    const changed = classes.length !== leagueEmblem.childElementCount ||
+        classes.some((value, index) => value !== leagueEmblem.children[index].className);
+    if (changed) {
+        leagueEmblem.replaceChildren(...classes.map(value => {
+            const mark = document.createElement(value.startsWith('fi ') ? 'span' : 'i');
+            mark.className = value;
+            mark.setAttribute('aria-hidden', 'true');
+            return mark;
+        }));
+    }
+    if (leagueEmblem.hidden === active) leagueEmblem.hidden = !active;
+    if (!active || !animateLeague || !(changed || titleChanged) || document.documentElement.dataset.lwcMotion !== 'on' ||
+        matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    for (const target of [leagueEmblem, heading]) {
+        for (const previous of target.getAnimations()) previous.cancel();
+    }
+    leagueEmblem.animate([
+        { transform: 'scale(.55) rotate(-8deg)', opacity: 0 },
+        { transform: 'scale(1.08) rotate(2deg)', opacity: 1, offset: .6 },
+        { transform: 'none', opacity: 1 },
+    ], { duration: 460, easing: 'cubic-bezier(0.34, 1.32, 0.64, 1)' });
+    heading.animate([
+        { opacity: 0, transform: 'translateY(12px)', clipPath: 'inset(0 0 100% 0)' },
+        { opacity: 1, transform: 'none', clipPath: 'inset(0 0 0 0)' },
+    ], { duration: 380, delay: 60, easing: getComputedStyle(heading).getPropertyValue('--lwc-ease-enter').trim() || 'ease', fill: 'backwards' });
+}
+
+function updateLeaderboardTitles(state, animateLeague = false) {
     const presentation = buildLeaderboardPresentation(state);
     const leagueHeading = getRuntimeElementById('leaderboardLeagueTitle');
     if (leagueHeading) {
-        leagueHeading.textContent = presentation.leagueTitle || '';
-        leagueHeading.hidden = !presentation.leagueTitle;
+        const title = presentation.leagueTitle || '';
+        const titleChanged = leagueHeading.textContent !== title;
+        if (titleChanged) leagueHeading.textContent = title;
+        if (leagueHeading.hidden !== !title) leagueHeading.hidden = !title;
+        updateLeagueMasthead(state, leagueHeading, titleChanged, animateLeague);
     }
     const collapsedTitle = runtimeRoot.querySelector('.collapsed-title');
     if (collapsedTitle) {
         const fullRailText = presentation.railText.toUpperCase();
-        collapsedTitle.dataset.fullRailText = fullRailText;
-        collapsedTitle.textContent = fullRailText;
-        collapsedTitle.title = presentation.accessibleLabel;
-        collapsedTitle.setAttribute('aria-label', presentation.accessibleLabel);
-        requestAnimationFrame(syncCollapsedTitleHeight);
+        if (collapsedTitle.dataset.fullRailText !== fullRailText) {
+            collapsedTitle.dataset.fullRailText = fullRailText;
+            collapsedTitle.textContent = fullRailText;
+            scheduleLeaderboardTableHeightSync();
+        }
+        if (collapsedTitle.title !== presentation.accessibleLabel) {
+            collapsedTitle.title = presentation.accessibleLabel;
+            collapsedTitle.setAttribute('aria-label', presentation.accessibleLabel);
+        }
     }
 
     if (document.querySelector('[data-leaderboard-page="full"]')) {
@@ -4853,7 +4919,7 @@ function generateDivisionFilters(athletes) {
         const input = li.querySelector('input[type="checkbox"]');
         input.addEventListener('change', function (event) {
             event.stopPropagation(); // Prevent this event from affecting the sidebar toggle
-            performFilter();
+            performFilter({ animateLeague: event.isTrusted });
         });
     });
 }
@@ -4869,7 +4935,7 @@ function generateFlagFilters(athletes) {
             li.innerHTML = `
         <label data-flag="${escapeHtml(name)}" data-flag-key="${escapeHtml(flagKey)}">
             <input type="checkbox" name="flag" value="${escapeHtml(name)}">
-            <span class="filter-label-copy">${renderFlagLabel(name)} <span class="filter-count-group">(<span class="filter-count">${count}</span>)</span></span>
+            <span class="filter-label-copy">${getFlagIconCode(name) ? renderFlagLabel(name) : renderFilterIcon('fa-flag') + escapeHtml(name)} <span class="filter-count-group">(<span class="filter-count">${count}</span>)</span></span>
         </label>
     `;
             filterSection.appendChild(li);
@@ -4877,7 +4943,7 @@ function generateFlagFilters(athletes) {
             const input = li.querySelector('input[type="checkbox"]');
             input.addEventListener('change', function (event) {
                 event.stopPropagation();
-                performFilter();
+                performFilter({ animateLeague: event.isTrusted });
             });
         });
 }
@@ -4911,7 +4977,7 @@ function generateGenerationFilters(athletes) {
             const input = li.querySelector('input[type="checkbox"]');
             input.addEventListener('change', function (event) {
                 event.stopPropagation(); // Prevent this event from affecting the sidebar toggle
-                performFilter();
+                performFilter({ animateLeague: event.isTrusted });
             });
         }
     });
@@ -4930,7 +4996,7 @@ function generateExclusiveFilters(athletes) {
         li.innerHTML = `
         <label data-exclusive-league="Prosperan">
             <input type="checkbox" name="exclusiveLeague" value="Prosperan">
-            <span class="filter-label-copy"><i class="fas fa-umbrella-beach filter-icon" aria-hidden="true"></i> Prosperan <span class="filter-count-group">(<span class="filter-count">${prosperanCount}</span>)</span></span>
+            <span class="filter-label-copy">${renderFilterIcon(window.TryGetExclusiveLeagueFaIcon('Prosperan'))} Prosperan <span class="filter-count-group">(<span class="filter-count">${prosperanCount}</span>)</span></span>
         </label>
     `;
         filterSection.appendChild(li);
@@ -4938,7 +5004,7 @@ function generateExclusiveFilters(athletes) {
         const input = li.querySelector('input[type="checkbox"]');
         input.addEventListener('change', function (event) {
             event.stopPropagation(); // Prevent this event from affecting the sidebar toggle
-            performFilter();
+            performFilter({ animateLeague: event.isTrusted });
         });
     }
 }
@@ -4970,7 +5036,7 @@ function generateLeagueTrackFilters(athletes) {
         const input = li.querySelector('input[type="checkbox"]');
         input.addEventListener('change', function (event) {
             event.stopPropagation();
-            performFilter();
+            performFilter({ animateLeague: event.isTrusted });
         });
     });
 }
@@ -7362,7 +7428,7 @@ function syncLeaderboardTableHeight() {
     const tableHeight = table.getBoundingClientRect().height;
     // Hover/expansion temporarily hides the rail title. Keep its measured
     // footprint so opening the overlay cannot shorten the board beneath it.
-    const titleHeight = measureCollapsedTitleHeight()
+    const titleHeight = fullLeaderboard?.hasAttribute('data-league') ? 0 : measureCollapsedTitleHeight()
         ?? (parseFloat(sidebar.style.getPropertyValue('--leaderboard-title-height')) || 0);
     const sidebarTop = Math.max(0, Math.ceil(sidebar.getBoundingClientRect().top));
     if (headHeight > 0) sidebar.style.setProperty('--leaderboard-head-height', `${Math.ceil(headHeight)}px`);
