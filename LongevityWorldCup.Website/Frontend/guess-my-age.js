@@ -4,6 +4,8 @@ const gmaRange = document.getElementById('gmaRange');
 const gmaDefaultValue = gmaRange.value;
 
 const gmaBubble = document.getElementById('gmaBubble');
+let gmaDial;
+let gmaDialHand;
 const gmaCard = document.querySelector('.gma-card');
 const gmaSliderWrap = gmaCard.querySelector('.gma-slider-wrap');
 
@@ -205,11 +207,14 @@ modalContent.closest('#detailsModal').addEventListener('athlete-dialog-loading',
     gmaWasAvailable = false;
 });
 
-function gmaGeometryForAge(age) {
+function gmaRangeFraction(age) {
     const min = +gmaRange.min;
     const max = +gmaRange.max;
-    const clampedAge = clampGmaAge(age);
-    const ratio = max === min ? 0 : (clampedAge - min) / (max - min);
+    return max === min ? 0 : (clampGmaAge(age) - min) / (max - min);
+}
+
+function gmaGeometryForAge(age) {
+    const ratio = gmaRangeFraction(age);
     // Bubbles and the miss line use the slider wrap's local CSS coordinates. Viewport
     // rectangles already include the card's celebration scale/rotation and would apply
     // that transform a second time when assigned to `left`.
@@ -253,12 +258,46 @@ function setGmaRangeProgress(age) {
     gmaRange.style.setProperty('--percent', `${geometry.fillPercent}%`);
 }
 
-function syncRange() {
-    const val = +gmaRange.value;
-    gmaBubble.textContent = val;
-    positionGmaBubble(gmaBubble, val);
-    setGmaRangeProgress(val);
+function mountGmaDial() {
+    if (gmaDial || !modalContent.classList.contains('guess-mode')) return;
+    gmaDial = document.createElement('span');
+    gmaDial.className = 'gma-dial';
+    gmaDial.setAttribute('aria-hidden', 'true');
+    gmaDialHand = document.createElement('span');
+    gmaDialHand.className = 'gma-dial-hand';
+    gmaDialHand.addEventListener('animationend', () => gmaDialHand.classList.remove('is-clicking'));
+    gmaDial.append(gmaDialHand);
+    document.getElementById('modalProfilePic').after(gmaDial);
 }
+
+function syncRange(event) {
+    if (!event) mountGmaDial();
+    const value = gmaRange.valueAsNumber;
+    const previous = Number(gmaBubble.dataset.age);
+    gmaSliderWrap.style.setProperty('--gma-frac', gmaRangeFraction(value));
+    gmaDial?.style.setProperty('--gma-years', value);
+    gmaRange.dataset.visualAge = String(value);
+    gmaBubble.dataset.age = String(value);
+    gmaBubble.value = String(value);
+
+    if (!event) {
+        // The reveal can leave explicit positions behind. A fresh round follows the native thumb again.
+        gmaRange.style.removeProperty('--percent');
+        gmaBubble.style.removeProperty('left');
+        gmaBubble.classList.remove('gma-roll-up', 'gma-roll-down');
+        gmaDialHand?.classList.remove('is-clicking');
+        return;
+    }
+    if (value === previous || prefersReducedGmaMotion()) return;
+    gmaBubble.classList.toggle('gma-roll-up', value > previous);
+    gmaBubble.classList.toggle('gma-roll-down', value < previous);
+    if (Math.floor(value / 10) !== Math.floor(previous / 10)) gmaDialHand?.classList.add('is-clicking');
+}
+
+gmaBubble.addEventListener('animationend', event => {
+    if (event.animationName === 'gma-roll-up' || event.animationName === 'gma-roll-down')
+        gmaBubble.classList.remove(event.animationName);
+});
 
 function setGmaRangeResultState(isResult) {
     if (isResult) {
@@ -322,14 +361,15 @@ function positionGmaRevealBubble(realBubble, age) {
 }
 
 function syncGmaGeometry() {
+    const realBubble = document.getElementById('gmaRealBubble');
+    if (!realBubble) return;
+
     const submittedAge = Number.parseFloat(gmaBubble.dataset.age || gmaBubble.textContent);
     if (Number.isFinite(submittedAge)) positionGmaBubble(gmaBubble, submittedAge);
 
     const visualAge = Number.parseFloat(gmaRange.dataset.visualAge || gmaRange.value);
     if (Number.isFinite(visualAge)) setGmaRangeProgress(visualAge);
 
-    const realBubble = document.getElementById('gmaRealBubble');
-    if (!realBubble) return;
     const revealedAge = Number.parseFloat(realBubble.dataset.age || realBubble.textContent);
     if (Number.isFinite(revealedAge)) positionGmaBubble(realBubble, revealedAge);
     positionGmaGap();
@@ -1697,6 +1737,7 @@ gmaSubmitBtn.addEventListener('click', async function () {
         realBubble.setAttribute('aria-hidden', 'true');
         gmaSliderWrap.appendChild(realBubble);
 
+        positionGmaBubble(gmaBubble, userGuess);
         gmaBubble.classList.add('gma-bubble-inactive');
         const revealCompleted = await animateActualAgeReveal(
             realBubble,
