@@ -24,6 +24,8 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
     let peekTimer = 0;
     let peekRow: HTMLTableRowElement | null = null;
     let pendingPeekRow: HTMLTableRowElement | null = null;
+    let peekContentKey = "";
+    let refreshing = false;
     let pointerX = 0;
     let peekScrollX = 0;
     let peekScrollY = 0;
@@ -87,19 +89,23 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
         const metric = row.querySelector(".age-reduction")?.textContent?.trim() || "";
         const portrait = row.querySelector<HTMLImageElement>("img.portrait");
         const view = main.querySelector<HTMLInputElement>("input[name='leaderboardView']:checked")?.value || "ultimate";
+        const league = main.querySelector(".collapsed-title")?.getAttribute("aria-label") || "Current standings";
+        const photo = portrait?.currentSrc || portrait?.src;
+        const contentKey = JSON.stringify([name, displayName, rowLink.href, rank, metric, view, league, photo, athlete]);
+        if (row === peekRow && contentKey === peekContentKey) return true;
+        peekContentKey = contentKey;
         const improvement = view === "improvement" || view === "bortz-improvement";
         const labScore = !improvement && view !== "crowd";
         const bortz = view === "bortz" || view === "bortz-improvement" || (view === "ultimate" && athlete?.bortzRankResult != null);
         const clock = bortz ? "bortz" : "pheno";
         const result = bortz ? athlete?.bortzRankResult : athlete?.phenoRankResult;
-        peek.replaceChildren();
+        const content = document.createDocumentFragment();
         peek.setAttribute("aria-label", `${displayName} leaderboard preview`);
 
         const top = document.createElement("a");
         top.className = "lb-peek-top";
         top.href = rowLink.href;
         top.setAttribute("aria-label", `Open ${displayName}’s profile, ranked #${rank}`);
-        const league = main.querySelector(".collapsed-title")?.getAttribute("aria-label") || "Current standings";
         top.dataset["lwcTip"] = `${league} · Rank #${rank}. Open ${displayName}’s profile.`;
         // Follow the row's profile flow and return focus there when it closes.
         // Modified clicks and the link menu use the canonical href directly.
@@ -107,16 +113,16 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
             if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
             event.preventDefault();
             hidePeek();
-            rowLink.click();
+            row.querySelector<HTMLAnchorElement>("a.athlete-name")?.click();
         });
-        if (portrait?.currentSrc || portrait?.src) {
+        if (photo) {
             const picture = document.createElement("img");
-            picture.src = portrait.currentSrc || portrait.src;
+            picture.src = photo;
             picture.alt = "";
             top.append(picture);
         }
         top.append(cell("lb-peek-id", cell("lb-peek-rank", rank), cell("lb-peek-name", displayName)));
-        peek.append(top);
+        content.append(top);
         if (metric) {
             const label = improvement ? `${clock} age improvement` : "Age reduction";
             const estimate = improvement ? `The latest ${clock} age`
@@ -133,7 +139,7 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
             } else if (labScore && result) {
                 explanation += " The score uses the unrounded ages.";
             }
-            peek.append(fact("lb-peek-metric", `${label}, ${metric}`, explanation, metric));
+            content.append(fact("lb-peek-metric", `${label}, ${metric}`, explanation, metric));
         }
 
         const facts = cell("lb-peek-facts");
@@ -161,11 +167,16 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
                 `Visitors guessed this athlete’s age from their current profile photo. The median of ${guesses} is ${years} years.`,
                 icon("fa-people-group"), cell("lb-peek-age", years)));
         }
-        if (facts.childNodes.length) peek.append(facts);
+        if (facts.childNodes.length) content.append(facts);
         if (athlete && view === "ultimate") {
             const spark = sparkline(athlete.placements, Number(row.dataset["rank"]));
-            if (spark) peek.append(spark);
+            if (spark) content.append(spark);
         }
+        const focused = peek.contains(document.activeElement) ? document.activeElement?.classList[0] : null;
+        refreshing = true;
+        peek.replaceChildren(content);
+        if (focused) (peek.querySelector<HTMLElement>("." + CSS.escape(focused)) ?? top).focus({ preventScroll: true });
+        refreshing = false;
         return Boolean(rank || metric);
     }
 
@@ -180,7 +191,8 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
         const right = roomRight >= preferred || (roomLeft < preferred && roomRight >= roomLeft);
         const room = right ? roomRight : roomLeft;
         if (clientX !== undefined && room < preferred) peek.style.maxWidth = `${Math.max(0, room)}px`;
-        const left = right ? x + 12 : x - 12 - peek.offsetWidth;
+        const width = peek.offsetWidth;
+        const left = right ? x + 12 : x - 12 - width;
         const height = peek.offsetHeight;
         const above = rowBox.top - height - 8;
         const header = table.tHead;
@@ -189,7 +201,7 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
         const top = below ? rowBox.bottom + 8 : above;
         peekRegion.classList.toggle("to-right", right);
         peekRegion.classList.toggle("below", below);
-        peekRegion.style.left = `${Math.max(12, Math.min(window.innerWidth - peek.offsetWidth - 12, left))}px`;
+        peekRegion.style.left = `${Math.max(12, Math.min(window.innerWidth - width - 12, left))}px`;
         peekRegion.style.top = `${Math.max(8, Math.min(window.innerHeight - height - 8, top))}px`;
     }
 
@@ -203,8 +215,7 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
         peekScrollY = window.scrollY;
     }
 
-    function hidePeek(): void {
-        cancelPeekTimer();
+    function closeCard(): void {
         if (!peekRow) return;
         peekRow.querySelector(".athlete-name")?.removeAttribute("aria-details");
         peekRow = null;
@@ -213,9 +224,23 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
         peek.replaceChildren();
     }
 
+    function hidePeek(): void {
+        cancelPeekTimer();
+        closeCard();
+    }
+
+    function rowAvailable(row: HTMLTableRowElement): boolean {
+        return row.parentElement === body && !row.hidden && row.style.display !== "none";
+    }
+
+    function checkRows(): void {
+        if (pendingPeekRow && !rowAvailable(pendingPeekRow)) cancelPeekTimer();
+        if (peekRow && !rowAvailable(peekRow)) closeCard();
+    }
+
     function showPeek(row: HTMLTableRowElement, clientX?: number): void {
         cancelPeekTimer();
-        if (!row.isConnected || row.style.display === "none" || (clientX !== undefined && !row.matches(":hover")) || !fillPeek(row)) {
+        if (!rowAvailable(row) || (clientX !== undefined && !row.matches(":hover")) || !fillPeek(row)) {
             hidePeek();
             return;
         }
@@ -278,15 +303,22 @@ function initializeLeaderboardRowPreview(main: HTMLElement, table: HTMLTableElem
     });
     body.addEventListener("focusout", event => { if (!peekRegion.contains(event.relatedTarget as Node | null)) hidePeek(); });
     peekRegion.addEventListener("focusout", event => {
-        if (!peekRegion.contains(event.relatedTarget as Node | null) && event.relatedTarget !== peekRow?.querySelector(".athlete-name")) hidePeek();
+        if (!refreshing && !peekRegion.contains(event.relatedTarget as Node | null) && event.relatedTarget !== peekRow?.querySelector(".athlete-name")) hidePeek();
     });
     document.addEventListener("pointerdown", event => { if (!peekRegion.contains(event.target as Node | null)) hidePeek(); }, true);
     window.addEventListener("resize", hidePeek);
     window.addEventListener("pagehide", hidePeek);
     finePointer.addEventListener("change", hidePeek);
-    document.addEventListener("lwc:standings-ready", hidePeek);
-    // Row replacement can also happen during loading or recovery, before standings are ready.
-    new MutationObserver(hidePeek).observe(body, { childList: true });
+    document.addEventListener("lwc:standings-ready", event => {
+        if ((event as CustomEvent<{ selectionChanged: boolean }>).detail?.selectionChanged) { hidePeek(); return; }
+        checkRows();
+        if (peekRow) {
+            if (!fillPeek(peekRow)) { closeCard(); return; }
+            peekRow.querySelector(".athlete-name")?.setAttribute("aria-details", peek.id);
+        }
+    });
+    // Hydration may insert, remove or move siblings while this athlete is still under the pointer.
+    new MutationObserver(checkRows).observe(body, { childList: true });
     if (typeof ResizeObserver === "function") {
         new ResizeObserver(() => {
             // Other rows can finish laying out during a dwell or while the card is being read.

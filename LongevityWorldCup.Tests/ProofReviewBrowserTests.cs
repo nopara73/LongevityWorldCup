@@ -395,7 +395,10 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         {
             var before = await ReadSourcesAsync(page);
             await page.Locator(".proof-page-remove").First.ClickAsync();
-            await UploadAsync(page, [files[cycle % 2]]);
+            var source = files[cycle % 2];
+            var renamed = new FilePayload { Name = $"rescan-{cycle}.png", MimeType = source.MimeType, Buffer = source.Buffer };
+            await UploadAsync(page, [renamed]);
+            await Assertions.Expect(page.Locator(".proof-page-source").Last).ToHaveTextAsync(renamed.Name);
             await page.Locator(".proof-undo").ClickAsync();
             var after = await ReadSourcesAsync(page);
             Assert.Equal(2, after.Length);
@@ -406,8 +409,10 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         var sources = await ReadSourcesAsync(page);
         Assert.Equal(2, sources.Length);
         Assert.Equal(2, sources.Distinct().Count());
+        var labels = await page.Locator(".proof-page-source").AllTextContentsAsync();
         await UploadAsync(page, files);
         Assert.Equal(2, (await ReadSourcesAsync(page)).Length);
+        Assert.Equal(labels, await page.Locator(".proof-page-source").AllTextContentsAsync());
         Assert.Contains("Duplicate proof images were skipped.", await page.Locator(".proof-upload-notice").InnerTextAsync());
         await UploadAsync(page, [(await CreatePagesAsync(3))[2]]);
         Assert.Equal(3, (await ReadSourcesAsync(page)).Length);
@@ -502,6 +507,52 @@ public sealed class ProofReviewBrowserTests(PlaywrightBrowserFixture browserFixt
         Assert.Equal(original, await ReadSourcesAsync(page));
         Assert.Equal(0, await page.Locator(".proof-preparation").CountAsync());
         Assert.True(await page.Locator("#submitButton").IsEnabledAsync());
+    }
+
+    [Fact]
+    public async Task SkippingAProtectedPdfAfterARetry_PreservesEarlierProofsAndFinishesTheSelection()
+    {
+        await using var context = await NewContextAsync(Browser, App, new());
+        var page = await PrepareAsync(context, false);
+        var images = await CreatePagesAsync(2);
+        await UploadAsync(page, [images[0]]);
+        var original = Assert.Single(await ReadSourcesAsync(page));
+
+        // The browser suite runs offline. Exercise the PDF.js password callback, including
+        // the worker's rejection, while processing real images on either side of the PDF.
+        await page.EvaluateAsync("""
+            window.pdfjsLib = {
+                PasswordResponses: { INCORRECT_PASSWORD: 2 },
+                getDocument() {
+                    const task = {};
+                    task.promise = new Promise((resolve, reject) => {
+                        const challenge = reason => task.onPassword(answer => {
+                            if (answer instanceof Error) reject(answer);
+                            else queueMicrotask(() => challenge(2));
+                        }, reason);
+                        queueMicrotask(() => challenge(1));
+                    });
+                    return task;
+                }
+            };
+            """);
+        await page.Locator("#proofPicInput").SetInputFilesAsync(new FilePayload[]
+        {
+            new() { Name = "protected.pdf", MimeType = "application/pdf", Buffer = [1] }, images[1]
+        });
+        var dialog = page.GetByRole(AriaRole.Dialog, new() { Name = "Open protected PDF" });
+        var password = dialog.GetByLabel("PDF password", new() { Exact = true });
+        await Assertions.Expect(password).ToBeFocusedAsync();
+        await password.FillAsync("incorrect");
+        await password.PressAsync("Enter");
+        await Assertions.Expect(password).ToHaveAttributeAsync("aria-invalid", "true");
+        await Assertions.Expect(password).ToHaveValueAsync("");
+        await password.PressAsync("Escape");
+        await Assertions.Expect(dialog).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator(".proof-page-preview")).ToHaveCountAsync(2);
+        await Assertions.Expect(page.Locator("#submitButton")).ToBeEnabledAsync();
+        Assert.Equal(original, (await ReadSourcesAsync(page))[0]);
+        await Assertions.Expect(page.Locator("#custom-alert-message")).ToBeHiddenAsync();
     }
 
     [Fact]

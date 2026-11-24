@@ -32,6 +32,10 @@ public sealed class HomeScoreboardBrowserTests(
         await page.EvaluateAsync("""
             mode => {
                 history.replaceState(null, '', '/' + (mode === 'hash' ? '#faq' : mode === 'shared' ? '?search=one' : ''));
+                if (mode === 'server') {
+                    document.querySelector('.podium').dataset.serverRendered = 'true';
+                    document.querySelectorAll('tbody tr').forEach(row => row.classList.add('server-rendered-leaderboard-row'));
+                }
                 window.frames = new Map(); let next = 0;
                 window.requestAnimationFrame = fn => { frames.set(++next, fn); return next; };
                 window.cancelAnimationFrame = id => frames.delete(id);
@@ -53,6 +57,20 @@ public sealed class HomeScoreboardBrowserTests(
         var source = await client.GetStringAsync("/js/homepage.js");
         await page.AddScriptTagAsync(new() { Content = source[source.IndexOf("// ===== Living scoreboard", StringComparison.Ordinal)..] });
         return page;
+    }
+
+    [Fact]
+    public async Task Hydration_KeepsAlreadyVisibleScoresAtTheirPublishedValues()
+    {
+        await using var context = await Browser.NewContextAsync();
+        var page = await ScoreboardAsync(context, "server");
+        await page.EvaluateAsync("""
+            delete document.querySelector('.podium').dataset.serverRendered;
+            document.querySelectorAll('tbody tr').forEach(row => row.classList.remove('server-rendered-leaderboard-row'));
+            document.querySelector('#leaderboardStatus').textContent = 'Leaderboard loaded.';
+            enter(); paint(0); paint(180);
+            """);
+        Assert.Equal(0, await page.Locator("[data-home-count]").CountAsync());
     }
 
     [Theory]

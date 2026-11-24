@@ -68,6 +68,7 @@ namespace LongevityWorldCup.Website.Controllers
                  (ageGuess - actualAge) > actualAge * UpwardPct);
 
             var accepted = false;
+            double? previousCrowdAge = null;
 
             // record only realistic guesses
             if (!unrealistic)
@@ -81,7 +82,7 @@ namespace LongevityWorldCup.Website.Controllers
                 {
                     // Revalidate under AthleteDataService's reload lock so a picture
                     // replacement between the initial check and persistence is rejected.
-                    if (!_svc.TryAddAgeGuess(key, normalizedProfileImageId, ageGuess))
+                    if (!_svc.TryAddAgeGuess(key, normalizedProfileImageId, ageGuess, out previousCrowdAge))
                         return ProfileImageChanged();
 
                     accepted = true;
@@ -106,8 +107,12 @@ namespace LongevityWorldCup.Website.Controllers
                 return ProfileImageChanged();
             }
 
+            if (!accepted && crowdStats.Count > 0)
+                previousCrowdAge = crowdStats.Median;
+
             return Ok(new
             {
+                PreviousCrowdAge = previousCrowdAge,
                 CrowdAge = crowdStats.Median,
                 CrowdCount = crowdStats.Count,
                 ActualAge = actualAge,

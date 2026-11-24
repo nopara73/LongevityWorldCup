@@ -44,6 +44,21 @@ public sealed class SilentAthleteCorrectionTests
     }
 
     [Fact]
+    public void RecheckingAnUnchangedBaselinePreservesItsAwardRows()
+    {
+        using var workspace = new Workspace();
+        using var factory = workspace.Factory();
+        var badges = factory.Services.GetRequiredService<BadgeDataService>();
+        var awardCount = Assert.IsType<long>(Scalar(factory, "SELECT COUNT(*) FROM BadgeAwards;"));
+        Assert.True(awardCount > 0);
+        Execute(factory, "UPDATE BadgeAwards SET UpdatedAt='2020-01-01T00:00:00Z';");
+
+        badges.ComputeAndPersistAwards();
+
+        Assert.Equal(awardCount, Scalar(factory, "SELECT COUNT(*) FROM BadgeAwards WHERE UpdatedAt='2020-01-01T00:00:00Z';"));
+    }
+
+    [Fact]
     public async Task FileWatcherCorrectionRebaselinesAwardsWithoutCreatingEvents()
     {
         using var workspace = new Workspace();

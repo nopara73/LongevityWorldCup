@@ -5,6 +5,12 @@ namespace LongevityWorldCup.Website.Tools;
 
 internal static partial class HomepagePodiumAssets
 {
+    public const string SectionStyles = """
+        <link rel="stylesheet" href="{{ASSET_HOMEPAGE_CSS}}">
+        <link rel="stylesheet" href="{{ASSET_PRIZE_POOL_CSS}}">
+        <link rel="stylesheet" href="{{ASSET_MERCH_SHELF_CSS}}">
+        """;
+
     private const string EnhancementMedia = "not all and (scripting:enabled)";
     // The podium, header, typography and layout keep their normal blocking styles.
     private static readonly HashSet<string> EnhancementStyles = new(StringComparer.Ordinal)
@@ -22,7 +28,7 @@ internal static partial class HomepagePodiumAssets
     public static string PrepareHead(string head, string? portrait)
     {
         // The populated homepage can paint its title with the metric-adjusted fallback
-        // while Roboto loads on demand. Only preload styles for the header and podium.
+        // while Roboto loads on demand. Discover its render-blocking styles before the page modules.
         var preloads = portrait is null
             ? """
               <link rel="preload" href="{{ASSET_ROBOTO_REGULAR}}" as="font" type="font/woff2" crossorigin>
@@ -32,6 +38,10 @@ internal static partial class HomepagePodiumAssets
             : $$$"""
               <link rel="preload" as="style" fetchpriority="high" href="{{ASSET_SITE_HEADER_CSS}}">
               <link rel="preload" as="image" fetchpriority="high" href="{{{WebUtility.HtmlEncode(portrait)}}}">
+              <link rel="preload" as="style" href="{{ASSET_AESTHETIC_SYSTEM_CSS}}">
+              <link rel="preload" as="style" href="{{ASSET_TYPE_SYSTEM_CSS}}">
+              <link rel="preload" as="style" href="{{ASSET_LAYOUT_SYSTEM_CSS}}">
+              <link rel="preload" as="style" href="{{ASSET_DEPTH_SYSTEM_CSS}}">
               <link rel="preload" as="style" href="{{ASSET_LEADERBOARD_PODIUM_CSS}}">
               <script>
               document.addEventListener('load', ({ target }) => {
@@ -46,8 +56,8 @@ internal static partial class HomepagePodiumAssets
     public static string PrioritizeStyles(string html) => VersionedStyle().Replace(html, match =>
     {
         var path = match.Groups[1].Value;
-        // The table still waits for its stylesheet. Keep its download behind the first screen.
-        if (path == "/css/leaderboard-content.css")
+        // Later sections wait for their styles in the body, behind the title and winners.
+        if (path is "/css/leaderboard-content.css" or "/css/homepage.css")
             return match.Value[..^1] + " fetchpriority=\"low\">";
 
         // This entire sheet is inside the same media query. Light pages can paint

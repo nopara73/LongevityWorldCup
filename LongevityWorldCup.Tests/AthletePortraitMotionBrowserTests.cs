@@ -650,6 +650,14 @@ public sealed class AthletePortraitMotionBrowserTests(
                 });
             }
             """);
+        await page.EvaluateAsync("""
+            async () => {
+                const badge = document.createElement('span');
+                document.querySelector('.leaderboard td').append(badge);
+                await new Promise(resolve => requestAnimationFrame(resolve));
+                badge.remove();
+            }
+            """);
         await page.Locator(".modal-content > .athlete-steps [data-step=next]").ClickAsync();
         try
         {
@@ -677,6 +685,45 @@ public sealed class AthletePortraitMotionBrowserTests(
         }
         await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
         Assert.Equal(0, await page.EvaluateAsync<int>("window.backgroundPortraitReads"));
+    }
+
+    [Fact]
+    public async Task FirstPodiumHover_PlaysWhileRankingsArePendingAndSurvivesHydration()
+    {
+        await using var context = await NewContextAsync();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/data/athletes", async route => { await release.Task; await route.ContinueAsync(); });
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        await page.AddInitScriptAsync("""
+            window.championStarts = 0;
+            document.addEventListener('playing', event => {
+                if (event.target.closest?.(".podium a[href='/athlete/benjamin-garden']")) window.championStarts++;
+            }, true);
+            """);
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+            var photo = page.Locator(".podium a[href='/athlete/benjamin-garden'] img.podium-portrait");
+            await photo.EvaluateAsync("img => { window.firstChampion = img; return img.decode(); }");
+            await Assertions.Expect(page.Locator(".podium")).ToHaveAttributeAsync("data-server-rendered", "true");
+            await Assertions.Expect(photo.Locator("..").Locator("video")).ToHaveCountAsync(0);
+            await photo.HoverAsync();
+            await page.Mouse.MoveAsync(0, 0);
+            await ExpectPortraitPlayingAsync(photo.Locator("..").Locator("video"));
+            await page.EvaluateAsync("""
+                () => {
+                    document.querySelector('.podium-item.first .age-reduction').textContent = 'old score';
+                    window.oldThird = document.querySelector('.podium-item.third img.podium-portrait');
+                    window.oldThird.removeAttribute('src');
+                }
+                """);
+        }
+        finally { release.TrySetResult(); }
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        Assert.True(await page.EvaluateAsync<bool>("() => window.firstChampion.isConnected && window.championStarts === 1"));
+        Assert.False(await page.EvaluateAsync<bool>("() => window.oldThird.isConnected"));
+        await Assertions.Expect(page.Locator(".podium-item.first .age-reduction")).Not.ToHaveTextAsync("old score");
     }
 
     private static async Task ExpectPortraitPlayingAsync(ILocator overlay)

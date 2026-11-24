@@ -38,7 +38,7 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
             {
                 Status = 200,
                 ContentType = "application/json",
-                Body = """{"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+                Body = """{"previousCrowdAge":100,"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
             });
             responseDelivered.TrySetResult(true);
         });
@@ -137,7 +137,7 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
         {
             Status = 200,
             ContentType = "application/json",
-            Body = """{"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+            Body = """{"previousCrowdAge":40,"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
         }));
 
         var page = await context.NewPageAsync();
@@ -233,7 +233,7 @@ public sealed class GuessMyAgeReducedMotionBrowserTests(
         {
             Status = 200,
             ContentType = "application/json",
-            Body = """{"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+            Body = """{"previousCrowdAge":40,"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
         }));
 
         var page = await context.NewPageAsync();

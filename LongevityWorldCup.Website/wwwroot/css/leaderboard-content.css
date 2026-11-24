@@ -3941,7 +3941,7 @@ main[data-leaderboard-page="full"] .no-results-empty-state{
 main[data-leaderboard-page="full"] .no-results-empty-state::before{
     content:"\f002" / ""; display:grid; place-items:center; width:3rem; height:3rem; border-radius:50%;
     background:var(--lwc-surface); box-shadow:inset 0 0 0 1px var(--lwc-border); color:var(--lwc-accent);
-    font:900 1.1rem/1 "Font Awesome 6 Free";
+    font:900 1.1rem/1 var(--fa-style-family-classic, "Font Awesome 6 Free");
 }
 main[data-leaderboard-page="full"] .no-results-empty-state p{ color:var(--lwc-ink); font-weight:700; }
 main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--lwc-radius-md); border-color:var(--lwc-border-strong); color:var(--lwc-accent); }
@@ -4277,7 +4277,7 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     border:1px solid #b6b6ae;
     border-radius:50%;
     color:#445353;
-    font:900 1.15rem/1 "Font Awesome 6 Free";
+    font:900 1.15rem/1 var(--fa-style-family-classic, "Font Awesome 6 Free");
     pointer-events:none;
 }
 #detailsModal .proof-number{
@@ -4652,7 +4652,7 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
 .flag-leaderboard .flag-empty::before{
     content:"\f024" / ""; display:grid; place-items:center; width:3rem; height:3rem; border-radius:50%;
     background:var(--lwc-surface); box-shadow:inset 0 0 0 1px var(--lwc-border); color:var(--lwc-accent);
-    font:900 1.1rem/1 "Font Awesome 6 Free";
+    font:900 1.1rem/1 var(--fa-style-family-classic, "Font Awesome 6 Free");
 }
 .flag-leaderboard > .leaderboard-recovery{
     width:min(calc(100% - 2 * var(--lwc-space-4)), 24rem); margin:var(--lwc-space-5) auto; box-sizing:border-box;

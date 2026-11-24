@@ -1281,6 +1281,7 @@ function createDashboardButton(
     const button = document.createElement("button");
     button.type = "button";
     button.className = className;
+    button.dataset.dashboardDestination = new URL(href, window.location.href).pathname;
     button.innerHTML = label;
     button.addEventListener("click", () => {
         if (typeof beforeNavigate === "function" && beforeNavigate(button) === false) return;

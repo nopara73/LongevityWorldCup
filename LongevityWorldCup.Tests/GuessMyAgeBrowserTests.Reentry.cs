@@ -39,7 +39,7 @@ public sealed class GuessMyAgeReentryBrowserTests(
             {
                 Status = 200,
                 ContentType = "application/json",
-                Body = """{"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+                Body = """{"previousCrowdAge":40,"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
             });
         });
 
@@ -168,7 +168,7 @@ public sealed class GuessMyAgeReentryBrowserTests(
             {
                 Status = 200,
                 ContentType = "application/json",
-                Body = """{"crowdAge":39,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+                Body = """{"previousCrowdAge":39,"crowdAge":39,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
             });
         });
 
@@ -254,7 +254,7 @@ public sealed class GuessMyAgeReentryBrowserTests(
         {
             Status = 200,
             ContentType = "application/json",
-            Body = """{"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+            Body = """{"previousCrowdAge":40,"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
         }));
 
         var page = await context.NewPageAsync();
@@ -337,7 +337,7 @@ public sealed class GuessMyAgeReentryBrowserTests(
         {
             Status = 200,
             ContentType = "application/json",
-            Body = """{"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+            Body = """{"previousCrowdAge":40,"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
         }));
 
         var page = await context.NewPageAsync();

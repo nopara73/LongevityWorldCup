@@ -478,7 +478,7 @@ main.event-board-page {
     border-radius: 50%;
     background: var(--events-header-bg);
     color: var(--events-header-action);
-    font-family: "Font Awesome 6 Free";
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-size: 1.5rem;
     font-weight: 900;
     line-height: 1;

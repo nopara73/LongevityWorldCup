@@ -331,6 +331,12 @@ function showNextCustomAlert() {
     customAlertDialog.dataset.tone = tone;
     const mark = customAlertDialog.querySelector('.custom-alert-mark i');
     if (mark) mark.className = `fas ${CUSTOM_ALERT_TONE_ICONS[tone]}`;
+    customAlertDialog.querySelector('.custom-alert-portrait')?.remove();
+    if (tone === 'success' && options?.portrait instanceof HTMLImageElement && options.portrait.hasAttribute('src')) {
+        const portrait = options.portrait.cloneNode(false);
+        portrait.className = 'custom-alert-portrait';
+        mark?.before(portrait);
+    }
     renderCustomAlertMessage(message);
 
     customAlertDialog.hidden = false;
