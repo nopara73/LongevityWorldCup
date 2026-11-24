@@ -26,6 +26,7 @@ public sealed class FrontendTypeScriptBuildTests
         "icons",
         "leaderboard-feel",
         "leaderboard-podium",
+        "leaderboard-row-preview",
         "layout-system",
         "lmx-discussion",
         "longevitymaxxing",

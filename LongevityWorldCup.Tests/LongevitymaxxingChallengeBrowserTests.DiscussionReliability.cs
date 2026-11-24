@@ -45,7 +45,9 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         loaded = true;
         await retry.ClickAsync();
         await Assertions.Expect(retry).ToBeHiddenAsync();
-        await viewer.Locator("img").EvaluateAsync("async e=>await e.decode()");
+        var picture = viewer.Locator("img");
+        await Assertions.Expect(picture).ToHaveJSPropertyAsync("naturalWidth", 1600);
+        await picture.EvaluateAsync("img => img.decode()");
         await Capture("ready");
         await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(viewer).ToBeHiddenAsync();

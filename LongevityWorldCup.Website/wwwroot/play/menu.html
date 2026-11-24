@@ -269,7 +269,7 @@
             </div>
             <div id="athleteDashboardDiscounts" class="play-dashboard-discounts" aria-live="polite"></div>
             <div id="athleteDashboardActions" class="options-container play-dashboard-actions flow-action-stack" data-flow-dock="overflow" data-flow-dock-back-first data-flow-dock-unless="body.play-route-hydrating" data-flow-dock-max-height-ratio="0.4">
-                <button type="button" class="option-button grey flow-action flow-action--secondary" onclick="window.location.href='/edit-profile'">
+                <button type="button" class="option-button grey flow-action flow-action--secondary" data-dashboard-destination="/edit-profile" onclick="window.location.href=this.dataset.dashboardDestination">
                     <span class="dashboard-action-label flow-action__label">Edit profile</span><i class="fas fa-pen" aria-hidden="true"></i>
                 </button>
                 <div id="athleteDashboardDynamicActions"></div>
@@ -312,6 +312,7 @@
                 try {
                     window.sessionStorage.removeItem('selectedAthlete');
                     window.sessionStorage.removeItem('tempAthlete');
+                    window.sessionStorage.removeItem('tempAthleteEdits');
                 } catch (_) {
                 }
                 window.location.replace('/select-athlete');

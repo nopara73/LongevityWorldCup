@@ -36,11 +36,6 @@
             text-align: center;
         }
 
-        .application-review-panel [data-aos]:not(.aos-animate) {
-            opacity: 1;
-            transform: none;
-        }
-
         .application-review-visual {
             position: relative;
             display: flex;
@@ -54,6 +49,7 @@
         .application-review-frame {
             position: relative;
             width: min(100%, 340px);
+            max-width: calc(100% - var(--review-seal) / 2);
         }
 
         .application-review-visual picture {
@@ -120,6 +116,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-wrap: wrap;
+            row-gap: 0.5rem;
             margin: 1rem auto 0;
             padding: 0;
             list-style: none;
@@ -181,7 +179,7 @@
             border-radius: var(--lwc-radius-pill);
             background: var(--lwc-success);
             color: var(--lwc-surface);
-            font: 900 9px/1 "Font Awesome 6 Free";
+            font: 900 9px/1 var(--fa-style-family-classic, "Font Awesome 6 Free");
             box-shadow: 0 0 0 2px var(--lwc-surface);
         }
 
@@ -189,7 +187,6 @@
             border: 2px solid var(--lwc-accent);
             background: var(--lwc-accent-soft);
             color: var(--lwc-accent);
-            animation: reviewStepPulse 2.4s var(--lwc-ease, ease) infinite;
         }
 
         .application-review-trail .is-waiting .application-review-step {
@@ -210,6 +207,10 @@
             color: var(--lwc-muted, #4f5b68);
             line-height: 1.5;
             text-align: center;
+        }
+
+        #review-payment-status:empty {
+            margin: 0;
         }
 
         .application-review-copy.primary {
@@ -251,7 +252,7 @@
             content: "\f0e0";
             flex: none;
             color: var(--lwc-accent);
-            font: 900 0.9em/1 "Font Awesome 6 Free";
+            font: 900 0.9em/1 var(--fa-style-family-classic, "Font Awesome 6 Free");
         }
 
         #contactEmailPlaceholder.is-fallback {
@@ -328,19 +329,8 @@
             }
         }
 
-        @keyframes reviewStepPulse {
-            0%, 100% {
-                box-shadow: 0 0 0 0 var(--lwc-accent-soft);
-            }
-
-            50% {
-                box-shadow: 0 0 0 7px var(--lwc-accent-soft);
-            }
-        }
-
         @media (prefers-reduced-motion: reduce) {
-            .application-review-seal,
-            .application-review-trail .is-current .application-review-step {
+            .application-review-seal {
                 animation: none;
             }
         }
@@ -393,11 +383,6 @@
 
             .application-review-frame {
                 max-width: calc(100% - 12px);
-            }
-
-            .application-review-trail {
-                flex-wrap: wrap;
-                row-gap: 0.5rem;
             }
 
             .application-review-trail li + li::before {
@@ -490,13 +475,14 @@
                 margin-top: 0.6rem;
             }
         }
+
     </style>
 </head>
 <body class="play-flow-route">
     <!--HEADER-->
     <main class="initial-view-main">
         <section class="application-review-panel" data-review-kind="application">
-            <div class="application-review-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
+            <div class="application-review-visual">
                 <div class="application-review-frame">
                     <picture>
                         <source srcset="{{ASSET_BEAN_WAITING_WEBP}}" type="image/webp">
@@ -507,7 +493,7 @@
                 </div>
             </div>
             <div class="application-review-body">
-                <h1 id="appReviewTitle" class="application-review-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
+                <h1 id="appReviewTitle" class="application-review-title">
                     <span id="appReviewText">Application review</span> <i class="fas fa-rocket" aria-hidden="true"></i>
                 </h1>
                 <ol class="application-review-trail" aria-hidden="true">
@@ -517,27 +503,27 @@
                     <li data-step="email"><span class="application-review-step"><i class="fas fa-envelope"></i></span></li>
                     <li data-step="finish"><span class="application-review-step"><i class="fas fa-trophy"></i></span></li>
                 </ol>
-                <p id="review-payment-status" class="visually-hidden" role="status" aria-atomic="true"></p>
-                <p class="application-review-copy primary" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+                <p id="review-payment-status" class="application-review-copy" role="status" aria-atomic="true"></p>
+                <p class="application-review-copy primary">
                     We're reviewing <span id="whatAreWeReviewing">your application</span>, which may take a day or two. Afterwards we'll contact you at <span id="contactEmailPlaceholder" class="application-review-highlight">
                         the email address you provided with your application
                     </span>
                 </p>
             </div>
             <div class="application-review-foot">
-                <p class="application-review-copy contact" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
+                <p class="application-review-copy contact">
                     <i class="fas fa-circle-question" aria-hidden="true"></i>
                     <span class="smaller-text">
                     Questions, concerns, or signs of aging? Let us know at <a href="mailto:hi@longevityworldcup.com">hi@longevityworldcup.com</a>
                 </span>
                 </p>
-                <p class="application-review-copy community" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+                <p class="application-review-copy community">
                     <i class="fas fa-hashtag" aria-hidden="true"></i>
                     <span class="smaller-text">
                     Want to hang out with other longevity athletes? Join the <span class="application-review-highlight">#longevity-world-cup</span> room on the <a href="https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ">TumbleBit Slack</a>!
                 </span>
                 </p>
-                <div class="options-container application-review-actions flow-action-stack" data-flow-dock="overflow" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+                <div class="options-container application-review-actions flow-action-stack" data-flow-dock="overflow">
                     <button class="option-button back-button flow-action flow-action--secondary" onclick="window.location.href='/'">
                         <span class="flow-action__label">Home</span><i class="fas fa-home" aria-hidden="true"></i>
                     </button>
@@ -669,6 +655,7 @@
                 || normalizeSubmissionTypeReviewSource(pendingPaymentInvoice && pendingPaymentInvoice.submissionType);
         }
 
+        const checkoutUnavailable = new URLSearchParams(window.location.search).get('checkout') === 'unavailable';
         const reviewSource = readReviewSource();
         const isNewResultsUploaded = reviewSource === "proof-upload";
         const isEditRequest = reviewSource === "edit-profile";
@@ -696,21 +683,28 @@
             return item;
         }
 
+        const paymentStatus = document.getElementById('review-payment-status');
+        const pendingPaymentMessage = 'Payment confirmation pending.';
+
+        function showPaymentStatus(message) {
+            if (paymentStatus.textContent !== message) paymentStatus.textContent = message;
+        }
+
         function initializeReviewTrail() {
             const kind = isNewResultsUploaded ? 'result' : isEditRequest ? 'edit' : 'application';
             document.querySelector('.application-review-panel').dataset.reviewKind = kind;
             const finishIcon = document.querySelector('.application-review-trail [data-step="finish"] i');
             if (finishIcon) finishIcon.className = `fas ${REVIEW_FINISH_ICONS[kind]}`;
             // A pending invoice adds the payment stop; it waits until the status check confirms it.
-            if (pendingPaymentInvoice || new URLSearchParams(window.location.search).get('checkout') === 'unavailable') {
-                setTrailStep('payment', 'is-waiting');
+            if (checkoutUnavailable || pendingPaymentInvoice) {
+                setTrailStep('payment', checkoutUnavailable ? 'is-failed' : 'is-waiting');
                 setTrailStep('review', null);
-                document.getElementById('review-payment-status').textContent = 'Payment confirmation pending.';
-                if (new URLSearchParams(window.location.search).get('checkout') === 'unavailable') {
-                    setTrailStep('payment', 'is-failed');
+                if (checkoutUnavailable) {
                     document.querySelector('.application-review-trail [data-step="payment"] i').className = 'fas fa-circle-xmark';
-                    document.getElementById('review-payment-status').textContent = 'This checkout is no longer available. Check your confirmation email.';
                 }
+                showPaymentStatus(checkoutUnavailable
+                    ? 'This checkout is no longer available. Check your confirmation email.'
+                    : pendingPaymentMessage);
             }
         }
 
@@ -744,7 +738,7 @@
 
         // Result and edit return routes do not represent a new application.
         if (!isNewResultsUploaded && !isEditRequest) setLocalItem('hasApplication', 'true');
-        window.LwcInitialView.complete();
+        window.LwcInitialView.complete({ animate: false });
 
         // Arriving here is the milestone: the seal stamps, then the shared burst
         // lands on it once per submission.
@@ -803,7 +797,7 @@
 
         async function checkPendingPayment() {
             const pending = pendingPaymentInvoice;
-            if (new URLSearchParams(window.location.search).get('checkout') === 'unavailable'
+            if (checkoutUnavailable
                 || !pending || !pending.invoiceId || paymentCheckStopped || paymentCheckComplete
                 || document.hidden || paymentCheckAbort || paymentCheckAttempts >= MAX_PAYMENT_CHECKS) return;
 
@@ -840,7 +834,7 @@
                         delay: 260
                     });
                     setTrailStep('review', 'is-current');
-                    document.getElementById('review-payment-status').textContent = 'Payment confirmed. Awaiting review.';
+                    showPaymentStatus('Payment confirmed. Awaiting review.');
                     // Clear only the invoice this page verified; another tab may have stored a newer one.
                     for (const [storage, key] of [['sessionStorage', PENDING_PAYMENT_INVOICE_KEY], ['localStorage', PENDING_PAYMENT_INVOICE_STORAGE_KEY]]) {
                         const stored = parsePendingPaymentInvoice(getStorageItem(storage, key), () => {});
@@ -854,11 +848,13 @@
                     paymentCheckComplete = true;
                     setTrailStep('payment', 'is-failed');
                     document.querySelector('.application-review-trail [data-step="payment"] i').className = 'fas fa-circle-xmark';
-                    document.getElementById('review-payment-status').textContent = 'Payment was not confirmed: ' + status + '.';
+                    showPaymentStatus('Payment was not confirmed: ' + status + '.');
+                } else {
+                    showPaymentStatus(pendingPaymentMessage);
                 }
             } catch (_) {
                 if (!paymentCheckStopped && paymentCheckAbort === controller) {
-                    document.getElementById('review-payment-status').textContent = 'Payment confirmation unavailable. Awaiting confirmation.';
+                    showPaymentStatus('Payment confirmation unavailable. Awaiting confirmation.');
                 }
             } finally {
                 clearTimeout(timeout);

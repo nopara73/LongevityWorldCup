@@ -11,25 +11,21 @@ internal static class XCustomEventPost
     public static CustomEventSocialPlan BuildPlan(
         string eventId, string rawText, Func<string, string>? mentionResolver = null, bool includeEventUrl = true)
     {
-        var sourceUrl = CustomEventMarkup.GetSingleHyperlink(rawText);
-        if (!Uri.TryCreate(sourceUrl, UriKind.Absolute, out var uri) ||
-            uri.Scheme is not ("http" or "https") || !uri.Host.Contains('.'))
-        {
-            sourceUrl = null;
-        }
+        var postUrl = CustomEventSocialComposer.GetPostUrl(eventId, rawText, includeEventUrl);
+        var shortened = Uri.TryCreate(postUrl, UriKind.Absolute, out var uri) &&
+            uri.Scheme is "http" or "https" && uri.Host.Contains('.');
 
         return CustomEventSocialComposer.BuildPlan(eventId, rawText, MaxCharacters, mentionResolver,
             includeEventUrl, Count, Truncate);
 
         int Count(string text)
         {
-            // The composer appends an explicit source link on its own line.
-            if (sourceUrl is not null)
+            if (shortened)
             {
-                if (text.Equals(sourceUrl, StringComparison.Ordinal))
+                if (text.Equals(postUrl, StringComparison.Ordinal))
                     return ShortenedUrlCharacters;
-                if (text.EndsWith("\n\n" + sourceUrl, StringComparison.Ordinal))
-                    return CountText(text[..^sourceUrl.Length]) + ShortenedUrlCharacters;
+                if (text.EndsWith("\n\n" + postUrl, StringComparison.Ordinal))
+                    return CountText(text[..^postUrl.Length]) + ShortenedUrlCharacters;
             }
 
             return CountText(text);

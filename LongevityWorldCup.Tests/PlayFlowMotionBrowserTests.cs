@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Text.Json;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
@@ -179,6 +180,63 @@ public sealed class PlayFlowMotionBrowserTests(
         await page.Locator("#playDashboardBackBtn").ClickAsync();
         await Assertions.Expect(page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/select-athlete$"));
         await WaitForMoveToSettleAsync(page);
+    }
+
+    [Fact]
+    public async Task Dashboard_QuickReselectionDealsOnlyOnTheFirstArrival()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1440, Height = 900 }, ReducedMotion = ReducedMotion.NoPreference
+        });
+        var page = await OpenAsync(context, "/select-athlete");
+        await SelectAthleteAsync(page, await PickAmateurAsync(page));
+        var deals = await page.EvaluateAsync<bool[]>(
+            """
+            () => new Promise(resolve => {
+                const dashboard = document.getElementById('athleteDashboardPanel');
+                const select = document.getElementById('playConfirmAthleteBtn');
+                const visits = [];
+                const observer = new MutationObserver(() => {
+                    if (!dashboard.hidden) {
+                        visits.push(dashboard.getAnimations({subtree: true}).some(a => a.animationName === 'play-dashboard-name'));
+                        if (visits.length === 2) {
+                            observer.disconnect();
+                            resolve(visits);
+                        } else {
+                            document.getElementById('playDashboardBackBtn').click();
+                        }
+                    } else if (!document.getElementById('athleteSelectionPanel').hidden) {
+                        select.click();
+                    }
+                });
+                observer.observe(dashboard, {attributes:true, attributeFilter:['hidden']});
+                select.click();
+            })
+            """);
+        Assert.Equal(new[] { true, false }, deals);
+        await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Edit profile" })).ToBeFocusedAsync();
+    }
+
+    [Theory]
+    [InlineData(0, "/edit-profile")]
+    [InlineData(1, "/longevitymaxxing")]
+    [InlineData(2, "/pheno-age")]
+    [InlineData(3, "/bortz-age")]
+    public async Task Dashboard_HistoryReturnRestoresTheActivatedCommand(int index, string destination)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await OpenAsync(context, "/select-athlete");
+        await SelectAthleteAsync(page, await PickAmateurAsync(page));
+        await page.Locator("#playConfirmAthleteBtn").PressAsync("Enter");
+        var command = page.Locator("#athleteDashboardActions .flow-action:not(.back-button)").Nth(index);
+        await command.PressAsync("Enter");
+        await page.WaitForFunctionAsync("path => location.pathname === path", destination);
+        await page.GoBackAsync();
+        await Assertions.Expect(command).ToBeFocusedAsync();
     }
 
     [Theory]
@@ -493,12 +551,65 @@ public sealed class PlayFlowMotionBrowserTests(
             """);
         await page.Locator("#playConfirmAthleteBtn").ClickAsync();
         await page.WaitForFunctionAsync("() => document.body.classList.contains('play-route-hydrating')");
-        await page.EvaluateAsync("() => window.__releaseHeader()");
-        await page.WaitForFunctionAsync("() => document.documentElement.dataset.playMove === 'forward'");
-        Assert.Equal("visible", await page.Locator("#athleteDashboardPanel").EvaluateAsync<string>("panel => getComputedStyle(panel).visibility"));
-        Assert.Null(await page.Locator("body").GetAttributeAsync("aria-busy"));
-        Assert.True(await page.EvaluateAsync<bool>("() => document.activeElement?.matches('#athleteDashboardActions .flow-action:not(.back-button)')"));
+        // Record the arrival in the browser before the transition marker is cleared.
+        await page.EvaluateAsync("""
+            () => {
+                const root = document.documentElement;
+                const observer = new MutationObserver(() => {
+                    if (root.dataset.playMove !== 'forward') return;
+                    const panel = document.getElementById('athleteDashboardPanel');
+                    window.__dashboardArrival = {
+                        visibility: getComputedStyle(panel).visibility,
+                        busy: document.body.getAttribute('aria-busy'),
+                        focused: Boolean(document.activeElement?.matches('#athleteDashboardActions .flow-action:not(.back-button)'))
+                    };
+                    observer.disconnect();
+                });
+                observer.observe(root, { attributeFilter: ['data-play-move'] });
+                window.__releaseHeader();
+            }
+            """);
+        await page.WaitForFunctionAsync("() => window.__dashboardArrival !== undefined");
         await WaitForMoveToSettleAsync(page);
+        var arrival = await page.EvaluateAsync<JsonElement>("() => window.__dashboardArrival");
+        Assert.Equal("visible", arrival.GetProperty("visibility").GetString());
+        Assert.Null(arrival.GetProperty("busy").GetString());
+        Assert.True(arrival.GetProperty("focused").GetBoolean());
+    }
+
+    [Theory]
+    [InlineData(1280, 800, ".play-dashboard-actions:not(.flow-action-stack--docked) [data-dashboard-destination='/bortz-age']")]
+    [InlineData(390, 640, ".flow-action-stack--docked #playDashboardBackBtn")]
+    public async Task Dashboard_HoverKeepsTheCommandEdgeUnderThePointer(int width, int height, string selector)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ColorScheme = ColorScheme.Dark
+        });
+        await context.AddInitScriptAsync(FlowActionDockBrowserTests.FlowAuditStateScript);
+        var page = await OpenAsync(context, "/dashboard");
+        var command = page.Locator(selector);
+        var bounds = await command.BoundingBoxAsync();
+        Assert.NotNull(bounds);
+        await command.HoverAsync();
+        await WaitForFiniteAnimationsAsync(page, "#athleteDashboardActions button, #athleteDashboardActions button > i");
+        var hovered = await command.BoundingBoxAsync();
+        Assert.NotNull(hovered);
+        Assert.InRange(Math.Abs(hovered.Y - bounds.Y), 0, 0.25f);
+
+        var x = bounds.X + bounds.Width / 2;
+        var y = bounds.Y + bounds.Height - 0.5f;
+        await page.Mouse.MoveAsync(x, y);
+        Assert.True(await command.EvaluateAsync<bool>("""
+            async (button, [x, y]) => {
+                for (let frame = 0; frame < 20; frame++) {
+                    await new Promise(requestAnimationFrame);
+                    if (!button.matches(':hover') || !button.contains(document.elementFromPoint(x, y))) return false;
+                }
+                return true;
+            }
+            """, new double[] { x, y }));
     }
 
     [Theory]

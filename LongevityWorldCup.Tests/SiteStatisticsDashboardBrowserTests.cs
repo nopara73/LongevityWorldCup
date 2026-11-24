@@ -163,6 +163,16 @@ public sealed class SiteStatisticsDashboardBrowserTests(
         await Assertions.Expect(report.Locator(".ai-stage strong")).ToHaveTextAsync(["3", "0", "0", "2", "2"]);
         await Assertions.Expect(page.Locator("#statsSource")).ToHaveValueAsync("ai:chatgpt");
         await Assertions.Expect(report.Locator(".ai-rates")).ToContainTextAsync("66.7%");
+        var provider = report.Locator("[data-ai-source='chatgpt']");
+        await provider.FocusAsync();
+        await provider.EvaluateAsync("b => window.savedProviderButton = b");
+        var providerOption = page.Locator("#statsSource option[value='ai:chatgpt']");
+        await providerOption.EvaluateAsync("o => window.savedProviderOption = o");
+        await page.Locator("#statsSource").DispatchEventAsync("change");
+        await Assertions.Expect(page.Locator(".stats-page")).ToHaveAttributeAsync("aria-busy", "false");
+        Assert.True(await provider.EvaluateAsync<bool>("b => b === window.savedProviderButton && document.activeElement === b"));
+        Assert.True(await providerOption.EvaluateAsync<bool>("o => o === window.savedProviderOption"));
+
         await page.Locator("#statsSource").SelectOptionAsync("ai");
         await Assertions.Expect(report.Locator(".ai-stage strong").First).ToHaveTextAsync("4");
         var output = Environment.GetEnvironmentVariable("LWC_AI_SCREENSHOTS");
@@ -171,9 +181,12 @@ public sealed class SiteStatisticsDashboardBrowserTests(
             Directory.CreateDirectory(output);
             await report.ScreenshotAsync(new() { Path = Path.Combine(output, "ai-report-desktop.png") });
         }
+        await report.Locator(".ai-definitions summary").ClickAsync();
         await report.GetByRole(AriaRole.Button, new() { Name = "Perplexity", Exact = true }).ClickAsync();
         await Assertions.Expect(report.Locator(".ai-stage strong").First).ToHaveTextAsync("1");
         await Assertions.Expect(page.Locator("#statsSource")).ToHaveValueAsync("ai:perplexity");
+        await Assertions.Expect(report.Locator("[data-ai-source='perplexity']")).ToBeFocusedAsync();
+        Assert.True(await report.Locator(".ai-definitions").EvaluateAsync<bool>("details => details.open"));
         await page.SetViewportSizeAsync(390, 844);
         await page.Locator("#statsSource").SelectOptionAsync("ai");
         await Assertions.Expect(report.Locator(".ai-stage strong").First).ToHaveTextAsync("4");

@@ -133,6 +133,8 @@ public sealed class PublicLeaderboardSnapshot
             Flag = selectedFlags.Length == 1 ? selectedFlags[0] : null,
             Ordering = ordering,
             LeagueTitle = leagueTitle,
+            EmblemClasses = leagueTitle.Length == 0 ? [] : LeagueEmblem.Classes(
+                tracks, divisions, generations, exclusive, selectedFlags.Select(flag => flag.Name)),
             DocumentTitle = documentTitle,
             ByFlag = byFlag,
             FlagTeams = byFlag ? FlagLeaderboard.Build(cohort, view!) : []
@@ -217,6 +219,7 @@ public sealed record PublicLeaderboardSelection(string View, LeaderboardSnapshot
 {
     public IReadOnlyList<string> Filters { get; init; } = [];
     public FlagRouteInfo? Flag { get; init; }
+    public IReadOnlyList<string> EmblemClasses { get; init; } = [];
     public string LeagueTitle { get; init; } = "";
     public string DocumentTitle { get; init; } = "";
     public bool ByFlag { get; init; }

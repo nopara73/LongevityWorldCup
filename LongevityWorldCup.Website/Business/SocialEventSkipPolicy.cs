@@ -19,7 +19,8 @@ public enum SocialEventSkipReason
     DeliveryRetriesExhausted,
     PermanentDeliveryFailure,
     RoutineConversationUpdate,
-    SupersededBadgeAward
+    SupersededBadgeAward,
+    SupersededUltimateRank
 }
 
 public static class SocialEventSkipPolicy
@@ -36,9 +37,6 @@ public static class SocialEventSkipPolicy
         return occurredAtUtc < freshCutoffUtc ? SocialEventSkipReason.StalePrimaryEvent : null;
     }
 
-    internal static bool IsSupersededBadgeAward(EventType type, string text, Func<string, bool> isCurrentBadgeAward) =>
-        type == EventType.BadgeAward && !isCurrentBadgeAward(text);
-
     internal static bool TryGetBroadcastSkipReason(
         EventType type,
         string text,
@@ -47,7 +45,7 @@ public static class SocialEventSkipPolicy
         DateTime freshCutoffUtc,
         Func<string, bool> hasSingleGlobalPlaceOneBadgeHolder,
         out SocialEventSkipReason reason,
-        Func<string, bool>? isCurrentBadgeAward = null)
+        Func<EventType, string, SocialEventSkipReason?>? supersededReason = null)
     {
         if (type == EventType.CustomEvent)
         {
@@ -83,7 +81,8 @@ public static class SocialEventSkipPolicy
 
         if (type is EventType.NewRank or EventType.PhenoAgeTop10Change or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change)
         {
-            reason = headline.Tier == SocialHeadlineTier.Other ? SocialEventSkipReason.UnsupportedEventPayload : default;
+            reason = headline.Tier == SocialHeadlineTier.Other
+                ? SocialEventSkipReason.UnsupportedEventPayload : supersededReason?.Invoke(type, text) ?? default;
             return reason != default;
         }
 
@@ -131,14 +130,8 @@ public static class SocialEventSkipPolicy
             return true;
         }
 
-        if (isCurrentBadgeAward is not null && !isCurrentBadgeAward(text))
-        {
-            reason = SocialEventSkipReason.SupersededBadgeAward;
-            return true;
-        }
-
-        reason = default;
-        return false;
+        reason = supersededReason?.Invoke(type, text) ?? default;
+        return reason != default;
     }
 
     private static bool IsBestImprovementBadge(string norm)
