@@ -21,7 +21,6 @@ body.play-start-active .play-arena,
     opacity: 1;
     transition: opacity 700ms ease;
 }
-body.play-start-active > .play-hub-main { position: relative; z-index: 1; }
 
 /* ------------------------------------------------------------ floodlights */
 .play-arena-beam {
@@ -97,15 +96,21 @@ body.play-start-active > .play-hub-main { position: relative; z-index: 1; }
     background:
         /* lane lines */
         repeating-linear-gradient(90deg, transparent 0 calc(12.5% - 2px), rgba(255, 255, 255, .10) calc(12.5% - 2px) 12.5%) center / 60% 100% no-repeat,
-        /* cross marks */
-        repeating-linear-gradient(0deg, transparent 0 46px, rgba(255, 255, 255, .05) 46px 48px),
         /* the infield glow */
         radial-gradient(40% 60% at 50% 100%, color-mix(in srgb, var(--lwc-accent) 16%, transparent), transparent 70%);
 }
-@media (prefers-reduced-motion: no-preference) {
-    .play-arena.is-lit .play-arena-track { animation: arena-track-run 3.6s linear infinite; }
+/* The cross marks drift on their own layer, one mark further than the track,
+   so the compositor moves them without repainting the track every frame. */
+.play-arena-track::before {
+    content: "";
+    position: absolute;
+    inset: -48px 0 0;
+    background: repeating-linear-gradient(0deg, transparent 0 46px, rgba(255, 255, 255, .05) 46px 48px);
 }
-@keyframes arena-track-run { from { background-position: center 0, 0 0, 0 0; } to { background-position: center 0, 0 48px, 0 0; } }
+@media (prefers-reduced-motion: no-preference) {
+    .play-arena.is-lit .play-arena-track::before { animation: arena-track-run 3.6s linear infinite; }
+}
+@keyframes arena-track-run { to { transform: translateY(48px); } }
 
 /* ------------------------------------------------------------ vignette */
 .play-arena-vignette {

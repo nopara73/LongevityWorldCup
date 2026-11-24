@@ -16,9 +16,15 @@
 
 (() => {
     const panel = document.getElementById("playStartPanel");
-    if (!panel) return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const fine = window.matchMedia("(hover: hover) and (pointer: fine)");
+    // The arena follows the title through the body's classes. Without a way
+    // to watch them it stays out, and the title shows as it always has.
+    if (!panel || typeof MutationObserver !== "function") return;
+    const media = (query: string): MediaQueryList | null =>
+        typeof window.matchMedia === "function" ? window.matchMedia(query) : null;
+    const reduced = media("(prefers-reduced-motion: reduce)");
+    const fine = media("(hover: hover) and (pointer: fine)");
+    const body = document.body.classList;
+    const onTitle = (): boolean => body.contains("play-start-active") && !body.contains("play-start-preintro");
 
     const arena = document.createElement("div");
     arena.className = "play-arena";
@@ -35,8 +41,8 @@
     // Depth: the arena drifts against the pointer.
     let frame = 0;
     window.addEventListener("pointermove", event => {
-        if (event.pointerType !== "mouse" || reduced.matches || !fine.matches) return;
-        if (!document.body.classList.contains("play-start-active")) return;
+        if (event.pointerType !== "mouse" || reduced?.matches || !fine?.matches) return;
+        if (!body.contains("play-start-active")) return;
         if (frame) return;
         frame = requestAnimationFrame(() => {
             frame = 0;
@@ -47,33 +53,63 @@
         });
     }, { passive: true });
 
-    // Choosing a door moves the camera into the arena as the next panel comes up.
+    // Choosing a door moves the camera into the arena as the next panel comes
+    // up. A second click joins the move already running.
+    const dollyMs = 820; // arena-dolly-out in play-arena.css
+    let dollyTimer = 0;
+    let dollyDeadline = 0;
     function dolly(): void {
-        if (reduced.matches || !document.body.classList.contains("play-start-active")) return;
-        arena.classList.remove("is-dollying");
-        void arena.offsetWidth;
+        if (reduced?.matches || !body.contains("play-start-active")) return;
+        if (arena.classList.contains("is-dollying")) return;
         arena.classList.add("is-dollying");
-        // Ends with its own animation, so slowed captures and real time agree.
-        const done = (event: AnimationEvent): void => {
-            if (event.target !== arena || event.animationName !== "arena-dolly-out") return;
-            arena.classList.remove("is-dollying");
-            arena.removeEventListener("animationend", done);
-            sync();
-        };
-        arena.addEventListener("animationend", done);
+        dollyDeadline = performance.now() + dollyMs * 4;
+        dollyTimer = window.setTimeout(settleDolly, dollyMs);
     }
     ["newGameBtn", "continueGameBtn"].forEach(id => {
         document.getElementById(id)?.addEventListener("click", dolly, true);
     });
+    function stopDolly(): void {
+        window.clearTimeout(dollyTimer);
+        dollyTimer = 0;
+        arena.classList.remove("is-dollying");
+    }
+    // The move ends with its own animation, so slowed captures and real time
+    // agree. Its end is also checked when it is due: with every other arena
+    // motion on the compositor, an idle page may not deliver animationend
+    // until something else redraws. A move still running (or paused, or not
+    // yet started) is checked again, for at most four times its length.
+    function settleDolly(): void {
+        const moving = typeof arena.getAnimations === "function"
+            && arena.getAnimations().some(animation => animation.playState === "running" || animation.playState === "paused");
+        if (moving && performance.now() < dollyDeadline) {
+            dollyTimer = window.setTimeout(settleDolly, 100);
+            return;
+        }
+        stopDolly();
+        sync();
+    }
+    // A cancelled move (reduced motion switched on mid-way) ends too.
+    const endDolly = (event: AnimationEvent): void => {
+        if (event.target !== arena || event.animationName !== "arena-dolly-out") return;
+        if (!arena.classList.contains("is-dollying")) return;
+        stopDolly();
+        sync();
+    };
+    arena.addEventListener("animationend", endDolly);
+    arena.addEventListener("animationcancel", endDolly);
 
     // The arena lights up with the title intro (after its pre-intro hold), on a
     // later frame so its fades run. Away from the title it goes dark, which
     // also stops its looping beams and track.
     let lightFrame = 0;
+    let wasActive = body.contains("play-start-active");
     function sync(): void {
-        const body = document.body.classList;
-        const onTitle = body.contains("play-start-active") && !body.contains("play-start-preintro");
-        if (!onTitle) {
+        const active = body.contains("play-start-active");
+        // Back on the title before the move ends: the camera is back at once,
+        // and no move keeps running behind the title.
+        if (active && !wasActive) stopDolly();
+        wasActive = active;
+        if (!onTitle()) {
             cancelAnimationFrame(lightFrame);
             lightFrame = 0;
             if (!arena.classList.contains("is-dollying")) arena.classList.remove("is-lit");
@@ -83,7 +119,7 @@
         lightFrame = requestAnimationFrame(() => {
             lightFrame = requestAnimationFrame(() => {
                 lightFrame = 0;
-                if (document.body.classList.contains("play-start-active")) arena.classList.add("is-lit");
+                if (onTitle()) arena.classList.add("is-lit");
             });
         });
     }
