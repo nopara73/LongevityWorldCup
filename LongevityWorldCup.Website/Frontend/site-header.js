@@ -615,22 +615,25 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
         panel.style.removeProperty('translate');
         menu.style.removeProperty('--site-menu-drag');
     }
-    function open(fromToggle) {
+    function open(fromToggle, fromKeyboard) {
         if (isOpen() || !customAlertDialog.hidden || !loadingDialog.hidden || !build()) return;
         clearTimeout(closeTimer);
         opener = fromToggle || document.activeElement;
         resetDrag();
         menu.classList.remove('is-closing');
         menu.dataset.layout = sheetQuery.matches ? 'sheet' : 'panel';
-        positionPanel(opener);
         menu.hidden = false;
         menu.toggleAttribute('data-page-scrollbar', innerWidth > document.documentElement.clientWidth);
         document.body.classList.add('site-menu-open');
         menu.showModal();
+        positionPanel(opener);
         toggles.forEach(toggle => toggle.setAttribute('aria-expanded', 'true'));
         panel.getBoundingClientRect();
         menu.classList.add('is-open');
-        const current = body.querySelector('.site-menu-pages [aria-current="page"]') || body.querySelector('.footer-link');
+        // A keyboard opening lands on the first link; a pointer opening rests
+        // on the current page (or the panel) so no link looks pre-selected.
+        const current = body.querySelector('.site-menu-pages [aria-current="page"]')
+            || (fromKeyboard ? body.querySelector('.footer-link') : null);
         (current || panel).focus({ preventScroll: true });
         if (current) {
             const link = current.getBoundingClientRect(), viewport = body.getBoundingClientRect();
@@ -669,34 +672,50 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
     }
     function positionPanel(toggle) {
         const rect = (toggle || toggles[0]).getBoundingClientRect();
+        const right = menu.getBoundingClientRect().right - rect.right;
         // A short landscape or enlarged banner can leave no room beneath its
         // toggle. Keep a usable viewport-contained panel in that case.
         const top = Math.max(12, Math.min(rect.bottom + 10, innerHeight - 240));
+        // When the panel cannot hang directly below its opener, keep Close inside it.
+        menu.toggleAttribute('data-inline-close', rect.top < 0 || top < rect.bottom + 10);
         menu.style.setProperty('--site-menu-top', Math.round(top) + 'px');
-        menu.style.setProperty('--site-menu-right', Math.max(12, Math.round(innerWidth - rect.right)) + 'px');
+        menu.style.setProperty('--site-menu-right', Math.max(12, Math.round(right)) + 'px');
         menu.style.setProperty('--site-menu-origin', Math.round(rect.width / 2) + 'px');
     }
-    function fitLabels() {
+    let labelFrame = 0;
+    function fitLabel() {
+        labelFrame = 0;
         if (!isOpen()) return;
+        const follow = body.querySelector('.site-menu-follow');
+        const link = follow?.querySelector('.footer-link:focus-visible')
+            || (matchMedia('(hover: hover)').matches && follow?.querySelector('.footer-link:hover'));
+        const label = link && link.querySelector('.footer-link-label');
+        if (!label) return;
+
         const viewport = body.getBoundingClientRect();
-        for (const label of body.querySelectorAll('.site-menu-follow .footer-link-label')) {
-            label.style.removeProperty('--footer-label-shift');
-            label.classList.remove('is-below');
-            if (getComputedStyle(label).clipPath !== 'none') continue;
-            let rect = label.getBoundingClientRect();
-            if (rect.top < viewport.top + 3) {
-                label.classList.add('is-below');
-                rect = label.getBoundingClientRect();
-            }
-            const shift = Math.max(viewport.left + 3 - rect.left, Math.min(0, viewport.right - 3 - rect.right));
-            label.style.setProperty('--footer-label-shift', `${shift}px`);
-        }
+        const anchor = link.getBoundingClientRect(), rect = label.getBoundingClientRect();
+        const naturalTop = label.classList.contains('is-below')
+            ? anchor.top - (rect.top - anchor.bottom) - rect.height : rect.top;
+        const previousShift = parseFloat(label.style.getPropertyValue('--footer-label-shift')) || 0;
+        const left = viewport.left + body.clientLeft;
+        const shift = Math.max(left + 3 - (rect.left - previousShift),
+            Math.min(0, left + body.clientWidth - 3 - (rect.right - previousShift)));
+        label.classList.toggle('is-below', naturalTop < viewport.top + 3);
+        if (Math.abs(shift - previousShift) > 0.1) label.style.setProperty('--footer-label-shift', `${shift}px`);
     }
-    for (const eventName of ['focusin', 'pointerover', 'scroll']) {
-        body.addEventListener(eventName, () => requestAnimationFrame(fitLabels), { passive: true });
+    function scheduleLabelFit() {
+        if (isOpen() && !labelFrame) labelFrame = requestAnimationFrame(fitLabel);
     }
-    window.addEventListener('resize', () => requestAnimationFrame(fitLabels));
-    toggles.forEach(toggle => toggle.addEventListener('click', () => isOpen() ? close() : open(toggle)));
+    for (const eventName of ['focusin', 'focusout', 'pointerover', 'pointerout']) {
+        body.addEventListener(eventName, event => {
+            if (event.target.closest('.site-menu-follow .footer-link')) scheduleLabelFit();
+        });
+    }
+    body.addEventListener('scroll', scheduleLabelFit, { passive: true });
+    window.addEventListener('resize', scheduleLabelFit);
+    // Keyboard and assistive activations have no click count. Restoring focus
+    // after Escape can leave the opener focus-visible even on the next tap.
+    toggles.forEach(toggle => toggle.addEventListener('click', event => isOpen() ? close() : open(toggle, event.detail === 0)));
     menu.addEventListener('click', event => {
         if (!(event.target instanceof Element)) return;
         if (event.target.closest('[data-site-menu-close]')) close();
