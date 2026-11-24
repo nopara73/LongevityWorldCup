@@ -9,6 +9,34 @@ namespace LongevityWorldCup.Tests;
 public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    internal static async Task AssertMastheadContainerBoundaryAsync(IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        var condition = Assert.Single(conditions);
+        Assert.Equal("league-status", condition.Name);
+        Assert.Equal("max", condition.Bound);
+        Assert.Equal("rem", condition.Unit);
+        await NavigateAndSettleAsync(page, "/league/millennials");
+        var status = page.Locator("main[data-league] .leaderboard-controls-status");
+        var threshold = condition.Value * await page.EvaluateAsync<double>("parseFloat(getComputedStyle(document.documentElement).fontSize)");
+        foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+        {
+            var width = threshold + delta;
+            var measurements = await status.EvaluateAsync<double[]>("""
+                async (status, width) => {
+                    Object.assign(status.style, { boxSizing: 'content-box', width: width + 'px' });
+                    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                    const identity = status.querySelector('.leaderboard-identity');
+                    const copy = identity.querySelector('.ranking-explanation').getBoundingClientRect();
+                    return [parseFloat(getComputedStyle(status).width), identity.clientWidth - copy.width,
+                        Math.max(0, status.scrollWidth - status.clientWidth)];
+                }
+                """, width);
+            Assert.Equal(width, measurements[0], 1);
+            Assert.Equal(width <= threshold, Math.Abs(measurements[1]) <= 1);
+            Assert.InRange(measurements[2], 0, 1);
+        }
+    }
+
     [Theory]
     [InlineData(1440, true, "/leaderboard")]
     [InlineData(390, true, "/leaderboard")]
