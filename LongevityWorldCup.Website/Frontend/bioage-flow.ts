@@ -108,7 +108,16 @@ interface BioageLiveInstrumentOptions {
     getStep: () => number;
 }
 
+interface BioageCrpEntry {
+    mgL: number;
+    report?: string;
+    valueWithLimit?: string;
+    unit: string;
+}
+
 interface LwcBioageFlowApi {
+    readCrpEntry: () => BioageCrpEntry;
+    restoreReportedCrp: (report: unknown) => void;
     beginCalculation: () => void;
     flushLiveInstrument: () => boolean;
     canAutoCorrectUnit: (select: HTMLSelectElement) => boolean;
@@ -277,6 +286,10 @@ interface Window {
             const feature = window.BortzAge?.features.find(candidate => candidate.id === inputId);
             return feature ? (feature.isLog ? Math.exp(feature.mean) : feature.mean) : NaN;
         }
+        if (inputId === 'crp') {
+            const { mgL } = readCrpEntry();
+            return clock === 'pheno' ? Math.log(mgL / 10) : mgL;
+        }
         const raw = toFiniteBiomarkerNumber(input.value);
         const conversion = Number(unit.value);
         if (raw === null || !Number.isFinite(conversion) || conversion <= 0) return NaN;
@@ -289,7 +302,6 @@ interface Window {
             }
         }
         const value = raw / conversion;
-        if (clock === 'pheno' && inputId === 'crp') return Math.log(value);
         if ((inputId === 'lymphocyte' || inputId === 'lymphocyte_percentage') && unitText !== '%') {
             const wbc = readBiomarkerModelValue('wbc', clock, useReference);
             return wbc > 0 ? value / wbc * 100 : NaN;
@@ -326,6 +338,41 @@ interface Window {
         if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(text)) return NaN;
         const number = Number(text);
         return Number.isFinite(number) ? number : NaN;
+    }
+
+    // Keep the reported limit separate from the concentration used by both clocks.
+    function parseCrpEntry(text: string, selectedUnit: string): BioageCrpEntry {
+        const value = text.trim();
+        if (/^negative$/i.test(value)) return { mgL: 1, report: value, unit: selectedUnit };
+        const bound = /^((?:<\s*|less\s+than\s+)([0-9]*[.,]?[0-9]+))\s*(mg\/(?:dL|L))?$/i.exec(value);
+        const unit = bound?.[3] ? (/dl$/i.test(bound[3]) ? 'mg/dL' : 'mg/L') : selectedUnit;
+        const number = parseBiomarkerInput(bound ? bound[2] : value);
+        const mgL = unit === 'mg/dL' ? Number((number * 10).toPrecision(15)) : number;
+        if (!bound) return { mgL, unit };
+        if (!Number.isFinite(mgL) || mgL <= 0) return { mgL: NaN, unit };
+        return { mgL, unit, valueWithLimit: bound[1]!, report: bound[1] + ' ' + unit };
+    }
+
+    function readCrpEntry(): BioageCrpEntry {
+        const input = document.querySelector<HTMLInputElement>('#crp');
+        const select = document.querySelector<HTMLSelectElement>('#crpUnit');
+        return parseCrpEntry(input?.value || '', select?.selectedOptions[0]?.textContent?.trim() || 'mg/L');
+    }
+
+    function restoreReportedCrp(report: unknown): void {
+        if (typeof report !== 'string') return;
+        const entry = parseCrpEntry(report, 'mg/L');
+        const input = document.querySelector<HTMLInputElement>('#crp');
+        const select = document.querySelector<HTMLSelectElement>('#crpUnit');
+        const option = select && Array.from(select.options).find(option => option.text === entry.unit);
+        if (entry.report && input && select && option) {
+            input.value = entry.valueWithLimit ?? entry.report;
+            select.value = option.value;
+        }
+    }
+
+    function hasValidEntry(input: HTMLInputElement): boolean {
+        return Number.isFinite(input.id === 'crp' ? readCrpEntry().mgL : parseBiomarkerInput(input.value));
     }
 
     function toFiniteBiomarkerNumber(value: unknown): number | null {
@@ -619,7 +666,7 @@ interface Window {
         if (!select || !select.id || !select.id.endsWith('Unit')) return null;
 
         const input = document.getElementById(select.id.slice(0, -4));
-        return input instanceof HTMLInputElement && input.matches('input[inputmode="decimal"]') ? input : null;
+        return input instanceof HTMLInputElement && input.matches('input[type="text"]') ? input : null;
     }
 
     function updateBiomarkerExamplePlaceholder(selectOrInput: Element | null | undefined): void {
@@ -627,7 +674,7 @@ interface Window {
             ? selectOrInput
             : document.getElementById(`${selectOrInput?.id || ''}Unit`);
         const select = selectCandidate instanceof HTMLSelectElement ? selectCandidate : null;
-        const inputCandidate = selectOrInput?.matches('input[inputmode="decimal"]')
+        const inputCandidate = selectOrInput?.matches('input[type="text"]')
             ? selectOrInput
             : getBiomarkerInputForUnitSelect(select);
         const input = inputCandidate instanceof HTMLInputElement ? inputCandidate : null;
@@ -877,7 +924,7 @@ interface Window {
         const candidate = typeof field === 'string' ? document.getElementById(field) : field;
         if (candidate instanceof HTMLInputElement) return candidate;
         return candidate?.closest<HTMLElement>('.biomarker-card')
-            ?.querySelector<HTMLInputElement>('input[inputmode="decimal"]') || null;
+            ?.querySelector<HTMLInputElement>('input[type="text"]') || null;
     }
 
     function expandBiomarkerCard(field: string | Element | null | undefined): void {
@@ -900,7 +947,7 @@ interface Window {
     function isCompleteBiomarkerInput(input: HTMLInputElement): boolean {
         const value = input.value.trim();
         return value !== ''
-            && Number.isFinite(parseBiomarkerInput(value))
+            && hasValidEntry(input)
             && input.validity.valid;
     }
 
@@ -930,11 +977,22 @@ interface Window {
         if (/^[+-]?[1-9]\d{0,2},\d{3}$/.test(text)) {
             return `Use ${text.replace(',', '.')} for a decimal, or ${text.replace(',', '')} for a whole number.`;
         }
+        if (input.id === 'crp') return 'Enter a number, a limit such as <1, or “negative”.';
         return 'Enter one number, using a dot or comma for decimals.';
     }
 
     function syncBiomarkerValidity(input: HTMLInputElement): void {
-        input.setCustomValidity(input.value.trim() && !Number.isFinite(parseBiomarkerInput(input.value))
+        if (input.id === 'crp') {
+            const entry = readCrpEntry();
+            input.toggleAttribute('data-crp-default', !!entry.report && !entry.valueWithLimit);
+            const note = document.getElementById('crp-score-note');
+            if (note) {
+                const message = entry.valueWithLimit ? `Scored using the lab limit of ${entry.mgL} mg/L.`
+                    : entry.report ? 'Scored using the LWC default of 1 mg/L.' : '';
+                setTextIfChanged(note, message);
+            }
+        }
+        input.setCustomValidity(input.value.trim() && !hasValidEntry(input)
             ? biomarkerInputMessage(input) : '');
     }
 
@@ -1009,7 +1067,7 @@ interface Window {
         const firstIncomplete = ordered.findIndex(domain => !domains.get(domain));
         const frontier = firstIncomplete < 0 ? ordered.length : firstIncomplete;
         ordered.forEach((domain, index) => {
-            const hasValue = Array.from(domain.querySelectorAll<HTMLInputElement>('input[inputmode="decimal"]'))
+            const hasValue = Array.from(domain.querySelectorAll<HTMLInputElement>('input[type="text"]'))
                 .some(input => input.value.trim() !== '');
             const awake = index <= frontier + 1 || domains.get(domain) || hasValue;
             const next = awake ? 'awake' : 'dormant';
@@ -1342,7 +1400,12 @@ interface Window {
         // Validate before existing input/change handlers recalculate or save.
         const validateNumber = (event: Event) => {
             const input = event.target;
-            if (input instanceof HTMLInputElement && controller.inputs.includes(input)) syncBiomarkerValidity(input);
+            if (!(input instanceof HTMLInputElement) || !controller.inputs.includes(input)) return;
+            if (input.id === 'crp' && /mg\/d?l\s*$/i.test(input.value)) {
+                // A complete pasted result sets the existing unit control in this same edit.
+                restoreReportedCrp(input.value);
+            }
+            syncBiomarkerValidity(input);
         };
         controller.form.addEventListener('input', validateNumber, true);
         controller.form.addEventListener('change', validateNumber, true);
@@ -1517,7 +1580,7 @@ interface Window {
             form: options.form,
             hasPersistedDraft: false,
             inputs: Array.from(options.form.querySelectorAll<HTMLInputElement>(
-                '.biomarker-card input[inputmode="decimal"][required]'
+                '.biomarker-card input[type="text"][required]'
             )),
             invalidBatchActive: false,
             nextInput: null,
@@ -2516,7 +2579,7 @@ interface Window {
 
     function morphUnitSelect(select: HTMLSelectElement, automatic: boolean): void {
         const group = select.closest<HTMLElement>('.input-group');
-        const input = group?.querySelector<HTMLInputElement>('input[inputmode="decimal"]');
+        const input = group?.querySelector<HTMLInputElement>('input[type="text"]');
         if (prefersReducedBioageResultMotion() || !group) return;
         const easing = 'cubic-bezier(0.2, 0, 0, 1)';
         select.animate([
@@ -2716,6 +2779,8 @@ interface Window {
         bindLiveInstrument,
         isLiveInstrumentBound,
         readBiomarkerModelValue,
+        readCrpEntry,
+        restoreReportedCrp,
         hasValidDates,
         announceBioageResult,
         animateBioageResult,

@@ -1105,7 +1105,7 @@ html body #biomarker-checklist .proof-tracker-head h4 {
 .proof-page-remove::before {
     content: "\f00d"; display: grid; place-items: center; width: 32px; height: 32px; box-sizing: border-box;
     border: 1px solid var(--lwc-border); border-radius: var(--lwc-radius-pill, 999px); background: var(--lwc-surface); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.22);
-    font-family: "Font Awesome 6 Free"; font-weight: 900; font-size: .875rem; line-height: 1;
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free"); font-weight: 900; font-size: .875rem; line-height: 1;
     transition: background-color var(--lwc-duration-fast) var(--lwc-ease), color var(--lwc-duration-fast) var(--lwc-ease);
 }
 .proof-page-remove:hover { background: transparent; color: var(--lwc-on-accent, #ffffff); }
@@ -1249,7 +1249,7 @@ html body #proofImageContainer .proof-upload-notice:not(:empty)::before {
     content: "\f05a" / "";
     margin-right: var(--lwc-space-2);
     color: var(--lwc-accent);
-    font-family: "Font Awesome 6 Free";
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-weight: 900;
 }
 .proof-undo {
@@ -1335,6 +1335,49 @@ html body #biomarker-checklist .biomarker-checkbox {
     cursor: pointer;
 }
 html body #biomarker-checklist .biomarker-checkbox:focus-visible { outline: 3px solid var(--lwc-accent); outline-offset: 2px; }
+
+.proof-file-dialog {
+    box-sizing: border-box;
+    width: min(25rem, calc(100% - 2rem));
+    max-height: calc(100% - 2rem);
+    margin: auto;
+    padding: clamp(1rem, 4vw, 1.5rem);
+    overflow: auto;
+    border: 1px solid var(--lwc-border);
+    border-radius: var(--lwc-radius-lg);
+    background: var(--lwc-surface);
+    color: var(--lwc-ink);
+    box-shadow: var(--lwc-shadow-md);
+}
+.proof-file-dialog::backdrop { background: rgba(4, 12, 20, .72); }
+.proof-file-dialog form { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--lwc-space-2); margin: 0; text-align: start; }
+.proof-password-heading { display: flex; align-items: center; gap: var(--lwc-space-3); margin-bottom: var(--lwc-space-3); }
+.proof-password-heading > i {
+    display: grid; place-items: center; flex: 0 0 2.5rem; height: 2.5rem;
+    border-radius: var(--lwc-radius-md); background: var(--lwc-surface-accent); color: var(--lwc-accent);
+}
+.proof-password-heading > div { min-width: 0; }
+.proof-file-dialog h2 { margin: 0; color: var(--lwc-ink); font-size: var(--lwc-type-h2); text-align: start; }
+.proof-file-dialog p { margin: 0; color: var(--lwc-muted); font-size: var(--lwc-type-sm); overflow-wrap: anywhere; }
+.proof-password-dialog label { margin: 0; color: var(--lwc-ink); font-weight: 700; }
+.proof-password-dialog input { box-sizing: border-box; width: 100%; padding: .6rem .75rem; font-size: max(16px, 1rem); }
+.proof-password-dialog input[aria-invalid="true"] { border-color: var(--lwc-danger); }
+.proof-password-dialog input[aria-invalid="true"] + p { color: var(--lwc-danger); }
+.proof-password-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--lwc-space-2); margin-top: var(--lwc-space-3); }
+.proof-password-actions button { width: auto; min-height: 44px; padding: .55rem 1rem; margin: 0; font: inherit; font-weight: 700; }
+.proof-password-actions button:focus-visible { outline: 3px solid var(--lwc-accent); outline-offset: 2px; }
+
+.proof-copy-dialog .proof-password-heading { margin-bottom: 0; }
+.proof-copy-dialog figure { margin: var(--lwc-space-2) 0 0; text-align: center; }
+.proof-copy-dialog figure img { display: block; width: 100%; height: clamp(5rem, 21vh, 9rem); object-fit: contain; }
+.proof-print-viewport { max-height: min(32vh, 15rem); overflow: auto; overscroll-behavior: contain; background: white; border-radius: .35rem; }
+.proof-print-viewport:focus-visible { outline: 2px solid var(--lwc-accent); outline-offset: 2px; }
+.proof-print-sheet { position: relative; min-width: 30rem; }
+.proof-copy-dialog .proof-print-sheet img { height: auto; }
+.proof-print-sheet span { position: absolute; box-sizing: border-box; border: 2px dashed #00665c; box-shadow: 0 0 0 1px white, inset 0 0 0 1px white; pointer-events: none; }
+.proof-copy-dialog figcaption { margin-top: .4rem; overflow-wrap: anywhere; color: var(--lwc-muted); font-size: var(--lwc-type-sm); }
+.proof-copy-dialog .proof-password-actions { margin-top: var(--lwc-space-2); }
+.proof-copy-dialog .proof-copy-skip { justify-self: center; width: auto; min-height: 44px; margin: 0; padding: 0 .5rem; color: var(--lwc-muted); background: none; border: none; font: inherit; text-decoration: underline; cursor: pointer; }
 
 /* Viewer: the card opened full screen, with every page as a thumbnail below. */
 body.proof-review-open { overflow: hidden; }

@@ -100,6 +100,38 @@ public sealed class HomepageMerchBrowserTests(PlaywrightBrowserFixture browserFi
         Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
     }
 
+    [Fact]
+    public async Task ReturningPhone_PreservesAProductFocusedBeforeCarouselControlsAreReady()
+    {
+        await using var context = await HomepageChromeRegressionBrowserTests.NewContextAsync(Browser, App, ReducedMotion.Reduce);
+        await context.AddInitScriptAsync("localStorage.setItem('lwcHomepageVisitCount:v1', '3')");
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/js/homepage.js*", async route =>
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        });
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(390, 850);
+        var navigation = page.GotoAsync("/", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var product = page.Locator(".lwc-merch-mobile-slide").Nth(1);
+        var controls = page.Locator(".lwc-merch-mobile-dots");
+        try
+        {
+            await Assertions.Expect(product).ToBeVisibleAsync();
+            await Assertions.Expect(controls).ToBeHiddenAsync();
+            await product.FocusAsync();
+        }
+        finally
+        {
+            release.SetResult();
+            await navigation;
+        }
+        await Assertions.Expect(controls).ToBeVisibleAsync();
+        await Assertions.Expect(product).ToBeFocusedAsync();
+        await Assertions.Expect(controls.Locator("button").Nth(1)).ToHaveAttributeAsync("aria-pressed", "true");
+    }
+
     [Theory]
     [InlineData(320)]
     [InlineData(1280)]

@@ -224,7 +224,7 @@ body[data-convergence-stage="7"] .convergence-stage-layout .sub-progress-contain
     background: color-mix(in srgb, var(--lwc-accent-soft) 88%, transparent);
     box-sizing: border-box;
     color: var(--lwc-accent);
-    font: 900 2.75rem/1 "Font Awesome 6 Free";
+    font: 900 2.75rem/1 var(--fa-style-family-classic, "Font Awesome 6 Free");
     opacity: 0;
     pointer-events: none;
     transform: scale(0.98);

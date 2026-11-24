@@ -769,8 +769,22 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await Assertions.Expect(post.GetByRole(AriaRole.Button, new() { Name = "Withdraw request", Exact = true })).ToHaveCountAsync(0);
         await Assertions.Expect(post.Locator(".lmx-advice-story-tools button")).ToHaveCountAsync(1);
         await edit.ClickAsync();
-        await post.Locator(".lmx-advice-story-editor textarea").FillAsync(story);
-        await post.GetByRole(AriaRole.Button, new() { Name = "Save story", Exact = true }).ClickAsync();
+        var input = post.Locator(".lmx-advice-story-editor textarea");
+        var save = post.GetByRole(AriaRole.Button, new() { Name = "Save story", Exact = true });
+        await Assertions.Expect(input).ToBeFocusedAsync();
+        await Assertions.Expect(post.Locator(".lmx-advice-story > p")).ToBeHiddenAsync();
+        await Assertions.Expect(edit).ToBeHiddenAsync();
+        await Assertions.Expect(save).ToBeDisabledAsync();
+        var original = await input.InputValueAsync();
+        await input.FillAsync(story);
+        await Assertions.Expect(save).ToBeEnabledAsync();
+        await input.FillAsync(original);
+        await Assertions.Expect(save).ToBeDisabledAsync();
+        await input.PressAsync("Escape");
+        await Assertions.Expect(edit).ToBeFocusedAsync();
+        await edit.ClickAsync();
+        await input.FillAsync(story);
+        await input.PressAsync("Control+Enter");
         await Assertions.Expect(post.Locator(".lmx-advice-story-editor")).ToHaveCountAsync(0);
         await Assertions.Expect(post.Locator(".lmx-advice-story")).ToContainTextAsync(story);
         await Assertions.Expect(edit).ToBeVisibleAsync();
@@ -820,12 +834,18 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
             await Assertions.Expect(save).ToHaveTextAsync("Save story");
             await Assertions.Expect(storyEditor.Locator("textarea")).ToBeEditableAsync();
             await Assertions.Expect(storyEditor.Locator("button[type=button]")).ToBeEnabledAsync();
+            await storyEditor.Locator("textarea").FillAsync("A second thought while the first save was finishing.");
         }
         finally { releaseSave.TrySetResult(); }
+        await Assertions.Expect(storyEditor.Locator("[type=submit]")).ToBeEnabledAsync();
+        await Assertions.Expect(storyEditor.Locator("textarea")).ToHaveValueAsync("A second thought while the first save was finishing.");
+        Assert.Equal("An unfinished clarification that must survive the handoff.", edited!["story"]!.GetValue<string>());
+        Assert.Equal(4, edited["version"]!.GetValue<int>());
+        await storyEditor.Locator("[type=submit]").ClickAsync();
         await Assertions.Expect(storyEditor).ToHaveCountAsync(0);
         await Assertions.Expect(page.Locator(".lwc-wait-status")).ToHaveCountAsync(0);
-        Assert.Equal(4, edited!["version"]!.GetValue<int>());
-        await Assertions.Expect(page.Locator("#lmxNotes .lmx-advice-story")).ToContainTextAsync("An unfinished clarification that must survive the handoff.");
+        await Assertions.Expect(page.Locator("#lmxNotes .lmx-advice-story")).ToContainTextAsync("A second thought while the first save was finishing.");
+        await Assertions.Expect(page.Locator("#lmxNotes [data-advice-edit]")).ToBeFocusedAsync();
     }
 
     [Fact]

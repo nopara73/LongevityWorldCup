@@ -70,6 +70,8 @@ public sealed class InPageSubmissionBrowserTests(
         if (flow == "apply")
         {
             await page.WaitForFunctionAsync("() => !document.getElementById('nextButton').disabled");
+            await page.EvaluateAsync("() => { currentStage=4; goToStage(4); }");
+            await Assertions.Expect(page.Locator(".apply-card-portrait img")).ToBeVisibleAsync();
             await page.EvaluateAsync("() => { currentStage=7; goToStage(7); }");
         }
         else await page.Locator("#whyDisplayInput").FillAsync("More healthy years exploring the world with my family.");
@@ -115,6 +117,7 @@ public sealed class InPageSubmissionBrowserTests(
         if (flow == "apply")
         {
             Assert.Equal(4, await page.EvaluateAsync<int>("() => currentStage"));
+            Assert.Null(await page.Locator(".apply-card-portrait img").GetAttributeAsync("src"));
             var after = await page.EvaluateAsync<string>("() => JSON.stringify({...collectApplicantData(),profilePic:'PLACEHOLDER'})");
             var expected = System.Text.Json.Nodes.JsonNode.Parse(before)!;
             expected["profilePic"] = "PLACEHOLDER";

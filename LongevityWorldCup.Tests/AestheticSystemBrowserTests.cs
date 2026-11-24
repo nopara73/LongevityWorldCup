@@ -275,8 +275,8 @@ public sealed class AestheticSystemBrowserTests(
                     .map(entry => entry.name)
                     .filter(name => name.includes('font-awesome'));
                 return {
-                    SolidFaceLoaded: document.fonts.check('900 16px "Font Awesome 6 Free"'),
-                    BrandFaceLoaded: document.fonts.check('400 16px "Font Awesome 6 Brands"'),
+                    SolidFaceLoaded: document.fonts.check('900 16px "LWC Icons"', '\uf091'),
+                    BrandFaceLoaded: document.fonts.check('400 16px "LWC Icon Brands"', '\uf16d'),
                     Icons: icons,
                     VectorIcons: vectorIcons,
                     FooterIconCount: icons.filter(icon => icon.IsFooterIcon).length + vectorIcons.filter(icon => icon.IsFooterIcon).length,
@@ -288,8 +288,8 @@ public sealed class AestheticSystemBrowserTests(
             }
             """);
 
-        Assert.True(diagnostics.SolidFaceLoaded, "The self-hosted solid Font Awesome face did not load.");
-        Assert.True(diagnostics.BrandFaceLoaded, "The self-hosted brand Font Awesome face did not load.");
+        Assert.True(diagnostics.SolidFaceLoaded, "The compact solid icon font did not load.");
+        Assert.True(diagnostics.BrandFaceLoaded, "The compact brand icon font did not load.");
         var iconCount = diagnostics.Icons.Length + diagnostics.VectorIcons.Length;
         // Signed out, the habit tiles carry the daily questions, so their four icons are not repeated.
         Assert.True(iconCount >= 30, $"Expected at least 30 visible Challenge/footer icons, found {iconCount}.");
@@ -304,16 +304,34 @@ public sealed class AestheticSystemBrowserTests(
         Assert.All(diagnostics.Icons, icon =>
         {
             Assert.DoesNotContain(icon.Content, new[] { "", "none", "normal", "\"\"" });
-            Assert.Contains("Font Awesome", icon.FontFamily);
+            Assert.Contains("LWC Icon", icon.FontFamily);
             Assert.True(icon.Width > 0 && icon.Height > 0, $"{icon.Label} has no rendered geometry.");
         });
         Assert.Contains(
             diagnostics.LocalResources,
-            resource => resource.EndsWith("/vendor/font-awesome/6.7.2/webfonts/fa-solid-900.woff2", StringComparison.Ordinal));
+            resource => new Uri(resource).AbsolutePath.EndsWith("/lwc-solid.woff2", StringComparison.Ordinal));
         Assert.Contains(
             diagnostics.LocalResources,
-            resource => resource.EndsWith("/vendor/font-awesome/6.7.2/webfonts/fa-brands-400.woff2", StringComparison.Ordinal));
+            resource => new Uri(resource).AbsolutePath.EndsWith("/lwc-brands.woff2", StringComparison.Ordinal));
+        Assert.DoesNotContain(diagnostics.LocalResources, resource => new Uri(resource).AbsolutePath.Contains("/webfonts/fa-", StringComparison.Ordinal));
         Assert.Empty(diagnostics.ExternalResources);
+
+        // Draw a character from the unused face. Which symbols are rare can change as the site grows.
+        await page.EvaluateAsync("""
+            () => {
+                const catalog = [...document.fonts].find(face =>
+                    face.family.includes('LWC Icons') && face.weight === '900' && face.status === 'unloaded');
+                const firstCode = catalog.unicodeRange.match(/U\+([0-9a-f]+)/i)[1];
+                const icon = document.createElement('i');
+                icon.className = 'fas';
+                icon.textContent = String.fromCodePoint(parseInt(firstCode, 16));
+                document.body.append(icon);
+            }
+            """);
+        await page.WaitForFunctionAsync("""
+            () => performance.getEntriesByType('resource').some(entry =>
+                new URL(entry.name).pathname.endsWith('/webfonts/fa-solid-900.woff2'))
+            """);
     }
 
     [Fact]
@@ -1240,6 +1258,9 @@ public sealed class AestheticSystemBrowserTests(
                 case "css/leaderboard-ordering.css":
                     await AssertOrderingContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "css/leaderboard-feel.css":
+                    await LeaderboardSelectionBrowserTests.AssertMastheadContainerBoundaryAsync(page, source.ToArray());
+                    break;
                 case "css/disclosure.css":
                     await AssertFlagContainerBoundariesAsync(page, source.ToArray(), disclosure: true);
                     break;
@@ -1272,6 +1293,9 @@ public sealed class AestheticSystemBrowserTests(
                     break;
                 case "onboarding/convergence.html":
                     await AssertApplicationContainerBoundariesAsync(page, source.ToArray());
+                    break;
+                case "css/apply-card.css":
+                    await ApplyCardBrowserTests.AssertContainerBoundariesAsync(page, source.ToArray());
                     break;
                 case "play/edit-profile.html":
                     await AssertEditProfileContainerBoundariesAsync(page, source.ToArray());
