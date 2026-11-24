@@ -1291,6 +1291,9 @@ public sealed class AestheticSystemBrowserTests(
                 case "onboarding/convergence.html":
                     await AssertApplicationContainerBoundariesAsync(page, source.ToArray());
                     break;
+                case "css/apply-card.css":
+                    await ApplyCardBrowserTests.AssertContainerBoundariesAsync(page, source.ToArray());
+                    break;
                 case "play/edit-profile.html":
                     await AssertEditProfileContainerBoundariesAsync(page, source.ToArray());
                     break;

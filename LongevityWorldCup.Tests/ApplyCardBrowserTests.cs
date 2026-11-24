@@ -14,6 +14,48 @@ public sealed class ApplyCardBrowserTests(
     private static readonly Regex Lit = new(@"\bis-lit\b");
     private static readonly Regex Stamped = new(@"\bis-stamped\b");
 
+    internal static async Task AssertContainerBoundariesAsync(IPage page, ResponsiveContainerCondition[] conditions)
+    {
+        Assert.Equal([14d, 34d], conditions.Select(condition => condition.Value).Order());
+        Assert.All(conditions, condition =>
+        {
+            Assert.Equal("apply-header", condition.Name);
+            Assert.Equal("max", condition.Bound);
+            Assert.Equal("rem", condition.Unit);
+        });
+
+        await GoToStageAsync(page, 7);
+        var header = page.Locator(".convergence-stage-head.is-carded");
+        var rootFont = await page.EvaluateAsync<double>("parseFloat(getComputedStyle(document.documentElement).fontSize)");
+        foreach (var fontSize in new[] { rootFont, rootFont * 2 })
+        {
+            await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + 'px'", fontSize);
+            foreach (var condition in conditions)
+            {
+                foreach (var delta in new[] { -1, 0, 1, 0, -1 })
+                {
+                    var width = condition.Value * fontSize + delta;
+                    var layout = await header.EvaluateAsync<double[]>("""
+                        async (header, width) => {
+                            Object.assign(header.style, { boxSizing: 'content-box', width: width + 'px', maxInlineSize: 'none' });
+                            await document.fonts.ready;
+                            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                            const card = header.querySelector('.apply-card');
+                            const title = header.querySelector('h1').getBoundingClientRect();
+                            return [parseFloat(getComputedStyle(header).width),
+                                card.getBoundingClientRect().top >= title.bottom - 1 ? 1 : 0,
+                                getComputedStyle(card).display === 'flex' ? 1 : 0, card.scrollWidth - card.clientWidth];
+                        }
+                        """, width);
+                    Assert.Equal(width, layout[0], 1);
+                    Assert.Equal(width <= 34 * fontSize ? 1 : 0, layout[1]);
+                    Assert.Equal(width <= 14 * fontSize ? 1 : 0, layout[2]);
+                    Assert.True(layout[3] <= 1, $"Athlete card overflowed at {width}px with {fontSize}px text.");
+                }
+            }
+        }
+    }
+
     [Theory]
     [InlineData(390, 200)]
     [InlineData(195, 100)]
@@ -153,10 +195,15 @@ public sealed class ApplyCardBrowserTests(
     private static async Task<IPage> OpenStageAsync(IBrowserContext context, int stage)
     {
         var page = await context.NewPageAsync();
+        await GoToStageAsync(page, stage);
+        return page;
+    }
+
+    private static async Task GoToStageAsync(IPage page, int stage)
+    {
         await page.GotoAsync("/apply?fake=1");
         await Assertions.Expect(page.Locator("#nextButton")).ToBeEnabledAsync();
         await page.EvaluateAsync("stage => { currentStage = stage; goToStage(stage); }", stage);
         await Assertions.Expect(page.Locator(".apply-card")).ToBeVisibleAsync();
-        return page;
     }
 }
