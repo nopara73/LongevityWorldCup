@@ -148,6 +148,12 @@ namespace LongevityWorldCup.Website.Middleware
                     {
                         var snapshot = GetPublicLeaderboardSnapshot(context);
                         var selection = snapshot.Select(leaderboardPath, context.Request.Query);
+                        const string fullBoard = "<main data-leaderboard-page=\"full\">";
+                        if (selection.EmblemClasses.Count > 0 && bodyContent.Contains(fullBoard, StringComparison.Ordinal))
+                        {
+                            bodyContent = bodyContent.Replace(fullBoard, "<main data-leaderboard-page=\"full\" data-league>", StringComparison.Ordinal);
+                            leaderboardContent = leaderboardContent.Replace(LeagueEmblem.Placeholder, LeagueEmblem.Render(selection.EmblemClasses), StringComparison.Ordinal);
+                        }
                         if (leaderboardPath != "/" && (selection.ByFlag || selection.DocumentTitle.Length > 0))
                             seo = seo with { PageTitle = $"{(selection.ByFlag ? selection.RailTitle : selection.DocumentTitle)} | Longevity World Cup" };
                         var title = selection.ByFlag ? selection.RailTitle : selection.DocumentTitle.Length > 0 ? selection.DocumentTitle : selection.RailTitle;

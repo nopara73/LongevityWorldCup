@@ -32,7 +32,14 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         await Assertions.Expect(heading).ToBeVisibleAsync();
         await Assertions.Expect(page.Locator(".collapsed-title")).ToHaveTextAsync("HUNGARY WOMEN'S LEAGUE");
         if (path == "/leaderboard")
+        {
             Assert.Equal("Hungary Women's League · Pheno Age | Longevity World Cup", await page.TitleAsync());
+            var emblem = page.Locator("main[data-league] .league-emblem");
+            await Assertions.Expect(emblem.Locator(".league-emblem-mark.fa-venus")).ToBeVisibleAsync();
+            var flag = emblem.Locator(".league-emblem-badge.fi-hu");
+            await Assertions.Expect(flag).ToBeVisibleAsync();
+            Assert.Contains("hu.svg", await flag.EvaluateAsync<string>("e => getComputedStyle(e).backgroundImage"));
+        }
         Assert.False(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth > innerWidth"));
         var output = Environment.GetEnvironmentVariable("LWC_LEAGUE_SCREENSHOTS");
         if (!string.IsNullOrEmpty(output))
@@ -53,6 +60,119 @@ public sealed class LeaderboardSelectionBrowserTests(PlaywrightBrowserFixture br
         await page.Locator("#clearLeaderboardSelection").ClickAsync();
         await Assertions.Expect(heading).ToBeHiddenAsync();
         await Assertions.Expect(page.Locator(".collapsed-title")).ToHaveTextAsync("ULTIMATE LEAGUE");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LeagueMasthead_ChangesOnlyForTheChosenLeague(bool reduced)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1440, Height = 900 },
+            ReducedMotion = reduced ? ReducedMotion.Reduce : ReducedMotion.NoPreference
+        });
+        await context.AddInitScriptAsync("""
+            window.mastheadAnimations = 0;
+            const animate = Element.prototype.animate;
+            Element.prototype.animate = function(...args) {
+                if (this.matches('.league-emblem, #leaderboardLeagueTitle')) window.mastheadAnimations++;
+                return animate.apply(this, args);
+            };
+            """);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard?filters=gen%20x,men%27s");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        var emblem = page.Locator("main[data-league] .league-emblem");
+        await Assertions.Expect(emblem.Locator(".league-emblem-mark.fa-mars")).ToBeVisibleAsync();
+        await Assertions.Expect(emblem.Locator(".league-emblem-badge.fa-desktop")).ToBeVisibleAsync();
+        Assert.Equal(0, await page.EvaluateAsync<int>("window.mastheadAnimations"));
+        await page.GetByRole(AriaRole.Button, new() { Name = "Remove Men's filter", Exact = true }).ClickAsync();
+        await Assertions.Expect(emblem.Locator(".league-emblem-mark.fa-desktop")).ToBeVisibleAsync();
+        await Assertions.Expect(emblem.Locator(".league-emblem-badge")).ToHaveCountAsync(0);
+        Assert.Equal(reduced ? 0 : 2, await page.EvaluateAsync<int>("window.mastheadAnimations"));
+
+        // Searching, changing the clock and restoring native controls must
+        // preserve the mark and must not replay the visitor's last choice.
+        await emblem.EvaluateAsync("e => window.priorLeagueMark = e.firstElementChild");
+        await page.Locator("#athleteSearch").FillAsync("a");
+        await page.WaitForFunctionAsync("() => new URL(location.href).searchParams.get('search') === 'a'");
+        await page.Locator("label[for=view-pheno]").ClickAsync();
+        await Assertions.Expect(page.Locator("#view-pheno")).ToBeCheckedAsync();
+        Assert.True(await emblem.EvaluateAsync<bool>("e => e.firstElementChild === window.priorLeagueMark"));
+        await page.EvaluateAsync("""
+            () => {
+                document.querySelector('input[name=generation][value="Gen X"]').checked = false;
+                document.querySelector('input[name=generation][value="Millennials"]').checked = true;
+                window.dispatchEvent(new PageTransitionEvent('pageshow'));
+            }
+            """);
+        await Assertions.Expect(emblem.Locator(".league-emblem-mark.fa-laptop")).ToBeVisibleAsync();
+        Assert.Equal(reduced ? 0 : 2, await page.EvaluateAsync<int>("window.mastheadAnimations"));
+    }
+
+    [Theory]
+    [InlineData(195, 100)]
+    [InlineData(390, 200)]
+    public async Task ConstrainedMasthead_UsesTheFullWidthForRankingCopy(int width, int textPercent)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 422 }, JavaScriptEnabled = false
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/league/silent-generation");
+        await page.EvaluateAsync("size => document.documentElement.style.fontSize = size + '%'", textPercent);
+        var identity = page.Locator("main[data-league] .leaderboard-identity");
+        await Assertions.Expect(identity.Locator(".league-emblem-mark")).ToBeVisibleAsync();
+        Assert.True(await identity.EvaluateAsync<bool>("""
+            e => Math.abs(e.querySelector('.ranking-explanation').getBoundingClientRect().width - e.clientWidth) <= 1
+            """));
+    }
+
+    [Theory]
+    [InlineData(1440)]
+    [InlineData(390)]
+    public async Task EnlargedType_KeepsTheProTrophyAndDivisionMarkInsideTheirTiles(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard?filters=professional,men%27s");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await page.EvaluateAsync("async () => { document.documentElement.style.fontSize = '200%'; await document.fonts.ready; }");
+        Assert.True(await page.Locator(".league-emblem").EvaluateAsync<bool>("""
+            e => {
+                const tile = e.getBoundingClientRect();
+                const mark = e.querySelector('.league-emblem-mark.fa-trophy').getBoundingClientRect();
+                const badge = e.querySelector('.league-emblem-badge.fa-mars');
+                return mark.left >= tile.left - 1 && mark.right <= tile.right + 1 &&
+                    mark.top >= tile.top - 1 && mark.bottom <= tile.bottom + 1 && badge.scrollWidth <= badge.clientWidth + 1;
+            }
+            """));
+    }
+
+    [Fact]
+    public async Task SmallLeague_EndsAtItsTableAndRetainsTheFilterButton()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1440, Height = 900 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/league/silent-generation");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        await Assertions.Expect(page.Locator(".league-emblem-mark.fa-radio")).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator(".collapsed-title")).ToBeHiddenAsync();
+        await Assertions.Expect(page.Locator(".sidebar-rail")).ToBeVisibleAsync();
+        await page.WaitForFunctionAsync("""
+            () => {
+                const board = document.querySelector('#athleteLeaderboard');
+                return Math.abs(board.getBoundingClientRect().height - board.querySelector(':scope > table').getBoundingClientRect().height) <= 4;
+            }
+            """);
     }
 
     [Theory]
