@@ -410,14 +410,19 @@ interface Window {
         if (!ringTarget || !ringTarget.isConnected) { hideRing(); return false; }
         const rect = ringTarget.getBoundingClientRect();
         if (rect.width === 0 && rect.height === 0) { hideRing(); return false; }
-        const key = `${rect.left}|${rect.top}|${rect.width}|${rect.height}`;
+        // Adjacent grid tracks can differ by a fraction of a physical pixel.
+        // Give their rings the same size so gliding only changes position.
+        const scale = window.devicePixelRatio || 1;
+        const width = Math.round(rect.width * scale) / scale;
+        const height = Math.round(rect.height * scale) / scale;
+        const key = `${rect.left}|${rect.top}|${width}|${height}`;
         if (key === lastRect) return false;
         lastRect = key;
         const offset = 3;
         ring.style.setProperty("--lwc-ring-x", `${rect.left - offset}px`);
         ring.style.setProperty("--lwc-ring-y", `${rect.top - offset}px`);
-        ring.style.setProperty("--lwc-ring-w", `${rect.width + offset * 2}px`);
-        ring.style.setProperty("--lwc-ring-h", `${rect.height + offset * 2}px`);
+        ring.style.setProperty("--lwc-ring-w", `${width + offset * 2}px`);
+        ring.style.setProperty("--lwc-ring-h", `${height + offset * 2}px`);
         return true;
     }
 

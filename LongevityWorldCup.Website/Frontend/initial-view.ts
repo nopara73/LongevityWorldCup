@@ -62,8 +62,7 @@ interface Window {
         const duration = parseFloat(style.getPropertyValue('--lwc-duration-normal')) || 220;
         const easing = style.getPropertyValue('--lwc-ease').trim() || 'ease';
         // Animations compose over each panel's own CSS motion without restarting it.
-        // A panel marked data-lwc-reveal="off" is already settled and shows at once.
-        document.querySelectorAll<HTMLElement>('.initial-view-main > :not(.initial-view-recovery, .play-start-panel, [hidden], [data-lwc-reveal="off"])').forEach(panel => {
+        document.querySelectorAll<HTMLElement>('.initial-view-main > :not(.initial-view-recovery, .play-start-panel, [hidden])').forEach(panel => {
             const animation = panel.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration, easing });
             if (!animation) return;
             revealAnimations.add(animation);

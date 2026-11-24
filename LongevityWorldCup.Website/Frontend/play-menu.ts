@@ -40,6 +40,8 @@
     const storageErrorMessage = 'Browser storage is unavailable. Enable storage and try again.';
     const PLAY_START_INTRO_MS = 1900;
     const PLAY_PANEL_PREPARATION_TIMEOUT_MS = 8000;
+    const DASHBOARD_DEALT_KEY = 'lwc:play-dashboard-dealt';
+    let dashboardWasShown = false;
     let flow: PlayAthleteFlowApi | null = null;
     let athleteSelection: AthleteSelectionController | null = null;
     let activePlayPanelName: PlayPanelName | null = null;
@@ -91,6 +93,7 @@
 
     reducedPlayMotion.addEventListener('change', () => {
         if (!reducedPlayMotion.matches || !document.querySelector('.play-hub-main')) return;
+        document.querySelector('[data-dashboard-deal]')?.removeAttribute('data-dashboard-deal');
         cancelPlayPanelMotion();
         finishPlayStartIntro();
         // Cancel only decoration. A pending identity, image or price must still
@@ -180,8 +183,7 @@
         return panel.querySelector<HTMLElement>('h1');
     }
 
-    function landPlayPanelFocus(panelName: PlayPanelName, direction: PlayMoveDirection): void {
-        const target = getPlayPanelLanding(panelName, direction);
+    function landPlayPanelFocus(target: HTMLElement | null): void {
         if (!target) return;
         if (target.tagName === 'H1' && !target.hasAttribute('tabindex')) {
             target.setAttribute('tabindex', '-1');
@@ -312,8 +314,6 @@
         };
 
         if (panelName === 'start') return { layout, extra };
-        // After the first deal of a visit, the dashboard arrives settled.
-        if (panelName === 'dashboard' && document.documentElement.hasAttribute('data-play-dashboard-settled')) return { layout, extra };
 
         const cardLayout = usesPlayerCardLayout();
         if (panelName === 'dashboard' && cardLayout) {
@@ -586,7 +586,7 @@
         document.documentElement.classList.add('play-route-ready');
         document.body.classList.remove('play-route-hydrating');
         document.body.removeAttribute('aria-busy');
-        window.LwcInitialView.complete();
+        window.LwcInitialView.complete({ animate: panelName !== 'dashboard' });
         window.LwcFlowActionDock?.refreshNow?.();
     }
 
@@ -599,8 +599,11 @@
         const previousPanelName = activePlayPanelName;
         const isInFlowMove = hasRenderedPlayPanel && previousPanelName !== panelName;
         const direction = getPlayMoveDirection(previousPanelName, panelName);
+        const returningToDashboard = panelName === 'dashboard'
+            && (dashboardWasShown || requirePlayFlow().getSessionItem(DASHBOARD_DEALT_KEY) === '1');
         const shouldAnimate = options.animate !== false
             && isInFlowMove
+            && !returningToDashboard
             && !prefersReducedPlayMotion();
 
         clearPlayPanelHold();
@@ -608,6 +611,11 @@
         const transitionRunId = playPanelTransitionRunId;
 
         const commitPanel = (): void => {
+            if (panelName === 'dashboard') {
+                targetPanel.toggleAttribute('data-dashboard-deal', !returningToDashboard && !prefersReducedPlayMotion());
+                dashboardWasShown = true;
+                if (!returningToDashboard) requirePlayFlow().setSessionItem(DASHBOARD_DEALT_KEY, '1');
+            }
             main.classList.toggle('play-hub-main--wide', state.isWide);
             document.body.classList.toggle('play-start-active', panelName === 'start');
             if (panelName !== 'start') finishPlayStartIntro();
@@ -624,13 +632,14 @@
             activePlayPanelName = panelName;
             window.scrollTo(0, options.restoreScroll ? getPlayRestoredScroll() : 0);
             window.LwcFlowActionDock?.refreshNow?.();
-            if (isInFlowMove) landPlayPanelFocus(panelName, direction);
+            if (isInFlowMove) landPlayPanelFocus(getPlayPanelLanding(panelName, direction));
         };
 
         if (!shouldAnimate) {
             commitPanel();
             if (panelName === 'start') startPlayStartIntro({ restart: hasRenderedPlayPanel });
             completePlayPanelTransition(panelName, transitionRunId);
+            if (returningToDashboard && !isInFlowMove) landPlayPanelFocus(getReturningDashboardCommand());
             return;
         }
 
@@ -757,6 +766,15 @@
         showPlayPanel(getPlayPanelNameForPath(), { historyMode: null, restoreScroll: hasRenderedPlayPanel });
     }
 
+    function getReturningDashboardCommand(): HTMLElement | null {
+        const referrer = document.referrer ? new URL(document.referrer) : null;
+        const destination = window.history.state?.dashboardCommand
+            || (referrer?.origin === location.origin ? referrer.pathname : null);
+        if (!destination) return null;
+        return Array.from(document.querySelectorAll<HTMLElement>('#athleteDashboardActions [data-dashboard-destination]'))
+            .find(command => command.dataset.dashboardDestination === destination) ?? null;
+    }
+
     function initializePlayHistory(): void {
         if (!window.history) return;
 
@@ -768,7 +786,7 @@
         const requestedPanelName = getPlayPanelNameForPath();
         const resolved = resolveRequestedPlayPanel(requestedPanelName);
         window.history.replaceState(
-            createPlayHistoryState(resolved.panelName),
+            { ...window.history.state, ...createPlayHistoryState(resolved.panelName) },
             '',
             getPlayUrl(resolved.panelName, { preserveCurrentUrlParts: true })
         );
@@ -1086,6 +1104,21 @@
             joinMobileGoProButton.addEventListener('click', () => startProApplication(joinMobileGoProButton));
             selectionBackButton.addEventListener('click', navigateToStartPanel);
             dashboardBackButton.addEventListener('click', navigateToSelectionPanel);
+            document.getElementById('athleteDashboardActions')?.addEventListener('click', event => {
+                const command = event.target instanceof Element
+                    ? event.target.closest<HTMLElement>('[data-dashboard-destination]') : null;
+                if (command) window.history.replaceState({ ...window.history.state, dashboardCommand: command.dataset.dashboardDestination }, '');
+            });
+            const dashboard = document.getElementById('athleteDashboardPanel');
+            dashboard?.addEventListener('animationend', event => {
+                if (event.animationName === 'play-dashboard-name') dashboard.removeAttribute('data-dashboard-deal');
+            });
+            window.addEventListener('pagehide', event => {
+                if (!event.persisted || activePlayPanelName !== 'dashboard') return;
+                dashboard?.removeAttribute('data-dashboard-deal');
+                cancelPlayPanelMotion();
+                completePlayPanelTransition('dashboard', playPanelTransitionRunId);
+            });
 
             confirmAthleteButton.addEventListener('click', () => {
                 const flow = requirePlayFlow();
@@ -1126,35 +1159,6 @@
     } else {
         initializePlayMenu();
     }
-})();
-
-// The dashboard deals itself in once per visit (browser session). Every later
-// arrival (back from a command, browser back, re-entering the dashboard view)
-// shows the settled deck at once: play-menu.css keys the deal-in on the absence
-// of html[data-play-dashboard-settled].
-(() => {
-    const key = 'lwc:play-dashboard-dealt';
-    const root = document.documentElement;
-    let dealt = false;
-    try { dealt = window.sessionStorage.getItem(key) === '1'; } catch { /* storage may be unavailable */ }
-    const panel = document.getElementById('athleteDashboardPanel');
-    if (dealt) {
-        root.dataset.playDashboardSettled = '';
-        // The page's loading reveal must not fade the settled deck in either.
-        if (panel) panel.dataset.lwcReveal = 'off';
-        return;
-    }
-    if (!panel) return;
-    const arrive = (): boolean => {
-        if (panel.hidden) return false;
-        try { window.sessionStorage.setItem(key, '1'); } catch { /* storage may be unavailable */ }
-        // Later arrivals in this page load are settled too, once this deal has played.
-        window.setTimeout(() => { root.dataset.playDashboardSettled = ''; }, 1300);
-        return true;
-    };
-    if (arrive()) return;
-    const observer = new MutationObserver(() => { if (arrive()) observer.disconnect(); });
-    observer.observe(panel, { attributes: true, attributeFilter: ['hidden'] });
 })();
 
 export {};

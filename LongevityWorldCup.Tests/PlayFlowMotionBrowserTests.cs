@@ -182,6 +182,63 @@ public sealed class PlayFlowMotionBrowserTests(
         await WaitForMoveToSettleAsync(page);
     }
 
+    [Fact]
+    public async Task Dashboard_QuickReselectionDealsOnlyOnTheFirstArrival()
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 1440, Height = 900 }, ReducedMotion = ReducedMotion.NoPreference
+        });
+        var page = await OpenAsync(context, "/select-athlete");
+        await SelectAthleteAsync(page, await PickAmateurAsync(page));
+        var deals = await page.EvaluateAsync<bool[]>(
+            """
+            () => new Promise(resolve => {
+                const dashboard = document.getElementById('athleteDashboardPanel');
+                const select = document.getElementById('playConfirmAthleteBtn');
+                const visits = [];
+                const observer = new MutationObserver(() => {
+                    if (!dashboard.hidden) {
+                        visits.push(dashboard.getAnimations({subtree: true}).some(a => a.animationName === 'play-dashboard-name'));
+                        if (visits.length === 2) {
+                            observer.disconnect();
+                            resolve(visits);
+                        } else {
+                            document.getElementById('playDashboardBackBtn').click();
+                        }
+                    } else if (!document.getElementById('athleteSelectionPanel').hidden) {
+                        select.click();
+                    }
+                });
+                observer.observe(dashboard, {attributes:true, attributeFilter:['hidden']});
+                select.click();
+            })
+            """);
+        Assert.Equal(new[] { true, false }, deals);
+        await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Edit profile" })).ToBeFocusedAsync();
+    }
+
+    [Theory]
+    [InlineData(0, "/edit-profile")]
+    [InlineData(1, "/longevitymaxxing")]
+    [InlineData(2, "/pheno-age")]
+    [InlineData(3, "/bortz-age")]
+    public async Task Dashboard_HistoryReturnRestoresTheActivatedCommand(int index, string destination)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 }, ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await OpenAsync(context, "/select-athlete");
+        await SelectAthleteAsync(page, await PickAmateurAsync(page));
+        await page.Locator("#playConfirmAthleteBtn").PressAsync("Enter");
+        var command = page.Locator("#athleteDashboardActions .flow-action:not(.back-button)").Nth(index);
+        await command.PressAsync("Enter");
+        await page.WaitForFunctionAsync("path => location.pathname === path", destination);
+        await page.GoBackAsync();
+        await Assertions.Expect(command).ToBeFocusedAsync();
+    }
+
     [Theory]
     [InlineData(1280, 800)]
     [InlineData(390, 844)]
