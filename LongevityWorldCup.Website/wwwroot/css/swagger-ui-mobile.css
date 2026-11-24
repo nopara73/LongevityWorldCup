@@ -69,13 +69,10 @@
     }
 
     .swagger-ui .opblock .opblock-summary-control {
-        display: grid;
-        grid-template-columns: minmax(4.35rem, auto) minmax(0, 1fr);
-        grid-template-areas:
-            "method path"
-            "description description"
-            "operation operation";
+        display: flex;
+        flex-wrap: wrap;
         grid-column: 1;
+        align-items: flex-start;
         min-width: 0;
         width: 100%;
         gap: 0.35rem 0.55rem;
@@ -83,7 +80,6 @@
     }
 
     .swagger-ui .opblock .opblock-summary-method {
-        grid-area: method;
         align-self: start;
     }
 
@@ -92,14 +88,15 @@
     }
 
     .swagger-ui .opblock .opblock-summary-path {
-        grid-area: path;
+        /* Move the path below the badge when enlarged text needs the full line. */
+        flex: 1 1 min(100%, 8em);
         min-width: 0;
         white-space: normal;
         overflow-wrap: anywhere;
     }
 
     .swagger-ui .opblock .opblock-summary-operation-id {
-        grid-area: operation;
+        flex-basis: 100%;
         min-width: 0;
         display: block;
         text-align: left;
@@ -108,7 +105,7 @@
     }
 
     .swagger-ui .opblock .opblock-summary-description {
-        grid-area: description;
+        flex-basis: 100%;
         min-width: 0;
         white-space: normal;
         overflow-wrap: normal;
@@ -192,7 +189,7 @@
         margin-right: 0 !important;
     }
 
-    .swagger-ui .model-container .model-box-control {
+    .swagger-ui .model-container .model-box-control:not(table *) {
         display: grid !important;
         grid-template-columns: minmax(0, 1fr) 1.75rem;
         align-items: center;
@@ -204,32 +201,35 @@
         text-align: left;
     }
 
-    .swagger-ui .model-box-control > .pointer,
-    .swagger-ui .model-box-control .model-box,
-    .swagger-ui .model-box-control .model-title {
+    .swagger-ui .model-container .model-box-control:not(table *) :is(.pointer, .model-box, .model-title) {
         display: block;
         width: 100%;
         min-width: 0;
         max-width: 100%;
     }
 
-    .swagger-ui .model-box-control .model-box {
+    .swagger-ui .model-container .model-box-control:not(table *) .model-box {
         padding: 0;
     }
 
-    .swagger-ui .model-box-control .model-title {
+    .swagger-ui .model-container .model-box-control:not(table *) .model-title {
         font-size: clamp(0.82rem, 3.45vw, 0.95rem);
         line-height: 1.18;
         text-align: left;
     }
 
-    .swagger-ui .model-box-control .model-toggle {
+    .swagger-ui .model-container .model-box-control:not(table *) > .model-toggle {
         justify-self: end;
         min-width: 1.75rem;
     }
 
-    .swagger-ui .model-box-control > span:last-child:not(.model-toggle) {
+    .swagger-ui .model-container .model-box-control:not(table *) > span:last-child:not(.model-toggle) {
         display: none;
+    }
+
+    .swagger-ui table.model .model-box-control {
+        min-width: 24px;
+        min-height: 24px;
     }
 }
 
@@ -241,10 +241,6 @@
 
     .swagger-ui .opblock .opblock-summary {
         grid-template-columns: minmax(0, 1fr) 2.5rem;
-    }
-
-    .swagger-ui .opblock .opblock-summary-control {
-        grid-template-columns: minmax(3.8rem, auto) minmax(0, 1fr);
     }
 
     .swagger-ui .opblock .opblock-control-arrow {
@@ -960,6 +956,10 @@ html.dark-mode .swagger-ui .scheme-container {
 html.dark-mode .swagger-ui .info a,
 html.dark-mode .swagger-ui .info .main a {
     color: var(--api-accent);
+}
+
+html.dark-mode .swagger-ui .opblock-description-wrapper .renderedMarkdown :is(th, td) {
+    color: var(--api-ink);
 }
 
 html.dark-mode .swagger-ui section.models {

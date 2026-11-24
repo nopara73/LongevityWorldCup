@@ -49,12 +49,65 @@ public sealed class SwaggerLayoutBrowserTests(
             }
             """), "The selected server should have enough space to display its address and description.");
 
+        var path = page.Locator("#operations-Data-previewHypotheticalRank .opblock-summary-path a span");
+        Assert.True(await path.EvaluateAsync<bool>("""
+            label => {
+                const segment = document.createRange();
+                segment.selectNodeContents(label.firstChild);
+                return segment.getClientRects().length === 1;
+            }
+            """), "The /api segment should fit on one line when the method badge and path reflow.");
+
         var operation = page.Locator("#operations-Data-calculatePhenoAge");
         await operation.Locator(".opblock-summary-control").ClickAsync();
         await operation.Locator(".responses-table table.model").First.WaitForAsync();
         Assert.True(await operation.Locator(".responses-inner").EvaluateAsync<bool>(
             "element => element.scrollWidth <= element.clientWidth + 1"),
             "The response schema should fit the phone without horizontal scrolling.");
+
+        var model = page.Locator("#model-BortzAgeCalculationRequest");
+        var title = model.Locator(".model-box-control").First;
+        await title.ClickAsync();
+        Assert.True(await title.Locator("> .model-toggle").IsVisibleAsync());
+        var property = model.Locator("tr.property-row").First.GetByRole(AriaRole.Button, new() { Name = "[...]", Exact = true });
+        await property.ClickAsync();
+        Assert.True(await model.Locator("tr.property-row").First.Locator(".prop-type").IsVisibleAsync(),
+            "A nested property should retain its disclosure label and expand to show its type.");
+    }
+
+    [Fact]
+    public async Task EventReferenceTextIsReadableOnTheDarkOperationCard()
+    {
+        await using var context = await Browser.NewContextAsync(new()
+        {
+            BaseURL = App.BaseAddress.ToString(),
+            ViewportSize = new() { Width = 390, Height = 844 },
+            ColorScheme = ColorScheme.Dark,
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/swagger/index.html");
+        var operation = page.Locator("#operations-Events-listEvents");
+        await operation.Locator(".opblock-summary-control").ClickAsync();
+        var cells = operation.Locator(".renderedMarkdown tbody td");
+        await cells.First.WaitForAsync();
+        var ratios = await cells.EvaluateAllAsync<double[]>("""
+            cells => {
+                const luminance = color => color.match(/[\d.]+/g).slice(0, 3)
+                    .map(n => Number(n) / 255)
+                    .map(v => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)
+                    .reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+                return cells.map(cell => {
+                    let surface = cell;
+                    while (getComputedStyle(surface).backgroundColor === 'rgba(0, 0, 0, 0)')
+                        surface = surface.parentElement;
+                    const bg = luminance(getComputedStyle(surface).backgroundColor);
+                    const fg = luminance(getComputedStyle(cell).color);
+                    return (Math.max(bg, fg) + 0.05) / (Math.min(bg, fg) + 0.05);
+                });
+            }
+            """);
+        Assert.All(ratios, ratio => Assert.True(ratio >= 4.5, $"Event reference text contrast was {ratio:F2}:1."));
     }
 
     [Theory]
