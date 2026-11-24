@@ -1147,8 +1147,44 @@
     margin: 0;
 }
 
-.lmx-pending-photo-frame {
+.lmx-pending-photo-frame,
+.lmx-saved-photo {
     position: relative;
+    min-width: 0;
+}
+
+.lmx-saved-photo[data-removed] .lmx-note-photo {
+    opacity: .4;
+    border-style: dashed;
+}
+
+.lmx-note:has(> .lmx-post-editor) > :is(p, .lmx-note-photo-grid, .lmx-advice-context),
+.lmx-discussion-reply-item:has(> [data-discussion-reply-editor-slot] [data-discussion-draft]) > .lmx-reply-photos {
+    display: none;
+}
+
+.lmx-edit-post {
+    min-width: 44px;
+    min-height: 44px;
+    vertical-align: middle;
+}
+
+.lmx-edit-post[aria-expanded="true"] {
+    visibility: hidden;
+}
+
+.lmx-post-editor {
+    max-width: 65ch;
+    margin-block: var(--lwc-space-2);
+    margin-inline-start: var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
+}
+
+.lmx-post-editor .lmx-discussion-reply-actions {
+    justify-content: flex-end;
+}
+
+.lmx-post-editor .lmx-discussion-composer-meta {
+    margin-right: auto;
 }
 
 .is-photo-drop-target {
@@ -1245,8 +1281,8 @@
 
 .lmx-note-photo-remove {
     position: absolute;
-    top: 0.35rem;
-    right: 0.35rem;
+    top: 0;
+    right: 0;
     width: 44px;
     height: 44px;
     border: 0;
@@ -1254,7 +1290,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: rgba(15, 23, 42, 0.84);
+    background: transparent;
     color: #ffffff;
     cursor: pointer;
     min-width: 44px;
@@ -6243,7 +6279,10 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 .lmx-advice-story-dialog .lmx-status:empty { display: none; }
 .lmx-advice-story > p { max-width: 65ch; }
 .lmx-advice-story-tools { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .25rem; }
-.lmx-advice-story-editor { display: grid; gap: .65rem; max-width: 65ch; margin-top: .75rem; }
+.lmx-advice-story:has(> .lmx-advice-story-editor) > :is(p, .lmx-advice-story-tools) { display: none; }
+.lmx-advice-story-editor { display: grid; gap: .65rem; max-width: 65ch; }
+.lmx-advice-story-editor .lmx-advice-story-count { align-self: center; margin: 0 auto 0 0; }
+.lmx-advice-story-editor .lmx-status:empty { display: none; }
 .lmx-advice-story-editor textarea { width: 100%; box-sizing: border-box; padding: .75rem; font: inherit; color: var(--lmx-ink); background: var(--lmx-surface); border: 1px solid var(--lmx-border-strong); border-radius: 6px; }
 .lmx-advice-post .lmx-discussion-reply { width: auto; max-width: 100%; padding-inline: .75rem; white-space: normal; }
 .lmx-advice-post .lmx-discussion-reply > span { display: inline; }
@@ -6494,13 +6533,7 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
     object-fit: cover;
 }
 
-:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-note-photo-remove {
-    top: 0;
-    right: 0;
-    background: transparent;
-}
-
-:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-note-photo-remove::before {
+.lmx-note-photo-remove::before {
     content: "";
     position: absolute;
     top: 50%;
@@ -6514,7 +6547,7 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
     transform: translate(-50%, -50%);
 }
 
-:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-note-photo-remove > i {
+.lmx-note-photo-remove > i {
     position: relative;
     font-size: 0.75rem;
 }
@@ -7317,7 +7350,7 @@ html body .lmx-page #lmxAccessTabs:has(> .lwc-segment-glide[data-ready]) .lmx-ta
     top: 0.95rem;
     left: 0.98rem;
     color: var(--lmx-accent);
-    font-family: "Font Awesome 6 Free";
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-size: 1.55rem;
     font-weight: 900;
     line-height: 1;
@@ -7335,7 +7368,7 @@ html body .lmx-page #lmxAccessTabs:has(> .lwc-segment-glide[data-ready]) .lmx-ta
     left: 0.2rem;
     top: 0.1rem;
     color: var(--lmx-accent);
-    font-family: "Font Awesome 6 Free";
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-weight: 900;
     animation: lmx-mail-hop 640ms cubic-bezier(0.3, 0.6, 0.2, 1) both;
 }

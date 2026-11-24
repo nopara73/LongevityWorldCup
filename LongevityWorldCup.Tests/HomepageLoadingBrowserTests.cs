@@ -10,6 +10,66 @@ public sealed class HomepageLoadingBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
+    public async Task Homepage_DiscoversTheTitleStylesBeforeStartingTheBody()
+    {
+        await using var context = await NewContextAsync(390);
+        var page = await context.NewPageAsync();
+        await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.NoPreference });
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/css/aesthetic-system.css*", async route =>
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        });
+
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+            await page.Locator("head #homepage-startup").WaitForAsync(new() { State = WaitForSelectorState.Attached });
+            // The parser has reached the startup script. All four preloads match their
+            // consuming stylesheets, and Chrome is still prioritizing the document head.
+            Assert.True(await page.EvaluateAsync<bool>("""
+                () => !document.body && ['aesthetic', 'type', 'layout', 'depth'].every(name => {
+                    const style = document.head.querySelector(`link[rel=stylesheet][href^="/css/${name}-system.css?"]`);
+                    const preload = document.head.querySelector(`link[rel=preload][as=style][href^="/css/${name}-system.css?"]`);
+                    return !!style && preload?.href === style.href;
+                })
+                """));
+        }
+        finally { release.TrySetResult(); }
+
+        await ExpectHomepageLoadedAsync(page);
+    }
+
+    [Fact]
+    public async Task Homepage_MobileToolbarFitsBeforeResponsiveStylesArrive()
+    {
+        await using var context = await NewContextAsync(390, true);
+        var page = await context.NewPageAsync();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/css/mobile-roughness.css*", async route =>
+        {
+            await release.Task;
+            await route.ContinueAsync();
+        });
+
+        var toolbar = page.Locator(".leaderboard-controls .leaderboard-toolbar");
+        double width;
+        try
+        {
+            await page.GotoAsync("/", new() { WaitUntil = WaitUntilState.Commit });
+            await ExpectHomepageLoadedAsync(page);
+            width = await toolbar.EvaluateAsync<double>("bar => bar.getBoundingClientRect().width");
+            Assert.InRange(width, 1, await toolbar.EvaluateAsync<double>("bar => bar.parentElement.clientWidth"));
+            Assert.True(await page.EvaluateAsync<bool>("document.documentElement.scrollWidth <= innerWidth"));
+        }
+        finally { release.TrySetResult(); }
+
+        await page.WaitForLoadStateAsync(LoadState.Load);
+        Assert.Equal(width, await toolbar.EvaluateAsync<double>("bar => bar.getBoundingClientRect().width"), 1);
+    }
+
+    [Fact]
     public async Task Homepage_PaintsItsTitleWhileIconsAndPodiumStylesArePending()
     {
         await using var context = await NewContextAsync(390);

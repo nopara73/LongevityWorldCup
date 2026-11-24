@@ -316,6 +316,34 @@ public sealed class SubmissionConfirmationTests
         return message;
     }
 
+    [Theory]
+    [InlineData("application", "<0,1 mg/dL", "lab reported <0,1 mg/dL. LWC used 1 mg/L")]
+    [InlineData("result", "negative", "lab reported negative. LWC used its default of 1 mg/L")]
+    [InlineData("result", "<4 mg/dL", null)]
+    public async Task OperatorGetsOnlyMatchingCrpNotes_InEmailAndRecoveryArchive(string kind, string report, string? expected)
+    {
+        using var fixture = new Fixture();
+        var applicant = Applicant(kind, "free");
+        applicant.Biomarkers![0].CrpMgL = 1;
+        applicant.CrpReports = new() { ["2026-02-02"] = report };
+        var controller = fixture.Controller(archive: true);
+        Assert.IsType<OkObjectResult>(await controller.Application(applicant, CancellationToken.None));
+        using var zip = System.IO.Compression.ZipFile.OpenRead(Path.Combine(fixture.Environment.ContentRootPath, "saved.zip"));
+        if (expected is null)
+        {
+            Assert.DoesNotContain("lab reported", controller.AuditBody!);
+            Assert.Empty(zip.Comment);
+        }
+        else
+        {
+            Assert.Contains(expected, controller.AuditBody!);
+            Assert.Contains(expected, zip.Comment);
+        }
+        using var data = JsonDocument.Parse(zip.GetEntry("athlete.json")!.Open());
+        Assert.Equal(1, data.RootElement.GetProperty("Biomarkers")[0].GetProperty("CrpMgL").GetDouble());
+        Assert.DoesNotContain(report, data.RootElement.GetRawText());
+    }
+
     private static ApplicantData Applicant(string kind, string payment)
     {
         using var image = new Image<Rgb24>(2, 2);
@@ -397,6 +425,7 @@ public sealed class SubmissionConfirmationTests
     private sealed class FixtureController(Fixture f, bool archive) : ApplicationController(f.Environment,
         NullLogger<ApplicationController>.Instance, f.Retries, new ApplicationPaymentStore(f.Database), f.Provider)
     {
+        public string? AuditBody;
         public int AuditAttempts;
         public int Archives;
         public bool CancelSuccessReport;
@@ -408,6 +437,7 @@ public sealed class SubmissionConfirmationTests
         internal override Task SendEmailThroughSmtpAsync(Config config, MimeMessage message, CancellationToken ct = default)
         {
             AuditAttempts++;
+            AuditBody = message.TextBody;
             Assert.Equal("reviewer@example.test", Assert.Single(message.To.Mailboxes).Address);
             return archive ? Task.FromException(new IOException("audit unavailable")) : Task.CompletedTask;
         }

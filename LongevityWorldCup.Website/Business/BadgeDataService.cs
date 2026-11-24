@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
     }
 
     /// <summary>
-    /// Compute the snapshot and replace BadgeAwards in a single transaction.
+    /// Compute current awards and persist changes in a single transaction.
     /// </summary>
     public void ComputeAndPersistAwards()
     {
@@ -138,47 +138,13 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
                 stats.Count);
         }
 
-        var now = DateTime.UtcNow.ToString("o");
-
         _db.Run(sqlite =>
         {
             using var tx = sqlite.BeginTransaction();
 
             SuppressCorrectionAnnouncements(sqlite, tx, changedRules, correctedSlots);
 
-            using (var del = sqlite.CreateCommand())
-            {
-                del.Transaction = tx;
-                del.CommandText = $"DELETE FROM {AwardsTable};";
-                del.ExecuteNonQuery();
-            }
-
-            using (var ins = sqlite.CreateCommand())
-            {
-                ins.Transaction = tx;
-                ins.CommandText = $@"
-INSERT INTO {AwardsTable} (BadgeLabel, LeagueCategory, LeagueValue, Place, AthleteSlug, DefinitionHash, UpdatedAt)
-VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
-                var pBL = ins.Parameters.Add("@bl", SqliteType.Text);
-                var pLC = ins.Parameters.Add("@lc", SqliteType.Text);
-                var pLV = ins.Parameters.Add("@lv", SqliteType.Text);
-                var pP = ins.Parameters.Add("@p", SqliteType.Integer);
-                var pA = ins.Parameters.Add("@a", SqliteType.Text);
-                var pD = ins.Parameters.Add("@dh", SqliteType.Text);
-                var pU = ins.Parameters.Add("@u", SqliteType.Text);
-
-                foreach (var r in awards)
-                {
-                    pBL.Value = r.BadgeLabel;
-                    pLC.Value = r.LeagueCategory;
-                    pLV.Value = r.LeagueValue is null ? (object)DBNull.Value : r.LeagueValue;
-                    pP.Value = r.Place.HasValue ? r.Place.Value : (object)DBNull.Value;
-                    pA.Value = r.AthleteSlug;
-                    pD.Value = r.DefinitionHash ?? (object)DBNull.Value;
-                    pU.Value = now;
-                    ins.ExecuteNonQuery();
-                }
-            }
+            StoreAwardsIfChanged(sqlite, tx, awards);
 
             AthleteDataCorrections.CompleteBadgeBaselines(sqlite, tx, silentCorrections);
             tx.Commit();
@@ -186,6 +152,63 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
 
         if (!suppressBadgeEvents)
             CreateBadgeAwardEvents(badgeEvents);
+    }
+
+    private static void StoreAwardsIfChanged(SqliteConnection sqlite, SqliteTransaction tx, IReadOnlyList<AwardRow> awards)
+    {
+        // Compare the physical award rows inside the write transaction. Nullable keys
+        // allow duplicate rows in legacy databases, so compare their multiplicities.
+        using var compare = sqlite.CreateCommand();
+        compare.Transaction = tx;
+        compare.CommandText = $"""
+            WITH desired AS (
+                SELECT value ->> '$.BadgeLabel', value ->> '$.LeagueCategory', value ->> '$.LeagueValue',
+                       value ->> '$.Place', value ->> '$.AthleteSlug', value ->> '$.DefinitionHash', COUNT(*)
+                FROM json_each(@awards) GROUP BY 1,2,3,4,5,6
+            ), stored AS (
+                SELECT BadgeLabel, LeagueCategory, LeagueValue, Place, AthleteSlug, DefinitionHash, COUNT(*)
+                FROM {AwardsTable} GROUP BY 1,2,3,4,5,6
+            )
+            SELECT NOT EXISTS(SELECT * FROM desired EXCEPT SELECT * FROM stored)
+               AND NOT EXISTS(SELECT * FROM stored EXCEPT SELECT * FROM desired);
+            """;
+        compare.Parameters.AddWithValue("@awards", System.Text.Json.JsonSerializer.Serialize(awards));
+        if ((long)compare.ExecuteScalar()! == 1) return;
+
+        var now = DateTime.UtcNow.ToString("o");
+        using (var del = sqlite.CreateCommand())
+        {
+            del.Transaction = tx;
+            del.CommandText = $"DELETE FROM {AwardsTable};";
+            del.ExecuteNonQuery();
+        }
+
+        using (var ins = sqlite.CreateCommand())
+        {
+            ins.Transaction = tx;
+            ins.CommandText = $@"
+INSERT INTO {AwardsTable} (BadgeLabel, LeagueCategory, LeagueValue, Place, AthleteSlug, DefinitionHash, UpdatedAt)
+VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
+            var pBL = ins.Parameters.Add("@bl", SqliteType.Text);
+            var pLC = ins.Parameters.Add("@lc", SqliteType.Text);
+            var pLV = ins.Parameters.Add("@lv", SqliteType.Text);
+            var pP = ins.Parameters.Add("@p", SqliteType.Integer);
+            var pA = ins.Parameters.Add("@a", SqliteType.Text);
+            var pD = ins.Parameters.Add("@dh", SqliteType.Text);
+            var pU = ins.Parameters.Add("@u", SqliteType.Text);
+
+            foreach (var r in awards)
+            {
+                pBL.Value = r.BadgeLabel;
+                pLC.Value = r.LeagueCategory;
+                pLV.Value = r.LeagueValue is null ? (object)DBNull.Value : r.LeagueValue;
+                pP.Value = r.Place.HasValue ? r.Place.Value : (object)DBNull.Value;
+                pA.Value = r.AthleteSlug;
+                pD.Value = r.DefinitionHash ?? (object)DBNull.Value;
+                pU.Value = now;
+                ins.ExecuteNonQuery();
+            }
+        }
     }
 
     private static string AwardSlotKey(string label, string category, string? value, int? place) =>

@@ -593,7 +593,7 @@ public sealed class GuessMyAgeBrowserTests(
                 {
                     Status = 200,
                     ContentType = "application/json",
-                    Body = """{"crowdAge":39,"crowdCount":12,"actualAge":41,"guessAccepted":false}"""
+                    Body = """{"previousCrowdAge":39,"crowdAge":39,"crowdCount":12,"actualAge":41,"guessAccepted":false}"""
                 });
                 return;
             }
@@ -602,7 +602,7 @@ public sealed class GuessMyAgeBrowserTests(
             {
                 Status = 200,
                 ContentType = "application/json",
-                Body = """{"crowdAge":40,"crowdCount":1,"actualAge":40,"guessAccepted":true}"""
+                Body = """{"previousCrowdAge":null,"crowdAge":40,"crowdCount":1,"actualAge":40,"guessAccepted":true}"""
             });
         });
 
@@ -892,7 +892,7 @@ public sealed class GuessMyAgeBrowserTests(
             {
                 Status = 200,
                 ContentType = "application/json",
-                Body = """{"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+                Body = """{"previousCrowdAge":100,"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
             });
         });
 

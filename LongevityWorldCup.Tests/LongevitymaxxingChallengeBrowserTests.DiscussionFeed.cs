@@ -514,7 +514,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await form.Locator("textarea").FillAsync("");
         await form.Locator("button[type='submit']").ClickAsync();
         await Assertions.Expect(ownPost).ToHaveCountAsync(0);
-        await page.Locator("#lmxQuoteDialogOk").ClickAsync();
+        await Assertions.Expect(page.Locator("#lmxQuoteDialog")).ToBeHiddenAsync();
         await page.Locator("#lmxCheckinTab").ClickAsync();
         await page.Locator("#lmxFeedNew").ClickAsync();
         await Assertions.Expect(ownPost).ToHaveCountAsync(0);

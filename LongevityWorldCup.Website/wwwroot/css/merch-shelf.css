@@ -1,4 +1,6 @@
 /* Static homepage shelf: studio floors, product titles and price tags. */
+.lwc-merch-mobile-dots[inert] { visibility: hidden; }
+
 html body main.homepage-main .lwc-merch-body .lwc-merch-grid {
     gap: var(--lwc-space-4, 1rem);
 }

@@ -141,7 +141,7 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
     {
         using var fixture = TestChallengeFixture.Create();
         var access = await fixture.ConfirmParticipantAsync("controller-retry@example.com", "Controller Riley");
-        var day = fixture.Service.GetParticipantState(access).EligibleDays.First().ChallengeDay;
+        var day = fixture.Service.GetParticipantState(access).EligibleDays.Max(eligible => eligible.ChallengeDay);
         var submissionId = Guid.NewGuid().ToString();
         await using var factory = new TestWebApplicationFactory(builder => builder.ConfigureTestServices(services => services.AddSingleton(fixture.Service)));
         using var client = factory.CreateClient();
@@ -168,7 +168,21 @@ public sealed partial class LongevitymaxxingChallengeServiceTests
             response.EnsureSuccessStatusCode();
             Assert.True(await ReceivedAsync());
         }
-        Assert.Equal(2, Assert.Single(fixture.Service.GetParticipantState(access).Notes).Images.Count);
+        var images = Assert.Single(fixture.Service.GetParticipantState(access).Notes).Images;
+        Assert.Equal(2, images.Count);
+        var removed = Path.GetFileName(new Uri($"https://example.test{images[0].Url}").AbsolutePath);
+        using var replacement = new MultipartFormDataContent {
+            { new StringContent(access), "accessToken" }, { new StringContent(day.ToString()), "challengeDay" },
+            { new StringContent("Controller upload."), "note" }, { new StringContent(removed), "removedPhotoNames" },
+            { new StreamContent(CreatePngStream()), "notePhotos", "replacement.png" }
+        };
+        foreach (var habit in new[] { "sleep", "exercise", "nutrition", "vices" }) replacement.Add(new StringContent("2"), habit);
+        using var replaced = await client.PostAsync("/api/longevitymaxxing/check-in", replacement);
+        Assert.True(replaced.IsSuccessStatusCode, await replaced.Content.ReadAsStringAsync());
+        var current = Assert.Single(fixture.Service.GetParticipantState(access).Notes).Images;
+        Assert.Equal(2, current.Count);
+        Assert.Equal(images[1], current[0]);
+        Assert.False(File.Exists(Path.Combine(PhotoDirectory(fixture), removed)));
         Assert.Equal(2, Directory.GetFiles(PhotoDirectory(fixture)).Length);
     }
 

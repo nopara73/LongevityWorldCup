@@ -404,6 +404,7 @@ interface GuessMyAgeState {
     skipped: boolean;
     first: boolean;
     exact: boolean;
+    beatCrowd?: boolean;
 }
 
 interface GuessMyAgeStoredEntry {
