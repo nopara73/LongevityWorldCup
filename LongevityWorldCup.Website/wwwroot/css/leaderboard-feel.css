@@ -5,7 +5,7 @@
  * the script appends, so the homepage embed and the athlete dialog are
  * untouched. Colours come only from --lwc-* tokens. Movement stays between
  * 140ms and 280ms on the shared motion curves and is switched off entirely by
- * prefers-reduced-motion; the static states (condensed head, ink bar, peek,
+ * prefers-reduced-motion; the static states (condensed head, ink bar,
  * rail) still apply without it.
  */
 
@@ -75,36 +75,6 @@ html body main[data-leaderboard-page="full"] .leaderboard-view-switcher .view-sw
     background:var(--lwc-accent); pointer-events:none; opacity:0;
 }
 
-/* 5) Peek: the athlete's key numbers beside a resting pointer. */
-.lb-peek{
-    position:fixed; z-index:40; width:min(16.5rem, calc(100vw - 24px)); box-sizing:border-box;
-    display:grid; gap:var(--lwc-space-2); padding:var(--lwc-space-3) var(--lwc-space-4);
-    background:var(--lwc-surface); color:var(--lwc-ink);
-    border:1px solid var(--lwc-border); border-radius:var(--lwc-radius-md, 10px);
-    box-shadow:var(--lwc-shadow-md);
-    max-height:calc(100dvh - 16px); overflow:auto; overscroll-behavior:contain;
-    font-variant-numeric:tabular-nums;
-}
-.lb-peek[hidden]{ display:none; }
-.lb-peek-top{ display:flex; align-items:center; gap:var(--lwc-space-3); min-width:0; }
-.lb-peek-top > img{ width:44px; height:44px; border-radius:50%; object-fit:cover; flex:none; box-shadow:0 0 0 2px var(--lwc-surface), 0 0 0 3px var(--lwc-border); }
-.lb-peek-id{ display:grid; min-width:0; line-height:1.2; }
-.lb-peek-rank{ color:var(--lwc-muted); font-size:var(--lwc-type-xs); font-weight:700; letter-spacing:.08em; }
-.lb-peek-rank::before{ content:"#"; }
-.lb-peek-name{ font-weight:700; overflow-wrap:anywhere; }
-.lb-peek-metric{
-    font-size:1.5rem; font-weight:800; line-height:1.25; letter-spacing:-.01em; color:var(--lwc-accent); overflow-wrap:anywhere;
-    padding-bottom:var(--lwc-space-2); border-bottom:1px solid var(--lwc-border);
-}
-.lb-peek-facts{ display:flex; flex-wrap:wrap; gap:var(--lwc-space-2) var(--lwc-space-4); color:var(--lwc-muted); font-size:var(--lwc-type-sm); }
-.lb-peek-facts > span{ display:inline-flex; flex-wrap:wrap; align-items:center; gap:.4em; }
-.lb-peek-facts i{ font-size:.8em; opacity:.8; }
-.lb-peek-age{ color:var(--lwc-ink); font-weight:700; }
-.lb-peek-age.is-bio{ color:var(--lwc-accent); }
-.lb-peek-spark{ width:100%; height:32px; overflow:visible; }
-.lb-peek-spark polyline{ fill:none; stroke:var(--lwc-accent); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; opacity:.75; }
-.lb-peek-spark circle{ fill:var(--lwc-accent); stroke:var(--lwc-surface); stroke-width:1.5; }
-
 /* Rows: a pointer brings an accent edge forward; a press gives way. */
 @media (hover:hover) and (pointer:fine){
     main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data-athlete-name] > td:first-child{
@@ -164,7 +134,6 @@ main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data
     main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data-athlete-name]{
         scroll-margin-top:calc(var(--board-sticky-top, 52px) + var(--board-head-height, 52px) + 8px);
     }
-    .lb-peek{ display:none; }
 }
 
 @media (prefers-reduced-motion:no-preference){
@@ -184,11 +153,11 @@ main[data-leaderboard-page="full"] #athleteLeaderboard > table > tbody > tr[data
     }
     .lb-rail-thumb{ transition:scale var(--lwc-motion-fast, 140ms) var(--lwc-ease-pop, ease), translate var(--lwc-motion-fast, 140ms) var(--lwc-ease-standard, ease); }
 }
-html:not([data-lwc-motion="on"]) :is(.lb-peek, .lb-rail, .lb-rail-thumb, .lb-tab-ink, .lb-head-progress),
+html:not([data-lwc-motion="on"]) :is(.lb-rail, .lb-rail-thumb, .lb-tab-ink, .lb-head-progress),
 html:not([data-lwc-motion="on"]) main[data-leaderboard-page="full"] #athleteLeaderboard :is(thead, th, .portrait, .rank, .sponsor-coming-soon, .order-indicator svg),
 html:not([data-lwc-motion="on"]) main[data-leaderboard-page="full"] #athleteLeaderboard th::after{ transition:none !important; }
 @media (prefers-reduced-motion:reduce){
-    :is(.lb-peek, .lb-rail, .lb-rail-thumb, .lb-tab-ink, .lb-head-progress),
+    :is(.lb-rail, .lb-rail-thumb, .lb-tab-ink, .lb-head-progress),
     main[data-leaderboard-page="full"] #athleteLeaderboard :is(thead, th, .portrait, .rank, .sponsor-coming-soon, .order-indicator svg){ transition:none !important; }
 }
 
@@ -256,4 +225,61 @@ html:not([data-lwc-motion="on"]) .lb-rail-balloon, html:not([data-lwc-motion="on
 @media (prefers-reduced-motion:reduce){
     .lb-rail{ translate:0 0; }
     .lb-rail-balloon, .lb-rail-track::before{ transition:none !important; }
+}
+
+/* League masthead: on a league, its emblem (the glyph
+   or flag from its filter tile) sits in an accent tile beside the league's
+   name, set large as the board's title, with the ranking explanation under
+   it. A combined league (e.g. a generation and a division) wears the second
+   emblem as a badge on the tile's corner. The rail's sideways name steps aside
+   because the masthead names the league. */
+main[data-leaderboard-page="full"][data-league] .leaderboard-identity{
+    display:grid; grid-template-columns:auto minmax(0, 1fr); grid-template-areas:"emblem title" "emblem text";
+    align-items:center; column-gap:var(--lwc-space-4, 16px); row-gap:4px;
+}
+main[data-leaderboard-page="full"] .league-emblem{ display:none; }
+main[data-leaderboard-page="full"][data-league] .league-emblem:not([hidden]){
+    grid-area:emblem; position:relative; display:grid; place-items:center; align-self:start;
+    width:max(56px, 2.25rem); height:max(56px, 2.25rem); margin-block:4px; box-sizing:border-box;
+    border-radius:var(--lwc-radius-md, 10px); background:var(--lwc-accent); color:var(--lwc-on-accent, #fff);
+    box-shadow:0 12px 24px -16px color-mix(in srgb, var(--lwc-accent) 85%, transparent);
+}
+main[data-leaderboard-page="full"][data-league] .league-emblem .league-emblem-mark{
+    display:block; width:auto; margin:0; color:inherit; font-size:1.65rem; line-height:1;
+}
+main[data-leaderboard-page="full"][data-league] .league-emblem .league-emblem-mark svg{ display:block; width:1.65rem; height:1.65rem; }
+/* A flag is its own colour: it fills the tile. */
+main[data-leaderboard-page="full"][data-league] .league-emblem:has(> .league-emblem-mark.lwc-flag-icon){
+    overflow:visible; background:var(--lwc-surface); box-shadow:0 0 0 1px var(--lwc-border), 0 12px 24px -16px color-mix(in srgb, var(--lwc-ink) 70%, transparent);
+}
+main[data-leaderboard-page="full"][data-league] .league-emblem:has(> .league-emblem-mark.lwc-flag-icon) .league-emblem-mark{
+    width:100%; height:100%; border-radius:inherit; background-size:cover; background-position:center; box-shadow:none;
+}
+main[data-leaderboard-page="full"][data-league] .league-emblem .league-emblem-badge{
+    position:absolute; right:-9px; bottom:-9px; display:grid; place-items:center; box-sizing:border-box;
+    width:max(28px, 1.35rem); height:max(28px, 1.35rem); margin:0; border-radius:50%; background-color:var(--lwc-surface); color:var(--lwc-accent);
+    box-shadow:0 0 0 2px var(--lwc-surface-muted), inset 0 0 0 1.5px var(--lwc-accent); font-size:.85rem; line-height:1;
+}
+main[data-leaderboard-page="full"][data-league] .league-emblem .league-emblem-badge svg{ width:.9rem; height:.9rem; }
+main[data-leaderboard-page="full"][data-league] .league-emblem .league-emblem-badge.lwc-flag-icon{ background-size:cover; background-position:center; }
+main[data-leaderboard-page="full"][data-league] .leaderboard-league-title{
+    grid-area:title; align-self:end; margin:0;
+    font-size:clamp(1.35rem, 1.1rem + 1vw, 1.85rem); font-weight:800; line-height:1.15; letter-spacing:-.01em;
+}
+main[data-leaderboard-page="full"][data-league] .leaderboard-identity > .ranking-explanation{ grid-area:text; align-self:start; }
+main[data-leaderboard-page="full"][data-league] #athleteLeaderboard .collapsed-title{ display:none; }
+@media (max-width:600px){
+    main[data-leaderboard-page="full"][data-league] .leaderboard-identity{ column-gap:var(--lwc-space-3, 12px); }
+    main[data-leaderboard-page="full"][data-league] .league-emblem:not([hidden]){ width:max(46px, 1.875rem); height:max(46px, 1.875rem); }
+    main[data-leaderboard-page="full"][data-league] .league-emblem .league-emblem-mark{ font-size:1.35rem; }
+    main[data-leaderboard-page="full"][data-league] .league-emblem .league-emblem-mark svg{ width:1.35rem; height:1.35rem; }
+    main[data-leaderboard-page="full"][data-league] .league-emblem .league-emblem-badge{ width:max(24px, 1.25rem); height:max(24px, 1.25rem); right:-7px; bottom:-7px; }
+}
+main[data-leaderboard-page="full"][data-league] .leaderboard-controls-status{
+    container:league-status / inline-size;
+}
+@container league-status (max-width:18rem){
+    main[data-leaderboard-page="full"][data-league] .leaderboard-identity{
+        grid-template-areas:"emblem title" "text text";
+    }
 }

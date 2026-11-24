@@ -57,8 +57,10 @@ public sealed class HomepageNewsletterBrowserTests(
             """
             input => {
                 const style = getComputedStyle(input);
-                return (input.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight))
-                    / parseFloat(style.fontSize);
+                // Chromium can report a text input's clientWidth without inline padding.
+                const contentWidth = input.offsetWidth - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth)
+                    - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+                return contentWidth / parseFloat(style.fontSize);
             }
             """);
         Assert.True(contentWidthInEm >= minimumTextEm, $"The email field has only {contentWidthInEm:F2}em of usable text space.");

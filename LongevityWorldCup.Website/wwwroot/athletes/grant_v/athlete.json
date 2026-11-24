@@ -1,0 +1,28 @@
+{
+  "Name": "Grant V",
+  "DisplayName": null,
+  "MediaContact": "https://www.linkedin.com/in/grant-vernon/",
+  "DateOfBirth": {
+    "Year": 1979,
+    "Month": 4,
+    "Day": 25
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-10-22",
+      "AlbGL": 48,
+      "CreatUmolL": 96,
+      "GluMmolL": 4.5,
+      "CrpMgL": 2.2,
+      "LymPc": 30.9,
+      "McvFL": 89.7,
+      "RdwPc": 13.4,
+      "AlpUL": 67,
+      "Wbc1000cellsuL": 6.4
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United Kingdom",
+  "Why": "Erase preventable diseases from the world !",
+  "PersonalLink": null
+}

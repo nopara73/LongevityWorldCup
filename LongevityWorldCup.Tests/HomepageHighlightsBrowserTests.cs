@@ -98,7 +98,11 @@ public sealed class HomepageHighlightsBrowserTests(
     {
         await using var context = await NewContextAsync(1440, 900, "dark");
         var page = await OpenAsync(context);
-        await page.Locator("tr[data-event-id='pro'] .avatar-link").FocusAsync();
+        var focusedLink = page.Locator("tr[data-event-id='pro'] .avatar-link");
+        await focusedLink.FocusAsync();
+        await page.Clock.FastForwardAsync(500);
+        var preview = page.Locator("#eventAthletePreview");
+        await Assertions.Expect(preview).ToBeVisibleAsync();
         var writes = await page.EvaluateAsync<int>("""
             async () => {
                 const rows = [...document.querySelectorAll('#events-root-index tr.main-row')];
@@ -119,6 +123,10 @@ public sealed class HomepageHighlightsBrowserTests(
             }
             """);
         Assert.Equal(0, writes);
+        // The feed defers refreshes while the athlete preview is open.
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(preview).ToBeHiddenAsync();
+        await Assertions.Expect(focusedLink).ToBeFocusedAsync();
         var response = page.WaitForResponseAsync(r => r.Url.EndsWith("/api/events"));
         await page.EvaluateAsync("() => window.refreshEventsFeed()");
         await response;

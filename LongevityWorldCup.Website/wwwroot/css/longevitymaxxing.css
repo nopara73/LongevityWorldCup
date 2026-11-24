@@ -1017,7 +1017,8 @@
 
 .lmx-field input,
 .lmx-field select,
-.lmx-field textarea {
+.lmx-field textarea,
+.lmx-checkin-note-editor[data-remarks]::after {
     width: 100%;
     box-sizing: border-box;
     min-height: 44px;
@@ -1146,8 +1147,44 @@
     margin: 0;
 }
 
-.lmx-pending-photo-frame {
+.lmx-pending-photo-frame,
+.lmx-saved-photo {
     position: relative;
+    min-width: 0;
+}
+
+.lmx-saved-photo[data-removed] .lmx-note-photo {
+    opacity: .4;
+    border-style: dashed;
+}
+
+.lmx-note:has(> .lmx-post-editor) > :is(p, .lmx-note-photo-grid, .lmx-advice-context),
+.lmx-discussion-reply-item:has(> [data-discussion-reply-editor-slot] [data-discussion-draft]) > .lmx-reply-photos {
+    display: none;
+}
+
+.lmx-edit-post {
+    min-width: 44px;
+    min-height: 44px;
+    vertical-align: middle;
+}
+
+.lmx-edit-post[aria-expanded="true"] {
+    visibility: hidden;
+}
+
+.lmx-post-editor {
+    max-width: 65ch;
+    margin-block: var(--lwc-space-2);
+    margin-inline-start: var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
+}
+
+.lmx-post-editor .lmx-discussion-reply-actions {
+    justify-content: flex-end;
+}
+
+.lmx-post-editor .lmx-discussion-composer-meta {
+    margin-right: auto;
 }
 
 .is-photo-drop-target {
@@ -1244,8 +1281,8 @@
 
 .lmx-note-photo-remove {
     position: absolute;
-    top: 0.35rem;
-    right: 0.35rem;
+    top: 0;
+    right: 0;
     width: 44px;
     height: 44px;
     border: 0;
@@ -1253,7 +1290,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: rgba(15, 23, 42, 0.84);
+    background: transparent;
     color: #ffffff;
     cursor: pointer;
     min-width: 44px;
@@ -4783,20 +4820,13 @@ a.lmx-note-mention:focus-visible {
     box-shadow: none;
 }
 
-.lmx-feed-updates {
+.lmx-notes-header:has(> .lmx-feed-new:not([hidden])) {
     position: sticky;
-    top: 5.75rem;
+    top: var(--site-visible-sticky-height, var(--site-sticky-height, 0px));
     z-index: 2;
-    height: 0;
-    display: flex;
-    justify-content: center;
-    pointer-events: none;
 }
 
 .lmx-feed-new {
-    transform: translateY(-50%);
-    pointer-events: auto;
-    align-self: flex-start;
     color: var(--lmx-accent-hover);
     border-color: var(--lmx-accent);
     background: var(--lmx-surface);
@@ -5323,11 +5353,6 @@ a.lmx-note-mention:focus-visible {
         margin-bottom: 0.7rem;
     }
 
-    .lmx-notes-header {
-        align-items: stretch;
-        flex-direction: column;
-    }
-
     .lmx-tab {
         gap: 0.28rem;
         padding-inline: 0.32rem;
@@ -5753,45 +5778,6 @@ a.lmx-note-mention:focus-visible {
     margin-bottom: var(--lwc-space-3);
 }
 
-/* Agencies: four even tiles, each keyed by its habit colour. */
-.lmx-page .lmx-habit-grid {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
-    gap: var(--lwc-space-3);
-    margin-top: 0;
-}
-
-.lmx-page .lmx-habit-card {
-    position: relative;
-    min-height: 0;
-    padding: var(--lwc-space-4) var(--lwc-space-3) var(--lwc-space-3);
-    justify-items: start;
-    gap: var(--lwc-space-3);
-    overflow: hidden;
-    border: 1px solid var(--lmx-border);
-    border-radius: var(--lwc-radius-md);
-    background: var(--lmx-surface);
-}
-
-.lmx-page .lmx-habit-card::before {
-    content: "";
-    position: absolute;
-    inset: 0 0 auto;
-    height: 3px;
-    background: var(--lmx-category-accent);
-}
-
-.lmx-page .lmx-habit-card i {
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: var(--lwc-radius-md);
-}
-
-.lmx-page .lmx-habit-card span {
-    color: var(--lmx-ink);
-    font-size: var(--lwc-type-body);
-    font-weight: 800;
-}
-
 /* Daily checkins: one divided list on the same edges as the tiles above. */
 .lmx-page .lmx-question-preview {
     margin-top: 0;
@@ -5930,6 +5916,11 @@ a.lmx-note-mention:focus-visible {
     padding: var(--lwc-space-2) var(--lmx-pad);
     border-bottom: 1px solid var(--lmx-border);
     background: var(--lmx-surface-accent);
+}
+
+.lmx-page .lmx-notes-header {
+    flex-wrap: wrap;
+    padding-block: 0;
 }
 
 .lmx-page .lmx-board-header h2,
@@ -6080,24 +6071,6 @@ a.lmx-note-mention:focus-visible {
     border-top: 1px solid var(--lmx-border);
 }
 
-@media (max-width: 760px) {
-    .lmx-page .lmx-habit-grid {
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 4.5rem), 1fr));
-        gap: var(--lwc-space-2);
-    }
-
-    .lmx-page .lmx-habit-card {
-        justify-items: center;
-        padding: var(--lwc-space-3) var(--lwc-space-1) var(--lwc-space-2);
-        gap: var(--lwc-space-2);
-        text-align: center;
-    }
-
-    .lmx-page .lmx-habit-card span {
-        font-size: var(--lwc-type-sm);
-    }
-}
-
 @media (max-width: 600px) {
     /* Text runs under the author row here, so the avatar column only needs the avatar. */
     .lmx-page .lmx-note {
@@ -6143,11 +6116,6 @@ a.lmx-note-mention:focus-visible {
         padding: min(var(--lwc-space-4), 16px) var(--lmx-pad);
     }
 
-    .lmx-page .lmx-notes-header {
-        flex-direction: row;
-        align-items: center;
-    }
-
     .lmx-page .lmx-life-strip span {
         min-height: 2.25rem;
         padding-inline: min(0.35rem, 1.5vw);
@@ -6170,10 +6138,6 @@ a.lmx-note-mention:focus-visible {
 }
 
 @media (max-width: 360px) {
-    .lmx-page .lmx-habit-grid {
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5rem), 1fr));
-    }
-
     .lmx-page .lmx-life-strip {
         gap: 0.25rem;
     }
@@ -6254,7 +6218,10 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 .lmx-advice-story-dialog .lmx-status:empty { display: none; }
 .lmx-advice-story > p { max-width: 65ch; }
 .lmx-advice-story-tools { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .25rem; }
-.lmx-advice-story-editor { display: grid; gap: .65rem; max-width: 65ch; margin-top: .75rem; }
+.lmx-advice-story:has(> .lmx-advice-story-editor) > :is(p, .lmx-advice-story-tools) { display: none; }
+.lmx-advice-story-editor { display: grid; gap: .65rem; max-width: 65ch; }
+.lmx-advice-story-editor .lmx-advice-story-count { align-self: center; margin: 0 auto 0 0; }
+.lmx-advice-story-editor .lmx-status:empty { display: none; }
 .lmx-advice-story-editor textarea { width: 100%; box-sizing: border-box; padding: .75rem; font: inherit; color: var(--lmx-ink); background: var(--lmx-surface); border: 1px solid var(--lmx-border-strong); border-radius: 6px; }
 .lmx-advice-post .lmx-discussion-reply { width: auto; max-width: 100%; padding-inline: .75rem; white-space: normal; }
 .lmx-advice-post .lmx-discussion-reply > span { display: inline; }
@@ -6452,7 +6419,29 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
     font-variant-numeric: tabular-nums;
 }
 
+.lmx-checkin-note-editor {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.lmx-checkin-note-editor > textarea,
+.lmx-checkin-note-editor[data-remarks]::after {
+    grid-area: 1 / 1;
+    max-height: min(24rem, 50dvh);
+}
+
+/* Older browsers size the grid row from the same text, including a final empty line. */
+.lmx-checkin-note-editor[data-remarks]::after {
+    content: attr(data-remarks) "\200b";
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    overflow: hidden;
+    visibility: hidden;
+}
+
 :is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card textarea {
+    field-sizing: content;
+    resize: none;
     border: 1px solid var(--lmx-border);
     border-radius: var(--lwc-radius-md);
     background: var(--lmx-surface);
@@ -6483,13 +6472,7 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
     object-fit: cover;
 }
 
-:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-note-photo-remove {
-    top: 0;
-    right: 0;
-    background: transparent;
-}
-
-:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-note-photo-remove::before {
+.lmx-note-photo-remove::before {
     content: "";
     position: absolute;
     top: 50%;
@@ -6503,7 +6486,7 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
     transform: translate(-50%, -50%);
 }
 
-:is(.lmx-page, .lmx-checkin-dialog-panel) .lmx-checkin-card .lmx-note-photo-remove > i {
+.lmx-note-photo-remove > i {
     position: relative;
     font-size: 0.75rem;
 }
@@ -6819,27 +6802,60 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
 /* --- Habit tiles: icon, name and question in one card --------------------- */
 
 .lmx-page .lmx-habit-grid {
-    /* Two tiles a row while a question has room to read; one under enlarged text. */
     grid-template-columns: repeat(auto-fit, minmax(min(100%, max(14rem, calc(50% - var(--lwc-space-3)))), 1fr));
+    gap: var(--lwc-space-3);
+    margin-top: 0;
 }
 
 .lmx-page .lmx-habit-card {
+    position: relative;
     grid-template-columns: 2.25rem minmax(0, 1fr);
     grid-template-rows: minmax(2.25rem, auto) auto;
     align-content: start;
     align-items: center;
-    column-gap: var(--lwc-space-3);
-    row-gap: var(--lwc-space-1);
+    justify-items: start;
+    gap: var(--lwc-space-1) var(--lwc-space-3);
+    min-height: 0;
     padding: var(--lwc-space-4);
+    overflow: hidden;
+    border: 1px solid var(--lmx-border);
+    border-radius: var(--lwc-radius-md);
+    background: var(--lmx-surface);
+}
+
+.lmx-page .lmx-habit-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 5px;
+    background: var(--lmx-category-accent);
+    transform: scaleY(0.6);
+    transform-origin: top;
 }
 
 .lmx-page .lmx-habit-card i {
+    position: relative;
     grid-row: 1 / span 2;
     align-self: start;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--lwc-radius-md);
+}
+
+.lmx-page .lmx-habit-card i::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border: 2px solid var(--lmx-category-accent);
+    border-radius: calc(var(--lwc-radius-md) + 4px);
+    opacity: 0.35;
+    pointer-events: none;
 }
 
 .lmx-page .lmx-habit-card span {
+    color: var(--lmx-ink);
     font-size: var(--lwc-type-lg, 1.125rem);
+    font-weight: 800;
     line-height: 1.2;
 }
 
@@ -6853,15 +6869,56 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
     line-height: 1.45;
 }
 
+@media (hover: hover) and (pointer: fine) {
+    .lmx-page .lmx-habit-card:hover {
+        border-color: color-mix(in srgb, var(--lmx-category-accent) 45%, var(--lmx-border));
+        box-shadow: var(--lwc-shadow-md);
+    }
+
+    .lmx-page .lmx-habit-card:hover::before {
+        transform: scaleY(1);
+    }
+
+    .lmx-page .lmx-habit-card:hover i::after {
+        opacity: 0.8;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        .lmx-page .lmx-habit-card {
+            transition:
+                transform 200ms var(--lwc-ease-standard),
+                box-shadow 200ms var(--lwc-ease-standard),
+                border-color 200ms var(--lwc-ease-standard);
+        }
+
+        .lmx-page .lmx-habit-card::before {
+            transition: transform 200ms var(--lwc-ease-standard);
+        }
+
+        .lmx-page .lmx-habit-card i {
+            transition: transform 260ms var(--lwc-ease-pop);
+        }
+
+        .lmx-page .lmx-habit-card i::after {
+            transition: opacity 200ms var(--lwc-ease-standard);
+        }
+
+        .lmx-page .lmx-habit-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .lmx-page .lmx-habit-card:hover i {
+            transform: rotate(-8deg) scale(1.08);
+        }
+    }
+}
+
 @media (max-width: 760px) {
     .lmx-page .lmx-habit-grid {
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, max(14rem, calc(50% - var(--lwc-space-3)))), 1fr));
+        gap: var(--lwc-space-2);
     }
 
     .lmx-page .lmx-habit-card {
-        justify-items: start;
-        padding: var(--lwc-space-4);
-        gap: var(--lwc-space-1) var(--lwc-space-3);
         text-align: left;
     }
 
@@ -6870,28 +6927,35 @@ html body .lmx-page #lmxAccessTabs .lmx-tab[aria-selected="true"] {
     }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 600px) {
     .lmx-page .lmx-habit-grid {
-        gap: var(--lwc-space-2);
+        /* Two equal columns while an icon and a full habit name fit side by side. */
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, max(7.5rem, calc(50% - var(--lwc-space-2)))), 1fr));
     }
 
     .lmx-page .lmx-habit-card {
-        padding: var(--lwc-space-3) var(--lwc-space-4);
-    }
-}
-
-/* The narrowest phones stack the icon over the name so long names keep their room. */
-@media (max-width: 340px) {
-    .lmx-page .lmx-habit-card {
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        gap: 0.4rem var(--lwc-space-2);
+        padding: var(--lwc-space-3);
     }
 
     .lmx-page .lmx-habit-card i {
-        grid-row: auto;
+        grid-row: 1;
+        align-self: center;
+        width: 1.9rem;
+        height: 1.9rem;
+    }
+
+    .lmx-page .lmx-habit-card span {
+        min-width: 0;
+        font-size: var(--lwc-type-sm);
     }
 
     .lmx-page .lmx-habit-question {
-        grid-column: 1;
+        grid-column: 1 / -1;
+        font-size: 0.8rem;
+        line-height: 1.35;
     }
 }
 
@@ -7306,7 +7370,7 @@ html body .lmx-page #lmxAccessTabs:has(> .lwc-segment-glide[data-ready]) .lmx-ta
     top: 0.95rem;
     left: 0.98rem;
     color: var(--lmx-accent);
-    font-family: "Font Awesome 6 Free";
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-size: 1.55rem;
     font-weight: 900;
     line-height: 1;
@@ -7324,7 +7388,7 @@ html body .lmx-page #lmxAccessTabs:has(> .lwc-segment-glide[data-ready]) .lmx-ta
     left: 0.2rem;
     top: 0.1rem;
     color: var(--lmx-accent);
-    font-family: "Font Awesome 6 Free";
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-weight: 900;
     animation: lmx-mail-hop 640ms cubic-bezier(0.3, 0.6, 0.2, 1) both;
 }

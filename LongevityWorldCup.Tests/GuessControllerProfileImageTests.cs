@@ -95,6 +95,8 @@ public sealed class GuessControllerProfileImageTests(TestWebApplicationFactory s
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(json.RootElement.GetProperty("guessAccepted").GetBoolean());
+        Assert.Equal(before.Count == 0 ? (double?)null : before.Median,
+            json.RootElement.GetProperty("previousCrowdAge").Deserialize<double?>());
         Assert.Equal(actualAge, json.RootElement.GetProperty("actualAge").GetInt32());
         Assert.Equal(currentImageId, json.RootElement.GetProperty("profileImageId").GetString());
         Assert.Equal(before.Item2 + 1, athletes.GetCrowdStats(AthleteSlug).Item2);

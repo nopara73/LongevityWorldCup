@@ -3,21 +3,31 @@
 <head>
     <title>Longevity World Cup</title>
     <!--HEAD-->
-    <link rel="stylesheet" href="{{ASSET_HOMEPAGE_CSS}}">
+    <link rel="stylesheet" href="{{ASSET_HOMEPAGE_FIRST_SCREEN_CSS}}">
+    <!--HOMEPAGE-SECTION-STYLES-->
     <link rel="stylesheet" href="{{ASSET_ENTRY_JOURNEY_CSS}}">
-    <link rel="stylesheet" href="{{ASSET_PRIZE_POOL_CSS}}">
-    <link rel="stylesheet" href="{{ASSET_MERCH_SHELF_CSS}}">
-    <link rel="stylesheet" href="{{ASSET_LEADERBOARD_PODIUM_CSS}}">
     <link rel="expect" href="#lwc-site-header" blocking="render">
-    <script>
-// Let native Back/Forward restore the saved viewport without scroll
-// anchoring adding offsets while fonts and the board finish hydrating.
-if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward' && !location.hash) {
-    document.documentElement.classList.add('homepage-restoring');
+    <script id="homepage-startup">
+if (matchMedia('(any-pointer: coarse)').matches) {
+    let pressed;
+    const release = () => {
+        pressed?.removeAttribute('data-home-press');
+        pressed = null;
+    };
+    addEventListener('pointerdown', event => {
+        release();
+        if (!window.LwcTouch && event.isPrimary && event.pointerType === 'touch') {
+            pressed = event.target.closest?.('a[href],button:enabled,summary,label,[role=button],[role=tab],tr[data-athlete-name]');
+            pressed?.setAttribute('data-home-press', '');
+        }
+    }, true);
+    for (const type of ['pointerup', 'pointercancel', 'scroll', 'pagehide']) addEventListener(type, release, true);
 }
-// One clock from first paint, including cards replaced during hydration.
-// No hidden base styles, extra requests, or waits for content readiness.
+// The names and portraits hold still. Only the logo and medals settle on arrival.
 (() => {
+    const root = document.documentElement;
+    const restoring = performance.getEntriesByType('navigation')[0]?.type === 'back_forward';
+    if (restoring && !location.hash) root.classList.add('homepage-restoring');
     if (location.pathname === '/contribute' && !location.hash) {
         history.replaceState(history.state, '', location.pathname + location.search + '#contribute');
     }
@@ -25,9 +35,7 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward' && !l
     const query = new URLSearchParams(location.search);
     if (['athlete', 'filters', 'search', 'view'].some(key => query.has(key))) return;
     const motion = matchMedia('(prefers-reduced-motion: reduce)');
-    const navigation = performance.getEntriesByType('navigation')[0];
-    if (motion.matches || location.hash || navigation?.type === 'back_forward' || !Element.prototype.animate) return;
-    const root = document.documentElement;
+    if (motion.matches || location.hash || restoring || !Element.prototype.animate) return;
     const events = ['pointerdown', 'keydown', 'focusin', 'wheel', 'touchstart', 'hashchange', 'pagehide'];
     const tracks = new Map();
     let startedAt;
@@ -50,9 +58,7 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward' && !l
         if (finished) return;
         if (startedAt === undefined) {
             if (!pendingFrame && document.querySelector('header .main-logo-image')) {
-                // The timeline can still be zero during parsing. Anchor
-                // to an actual frame so a cold load cannot consume the
-                // entrance before anything has been painted.
+                // The timeline can be zero during parsing. Start on the first real frame.
                 pendingFrame = requestAnimationFrame(time => { pendingFrame = null; startedAt = time; enter(); });
             }
             return;
@@ -63,13 +69,11 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward' && !l
             const duration = parseFloat(style.getPropertyValue('--lwc-duration-normal')) || 220;
             const easing = style.getPropertyValue('--lwc-ease').trim() || 'ease';
             choreography = [
-                ['header .header-link .main-logo-image', 0, duration * 2, .45, 'translateY(4px) scale(.96)'],
-                ['header .bannertext', beat / 2, duration * 3, .5, 'translateY(8px)'],
-                ['.podium-item.first:not(.podium-skeleton-item)', beat, duration * 3, .22, 'translateY(14px)'],
-                ['.podium-item.second:not(.podium-skeleton-item)', beat * 1.5, duration * 3, .22, 'translateY(14px)'],
-                ['.podium-item.third:not(.podium-skeleton-item)', beat * 2, duration * 3, .22, 'translateY(14px)'],
-                ['.leaderboard', beat * 2.5, duration * 2, .55, 'none'],
-                ['#lwc-countdown-box', beat * 2.5, duration * 2, .55, 'none']
+                ['header .header-link .main-logo-image', 0, duration, .9, 'scale(.96)'],
+                ...['first', 'second', 'third'].map((place, index) => [
+                    `.podium-item.${place}:not(.podium-skeleton-item) .podium-rank`,
+                    index * beat / 5, duration, .9, 'translateY(-2px) scale(.9)'
+                ])
             ].map(([selector, delay, length, opacity, transform]) => ({ selector, delay, length, opacity, transform, easing }));
             cleanupTimer = setTimeout(finish, Math.max(...choreography.map(track => track.delay + track.length)) + 50);
         }
@@ -90,8 +94,7 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward' && !l
             tracks.set(selector, { element, animation });
         });
     };
-    // Bounded to the opening second. Observing child insertion catches
-    // both parser output and hydration before their next paint.
+    // Catch parser and hydration insertions before their next paint.
     const observer = new MutationObserver(enter);
     root.classList.add('homepage-arriving');
     observer.observe(root, { childList: true, subtree: true });
@@ -112,10 +115,52 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
     </script>
     <main class="homepage-main">
 <h1 class="visually-hidden">Longevity World Cup</h1>
-<p class="game-description">
-    <a href="/about">longevity&nbsp;leaderboards</a>
-</p>
 
+<script>
+(() => {
+    const main = document.currentScript.closest('main');
+    const saved = history.state?.lwcHomepageVisitLayout;
+    const back = performance.getEntriesByType('navigation')[0]?.type === 'back_forward';
+    let layout = 'default';
+    if (back && (saved === 'default' || saved === 'repeat')) {
+        layout = saved;
+    } else if (['/', '/index.html'].includes(location.pathname.toLowerCase())) {
+        const params = new URLSearchParams(location.search);
+        if (!['athlete', 'filters', 'search', 'view'].some(key => params.has(key))) {
+            try {
+                const key = 'lwcHomepageVisitCount:v1';
+                const previous = parseInt(localStorage.getItem(key), 10);
+                const count = Math.min(1000000, (Number.isFinite(previous) && previous >= 0 ? previous : 0) + 1);
+                localStorage.setItem(key, count);
+                if (count >= 4) layout = 'repeat';
+            } catch { /* Storage may be unavailable. */ }
+            history.replaceState({ ...history.state, lwcHomepageVisitLayout: layout }, '');
+        }
+    }
+    main.dataset.homepageVisitLayout = layout;
+    if (layout === 'repeat') {
+        // Parser-inserted body styles let the header paint while the first
+        // section waits for its own layout. A first visit fetches these later.
+        const styles = ['{{ASSET_HOMEPAGE_CSS}}', '{{ASSET_EVENT_BOARD_CSS}}', '{{ASSET_MERCH_SHELF_CSS}}'];
+        document.write(styles.map(href => `<link rel="stylesheet" href="${href}">`).join(''));
+    }
+})();
+</script>
+<template id="homepage-highlights">
+    <div class="lwc-highlights-countdown-wrapper">
+        <div id="events-root-index"><!--EVENT-BOARD-CONTENT--></div>
+        <!--HOMEPAGE-MERCH-->
+    </div>
+</template>
+<script>
+    if (document.currentScript.closest('main').dataset.homepageVisitLayout === 'repeat') {
+        const board = document.getElementById('homepage-highlights');
+        board.replaceWith(board.content);
+    }
+</script>
+<p class="game-description">
+    <a href="/about">longevity leaderboards</a>
+</p>
 <!--LEADERBOARD-CONTENT-->
 <div class="full-rankings-action">
     <a id="viewAllAthletesBtn" href="/leaderboard" class="rankings-btn" aria-label="View all athletes on the leaderboard">
@@ -123,126 +168,24 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
     </a>
 </div>
 
-<div class="lwc-highlights-countdown-wrapper">
-    <div id="events-root-index"><!--EVENT-BOARD-CONTENT--></div>
-
-    <div id="lwc-countdown-box" class="events-board events-board--timer">
-        <div class="lwc-countdown-inner">
-            <div class="lwc-countdown-header-row">
-                <a class="lwc-countdown-title"
-                   href="https://merch.longevityworldcup.com/"
-                   target="_blank"
-                   rel="noopener">SWAG</a>
-                <a class="lwc-merch-header-link"
-                   href="https://merch.longevityworldcup.com/"
-                   target="_blank"
-                   rel="noopener">Store</a>
-            </div>
-
-            <div class="lwc-countdown-body lwc-merch-body">
-                <p class="lwc-merch-copy"><a class="lwc-merch-copy-link"
-                   href="https://merch.longevityworldcup.com/"
-                   target="_blank"
-                   rel="noopener">The Longevity World Cup store</a> contains high-end, <strong>longevitymaxxing</strong> organic cotton clothing, blood tests, and more.</p>
-                <div class="lwc-merch-grid">
-                    <a class="lwc-merch-item"
-                       href="https://merch.longevityworldcup.com/product/white-glossy-mug/"
-                       target="_blank"
-                       rel="noopener"
-                       aria-label="Open White glossy mug in the Longevity World Cup merch store">
-                        <img class="lwc-merch-thumb"
-                             src="{{ASSET_MERCH_MUG}}"
-                             alt="White glossy mug in the Longevity World Cup merch store"
-                             width="428" height="487" loading="lazy" decoding="async">
-                        <span class="lwc-merch-item-copy">
-                            <span class="lwc-merch-item-title">White glossy mug</span>
-                            <span class="lwc-merch-item-price">$19.50 - $29.50</span>
-                        </span>
-                    </a>
-                    <a class="lwc-merch-item"
-                       href="https://merch.longevityworldcup.com/product/organic-cotton-hoodie/"
-                       target="_blank"
-                       rel="noopener"
-                       aria-label="Open Organic cotton hoodie in the Longevity World Cup merch store">
-                        <img class="lwc-merch-thumb"
-                             src="{{ASSET_MERCH_HOODIE}}"
-                             alt="Organic cotton hoodie in the Longevity World Cup merch store"
-                             width="428" height="487" loading="lazy" decoding="async">
-                        <span class="lwc-merch-item-copy">
-                            <span class="lwc-merch-item-title">Organic cotton hoodie</span>
-                            <span class="lwc-merch-item-price">$94.00</span>
-                        </span>
-                    </a>
-                    <a class="lwc-merch-item"
-                       href="https://merch.longevityworldcup.com/product/organic-cotton-cap/"
-                       target="_blank"
-                       rel="noopener"
-                       aria-label="Open Organic cotton cap in the Longevity World Cup merch store">
-                        <img class="lwc-merch-thumb"
-                             src="{{ASSET_MERCH_CAP}}"
-                             alt="Organic cotton cap in the Longevity World Cup merch store"
-                             width="428" height="487" loading="lazy" decoding="async">
-                        <span class="lwc-merch-item-copy">
-                            <span class="lwc-merch-item-title">Organic cotton cap</span>
-                            <span class="lwc-merch-item-price">$37.00</span>
-                        </span>
-                    </a>
-                </div>
-                <div class="lwc-merch-mobile-carousel" id="lwc-merch-mobile-carousel" hidden>
-                    <div class="lwc-merch-mobile-track">
-                        <a class="lwc-merch-mobile-slide is-active"
-                           href="https://merch.longevityworldcup.com/product/white-glossy-mug/"
-                           target="_blank"
-                           rel="noopener"
-                           aria-label="Open White glossy mug in the Longevity World Cup merch store">
-                            <img class="lwc-merch-thumb"
-                                 src="{{ASSET_MERCH_MUG}}"
-                                 alt="White glossy mug in the Longevity World Cup merch store"
-                                 width="428" height="487" loading="lazy" decoding="async">
-                            <span class="lwc-merch-item-copy">
-                                <span class="lwc-merch-item-title">White glossy mug</span>
-                                <span class="lwc-merch-item-price">$19.50 - $29.50</span>
-                            </span>
-                        </a>
-                        <a class="lwc-merch-mobile-slide"
-                           href="https://merch.longevityworldcup.com/product/organic-cotton-hoodie/"
-                           target="_blank"
-                           rel="noopener"
-                           aria-label="Open Organic cotton hoodie in the Longevity World Cup merch store">
-                            <img class="lwc-merch-thumb"
-                                 src="{{ASSET_MERCH_HOODIE}}"
-                                 alt="Organic cotton hoodie in the Longevity World Cup merch store"
-                                 width="428" height="487" loading="lazy" decoding="async">
-                            <span class="lwc-merch-item-copy">
-                                <span class="lwc-merch-item-title">Organic cotton hoodie</span>
-                                <span class="lwc-merch-item-price">$94.00</span>
-                            </span>
-                        </a>
-                        <a class="lwc-merch-mobile-slide"
-                           href="https://merch.longevityworldcup.com/product/organic-cotton-cap/"
-                           target="_blank"
-                           rel="noopener"
-                           aria-label="Open Organic cotton cap in the Longevity World Cup merch store">
-                            <img class="lwc-merch-thumb"
-                                 src="{{ASSET_MERCH_CAP}}"
-                                 alt="Organic cotton cap in the Longevity World Cup merch store"
-                                 width="428" height="487" loading="lazy" decoding="async">
-                            <span class="lwc-merch-item-copy">
-                                <span class="lwc-merch-item-title">Organic cotton cap</span>
-                                <span class="lwc-merch-item-price">$37.00</span>
-                            </span>
-                        </a>
-                    </div>
-                    <div class="lwc-merch-mobile-dots">
-                        <button type="button" class="lwc-merch-mobile-dot is-active" aria-label="Show merch product 1"></button>
-                        <button type="button" class="lwc-merch-mobile-dot" aria-label="Show merch product 2"></button>
-                        <button type="button" class="lwc-merch-mobile-dot" aria-label="Show merch product 3"></button>
-                    </div>
-                </div>
-            </div>
-        </div>
+<noscript>
+    <link rel="stylesheet" href="{{ASSET_EVENT_BOARD_CSS}}">
+    <div class="lwc-highlights-countdown-wrapper">
+        <div id="events-root-index" class="events-board"><div class="header-bar"><span>Highlights</span><a class="view-all" href="/events">View all</a></div></div>
+        <!--HOMEPAGE-STATIC-MERCH-->
     </div>
-</div>
+</noscript>
+<script>
+    {
+        const shelf = document.getElementById('homepage-highlights');
+        if (shelf) {
+            document.currentScript.before(shelf.content);
+            shelf.remove();
+        }
+    }
+</script>
+<!--HOMEPAGE-LEADERBOARD-RUNTIME-->
+<!--HOMEPAGE-EVENT-RUNTIME-->
 
 
 <section id="hall-of-fame" class="section-container archive-section" aria-labelledby="hall-of-fame-title" data-aos="fade" data-aos-duration="700" data-aos-delay="325">
@@ -405,6 +348,7 @@ if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward'
     <!--FOOTER-->
 
     <script src="{{ASSET_HOMEPAGE_JS}}"></script>
+    <script defer src="{{ASSET_LEADERBOARD_ROW_PREVIEW_JS}}"></script>
     <script src="{{ASSET_LEADERBOARD_PODIUM_JS}}"></script>
 </body>
 </html>

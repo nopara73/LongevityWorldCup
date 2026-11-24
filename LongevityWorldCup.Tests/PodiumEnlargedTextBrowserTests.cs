@@ -150,6 +150,9 @@ public sealed class PodiumEnlargedTextBrowserTests(
                 }
                 await page.Keyboard.PressAsync("Tab");
             }
+            foreach (var portrait in await page.Locator(".podium-item > .athlete-profile-link").AllAsync())
+                await portrait.ClickAsync(new() { Trial = true });
+
             var issues = await page.EvaluateAsync<string[]>(
                 """
                 () => {
