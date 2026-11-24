@@ -62,16 +62,17 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
     }
 
     [Theory]
-    [InlineData(1440, ColorScheme.Light, 2)]
-    [InlineData(1024, ColorScheme.Dark, 2)]
-    [InlineData(390, ColorScheme.Dark, 1)]
-    [InlineData(320, ColorScheme.Light, 1)]
-    public async Task LandingBoard_SignedOutHabitTilesCarryTheirOwnDailyQuestion(int width, ColorScheme theme, int columns)
+    [InlineData(1440, ColorScheme.Light)]
+    [InlineData(1024, ColorScheme.Dark)]
+    [InlineData(600, ColorScheme.Light)]
+    [InlineData(390, ColorScheme.Dark)]
+    [InlineData(320, ColorScheme.Light)]
+    public async Task LandingBoard_SignedOutHabitTilesCarryTheirOwnDailyQuestion(int width, ColorScheme theme)
     {
         await using var context = await NewContextAsync(Browser, App, new()
         {
-            ViewportSize = new() { Width = width, Height = 900 }, ColorScheme = theme,
-            IsMobile = width < 600, HasTouch = width < 600
+            ViewportSize = new() { Width = width, Height = 844 }, ColorScheme = theme,
+            IsMobile = width <= 600, HasTouch = width <= 600
         });
         await context.RouteAsync("**/api/longevitymaxxing/state",
             route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
@@ -90,25 +91,78 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         });
 
         var problems = await page.Locator("#lmxHabitGrid").EvaluateAsync<string[]>("""
-            (grid, columns) => {
+            grid => {
                 const problems = [];
                 const actual = getComputedStyle(grid).gridTemplateColumns.split(' ').length;
-                if (actual !== columns) problems.push(`${actual} habit columns`);
+                if (actual !== 2) problems.push(`${actual} habit columns`);
                 for (const card of grid.querySelectorAll('.lmx-habit-card')) {
                     const box = card.getBoundingClientRect();
                     const name = card.querySelector('span').getBoundingClientRect();
                     const question = card.querySelector('.lmx-habit-question');
                     const text = question.getBoundingClientRect();
                     if (text.top < name.bottom - 1) problems.push(`${card.className}: question is not under the name`);
-                    if (Math.abs(text.left - name.left) > 1) problems.push(`${card.className}: question and name start apart`);
+                    const start = innerWidth <= 600 ? card.querySelector('i').getBoundingClientRect().left : name.left;
+                    if (Math.abs(text.left - start) > 1) problems.push(`${card.className}: question does not align with its column`);
                     if (text.right > box.right + 1 || text.bottom > box.bottom + 1) problems.push(`${card.className}: question escapes the tile`);
                     if (getComputedStyle(question).textAlign === 'center') problems.push(`${card.className}: centred question`);
                 }
+                if (innerWidth === 390 && document.querySelector('#lmxSignupTab').getBoundingClientRect().bottom > innerHeight)
+                    problems.push('sign up tab is below the fold');
                 if (document.documentElement.scrollWidth > innerWidth) problems.push('page overflows');
                 return problems;
             }
-            """, columns);
+            """);
         Assert.True(problems.Length == 0, $"{width}px / {theme}: {string.Join("; ", problems)}");
+    }
+
+    [Theory]
+    [InlineData(390)]
+    [InlineData(1440)]
+    public async Task LandingBoard_HabitRingsAreSettledOnFirstDisplayAndReload(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = width == 390 ? 844 : 900 },
+            IsMobile = width == 390, HasTouch = width == 390, ReducedMotion = ReducedMotion.NoPreference
+        });
+        await context.RouteAsync("**/api/longevitymaxxing/state",
+            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+        await context.AddInitScriptAsync("""
+            requestAnimationFrame(function firstVisibleFrame() {
+                const grid = document.querySelector('#lmxHabitGrid');
+                if (!grid?.checkVisibility({visibilityProperty: true, opacityProperty: true}) || !grid.clientWidth) {
+                    requestAnimationFrame(firstVisibleFrame);
+                    return;
+                }
+                window.habitArrival = grid.children.length === 4 && [...grid.children].every(card => {
+                    const ring = getComputedStyle(card.querySelector('i'), '::after');
+                    return getComputedStyle(card).opacity === '1' && ring.opacity === '0.35' && ring.borderStyle === 'solid';
+                }) && !grid.getAnimations({subtree: true}).some(animation => animation.playState === 'running');
+            });
+            """);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/longevitymaxxing", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => typeof window.habitArrival === 'boolean'");
+        Assert.True(await page.EvaluateAsync<bool>("window.habitArrival"));
+        await page.ReloadAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => typeof window.habitArrival === 'boolean'");
+        Assert.True(await page.EvaluateAsync<bool>("window.habitArrival"));
+
+        if (width == 1440)
+        {
+            var tile = page.Locator(".lmx-habit-card.nutrition");
+            const string stripeHeight = "e => getComputedStyle(e, '::before').height";
+            var restingHeight = await tile.EvaluateAsync<string>(stripeHeight);
+            await tile.HoverAsync();
+            await page.WaitForFunctionAsync("""
+                () => {
+                    const icon = document.querySelector('.lmx-habit-card.nutrition i');
+                    return getComputedStyle(icon, '::after').opacity === '0.8' && getComputedStyle(icon).transform !== 'none';
+                }
+                """);
+            // The stripe grows visually without re-laying out its box on each animation frame.
+            Assert.Equal(restingHeight, await tile.EvaluateAsync<string>(stripeHeight));
+        }
     }
 
     [Theory]
