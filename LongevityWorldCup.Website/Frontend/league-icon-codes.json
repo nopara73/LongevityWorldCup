@@ -1,0 +1,22 @@
+{
+  "division": {
+    "men's": "fa-mars",
+    "women's": "fa-venus",
+    "open": "fa-robot"
+  },
+  "track": {
+    "amateur": "fa-user-graduate",
+    "professional": "fa-trophy"
+  },
+  "generation": {
+    "silent generation": "fa-radio",
+    "baby boomers": "fa-tv",
+    "gen x": "fa-desktop",
+    "millennials": "fa-laptop",
+    "gen z": "fa-mobile-screen-button",
+    "gen alpha": "fa-rocket"
+  },
+  "exclusive": {
+    "prosperan": "fa-umbrella-beach"
+  }
+}
