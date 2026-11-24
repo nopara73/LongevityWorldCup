@@ -21,7 +21,8 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         await RouteChallengeResourcesAsync(context);
         var state = DiscussionWorkspaceState();
         var photo = CheckInImage("/generated/longevitymaxxing/check-in-photos/ari.webp?v=ari");
-        var own = JsonSerializer.SerializeToNode(Note("p1", "Browser Tester", 12, "2026-06-19", "Original remarks.", [photo]))!;
+        var own = JsonSerializer.SerializeToNode(Note("p1", "Browser Tester", 12, "2026-06-19", "Original remarks.", [photo],
+            replies: [Reply("r1", "p2", "Ari", "Thanks for sharing.", "2026-06-19T09:00:00Z")]))!;
         var other = JsonSerializer.SerializeToNode(Note("p2", "Ari", 12, "2026-06-19", "Other remarks."))!;
         var calls = 0;
         void UpdateNotes()
@@ -50,9 +51,24 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var thread = DiscussionThread(page, "p1", 12);
         await Assertions.Expect(DiscussionThread(page, "p2", 12).Locator("[data-edit-post]")).ToHaveCountAsync(0);
         var edit = thread.GetByRole(AriaRole.Button, new() { Name = "Edit remarks and photos" });
+        var remarksLeft = await thread.Locator(":scope > p").EvaluateAsync<double>("p => p.getBoundingClientRect().left");
         await edit.ClickAsync();
         var editor = thread.Locator(".lmx-post-editor");
         await Assertions.Expect(editor.Locator("textarea")).ToBeFocusedAsync();
+        await Assertions.Expect(thread.Locator("[data-edit-post]")).ToBeHiddenAsync();
+        await AssertThreadRailAsync(thread);
+        Assert.InRange(await editor.EvaluateAsync<double>("form => form.getBoundingClientRect().left") - remarksLeft, -1, 1);
+        Assert.True(await editor.EvaluateAsync<bool>("""
+            form => {
+                const replies = form.parentElement.querySelector(':scope > [data-lmx-thread]');
+                const rail = getComputedStyle(replies, '::before');
+                const bounds = replies.getBoundingClientRect();
+                const right = bounds.left + replies.clientLeft + parseFloat(rail.left) + parseFloat(rail.width);
+                const top = bounds.top + replies.clientTop + parseFloat(rail.top);
+                const editor = form.getBoundingClientRect();
+                return right <= editor.left || top >= editor.bottom;
+            }
+            """), "The reply connector must clear the entire post editor.");
         await editor.GetByRole(AriaRole.Button, new() { Name = "Remove photo 1" }).ClickAsync();
         await editor.GetByRole(AriaRole.Button, new() { Name = "Cancel" }).ClickAsync();
         await Assertions.Expect(edit).ToBeFocusedAsync();

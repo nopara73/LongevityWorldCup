@@ -1169,9 +1169,14 @@
     vertical-align: middle;
 }
 
+.lmx-edit-post[aria-expanded="true"] {
+    visibility: hidden;
+}
+
 .lmx-post-editor {
     max-width: 65ch;
     margin-block: var(--lwc-space-2);
+    margin-inline-start: var(--lmx-discussion-body-indent, var(--lmx-discussion-indent));
 }
 
 .lmx-post-editor .lmx-discussion-reply-actions {
