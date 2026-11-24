@@ -49,14 +49,17 @@
                 return;
             }
             // Layout offsets ignore the transforms of an opening menu.
-            if (!link.offsetWidth) return;
+            const width = link.offsetWidth;
+            if (!width) return;
+            const x = link.offsetLeft, y = link.offsetTop, height = link.offsetHeight;
+            const focused = link.matches(':focus-visible');
             if (instant || !glide.classList.contains('is-shown')) glide.classList.add('is-instant');
-            glide.style.setProperty('--glide-x', link.offsetLeft + 'px');
-            glide.style.setProperty('--glide-y', link.offsetTop + 'px');
-            glide.style.setProperty('--glide-w', link.offsetWidth + 'px');
-            glide.style.setProperty('--glide-h', link.offsetHeight + 'px');
+            glide.style.setProperty('--glide-x', x + 'px');
+            glide.style.setProperty('--glide-y', y + 'px');
+            glide.style.setProperty('--glide-w', width + 'px');
+            glide.style.setProperty('--glide-h', height + 'px');
             glide.classList.toggle('is-current', link.getAttribute('aria-current') === 'page');
-            glide.classList.toggle('is-focus', link.matches(':focus-visible'));
+            glide.classList.toggle('is-focus', focused);
             glide.classList.add('is-shown');
             if (glide.classList.contains('is-instant')) {
                 glide.getBoundingClientRect();
@@ -68,9 +71,11 @@
             const focused = rail.querySelector('.footer-link:focus-visible');
             place(focused || current());
         };
-        rail.addEventListener('pointerover', event => {
+        // An opening panel can appear under a stationary pointer. Only a
+        // moving pointer should take the indicator away from keyboard focus.
+        rail.addEventListener('pointermove', event => {
             const link = event.target instanceof Element && event.target.closest('.footer-link');
-            if (link && link !== target) place(link);
+            if (event.pointerType !== 'touch' && link && link !== target) place(link);
         });
         rail.addEventListener('pointerleave', () => rest());
         // Only keyboard focus moves the indicator; a link focused by script
