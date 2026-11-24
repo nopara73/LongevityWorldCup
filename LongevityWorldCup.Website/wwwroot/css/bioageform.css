@@ -776,6 +776,28 @@ html body .bioageform .lwc-wizard-nav .lwc-dot[aria-disabled="true"] {
     color: var(--lwc-accent-hover, #087f91);
 }
 
+.crp-entry-note {
+    margin: 0.4rem 0 0;
+    color: var(--lwc-muted, #526373);
+    font-size: var(--lwc-type-sm);
+    line-height: 1.5;
+    text-align: start;
+}
+
+#crp[data-crp-default] {
+    grid-column: 1 / -1;
+}
+
+#crp[data-crp-default] ~ #crpUnit,
+#crp-entry-help,
+#crp-score-note:empty {
+    display: none;
+}
+
+.biomarker-card-content:has(#crp:focus:placeholder-shown) #crp-entry-help {
+    display: block;
+}
+
 .bioage-biomarker-error {
     margin: 0.4rem 0 0;
     color: var(--danger-color, #b4233b);
@@ -2414,6 +2436,55 @@ body :is(#phenoAgeResult, #bortzAgeResult) #ensureCorrectInputSuggestion i {
     --bioage-live-spring: cubic-bezier(0.3, 1.35, 0.45, 1);
 }
 
+/* Native placeholder state also follows silent draft and history restoration. */
+:is(#phenoAgeForm, #bortzAgeForm).bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card-content .input-group:has(input:placeholder-shown) {
+    border-style: dashed;
+}
+.bioage-biomarker-entry-ready #lwc-step-2 .input-group input::placeholder {
+    font-style: italic;
+    color: var(--lwc-muted, #52606d);
+    opacity: 1;
+}
+
+/* Attach the lane to the focused row so it follows wrapping, scrolling and errors. */
+.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card {
+    position: relative;
+}
+.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--lwc-accent, #087685) 12%, transparent), transparent 75%);
+    box-shadow: inset 4px 0 0 var(--lwc-accent, #087685);
+    opacity: 0;
+}
+.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card:focus-within::before {
+    opacity: 1;
+}
+.bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card.is-next:not(:focus-within) .toggle-icon {
+    outline: 2px solid var(--lwc-accent, #087685);
+    outline-offset: 2px;
+}
+.bioage-run-spark {
+    position: fixed;
+    z-index: 60;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--lwc-accent, #087685);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--lwc-accent, #087685) 20%, transparent);
+    pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+    .bioage-biomarker-entry-ready #lwc-step-2 .biomarker-card::before {
+        transition: opacity 160ms ease;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .bioage-run-spark { display: none; }
+}
+
 /* Focus: the row label leans toward the field and the unit cap lights up. */
 :is(#phenoAgeForm, #bortzAgeForm).bioage-live-instrument #lwc-step-2 .biomarker-card-header {
     transition: color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
@@ -3095,7 +3166,7 @@ html body :is(#phenoAgeForm, #bortzAgeForm) #lwc-step-1 > fieldset > legend::bef
     background: var(--lwc-surface, #fff);
     box-shadow: inset 0 0 0 1px var(--bioage-hairline);
     color: var(--lwc-accent, #087685);
-    font-family: "Font Awesome 6 Free";
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-size: 0.72rem;
     font-weight: 900;
     letter-spacing: 0;
@@ -3185,7 +3256,7 @@ html body :is(#phenoAgeForm, #bortzAgeForm) #dobFieldset #privacyNote::before {
     background: var(--lwc-surface, #fff);
     box-shadow: inset 0 0 0 1px var(--bioage-hairline);
     color: var(--lwc-accent, #087685);
-    font-family: "Font Awesome 6 Free";
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-size: 0.75rem;
     font-weight: 900;
 }
@@ -3393,7 +3464,7 @@ body:has(:is(#phenoAgeForm, #bortzAgeForm)) #lwcToStep2Btn {
     background: var(--lwc-surface, #fff);
     box-shadow: inset 0 0 0 1px var(--bioage-hairline, #d7e0e6);
     color: var(--lwc-accent, #087685);
-    font-family: "Font Awesome 6 Free";
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-size: 0.75rem;
     font-weight: 900;
     transition: background-color 180ms ease, color 180ms ease;

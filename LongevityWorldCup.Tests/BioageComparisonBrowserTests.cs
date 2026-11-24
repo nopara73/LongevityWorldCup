@@ -95,7 +95,7 @@ public sealed class BioageComparisonBrowserTests(PlaywrightBrowserFixture browse
         await page.EvaluateAsync("""
             () => {
                 document.documentElement.style.fontSize = '200%';
-                for (const input of document.querySelectorAll('.biomarker-card input[inputmode="decimal"]')) {
+                for (const input of document.querySelectorAll('.biomarker-card input[type="text"]')) {
                     input.value = input.placeholder;
                     input.dispatchEvent(new Event('input', {bubbles:true}));
                 }

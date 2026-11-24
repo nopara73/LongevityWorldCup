@@ -617,31 +617,39 @@ public sealed class EditProfileLayoutBrowserTests(
             () => {
                 window.profileReads = [];
                 window.profileCropSources = [];
-                window.FileReader = class { readAsDataURL() { profileReads.push(this); } };
+                const prepare = LwcUploadPhoto.prepareCrop;
+                LwcUploadPhoto.prepareCrop = async file => {
+                    await new Promise(resolve => profileReads.push(resolve));
+                    return prepare(file);
+                };
+                const sources = new Map();
+                const setImage = LwcUploadPhoto.setCropImage;
+                LwcUploadPhoto.setCropImage = (image, blob) => {
+                    setImage(image, blob);
+                    if (blob) sources.set(image.src, blob.name);
+                };
                 window.LwcPortraitCropper = class {
                     ready = true;
-                    constructor(image, options) { profileCropSources.push(image.src); queueMicrotask(() => options.ready()); }
+                    constructor(image, options) { profileCropSources.push(sources.get(image.src)); queueMicrotask(() => options.ready()); }
                     destroy() {}
                 };
             }
             """);
         var webRoot = App.Services.GetRequiredService<IWebHostEnvironment>().WebRootPath;
-        var file = Path.Combine(webRoot, "assets", "content-images", "play-athlete-placeholder.jpg");
-        await page.Locator("#profilePicInputModal").SetInputFilesAsync(file);
-        await page.Locator("#profileCameraInputModal").SetInputFilesAsync(file);
-        await page.EvaluateAsync("""
-            () => {
-                profileReads[1].onload({target: {result: '/assets/content-images/play-athlete-placeholder.jpg?selection=second'}});
-                profileReads[0].onload({target: {result: '/assets/content-images/play-athlete-placeholder.jpg?selection=first'}});
-            }
-            """);
-        Assert.Equal(new[] { new Uri(new Uri(page.Url), "/assets/content-images/play-athlete-placeholder.jpg?selection=second").ToString() },
-            await page.EvaluateAsync<string[]>("() => profileCropSources"));
+        var bytes = await File.ReadAllBytesAsync(Path.Combine(webRoot, "assets", "content-images", "play-athlete-placeholder.jpg"));
+        FilePayload Photo(string name) => new() { Name = name, MimeType = "image/jpeg", Buffer = bytes };
+        await page.Locator("#profilePicInputModal").SetInputFilesAsync(Photo("first.jpg"));
+        await page.Locator("#profileCameraInputModal").SetInputFilesAsync(Photo("pending.jpg"));
+        await page.Locator("#profileCameraInputModal").SetInputFilesAsync(Photo("latest.jpg"));
+        await page.EvaluateAsync("() => { profileReads[2](); profileReads[0](); }");
+        await Assertions.Expect(page.Locator("#changeProfileCropperModal")).ToBeVisibleAsync();
+        Assert.Equal(new[] { "latest.jpg" }, await page.EvaluateAsync<string[]>("() => profileCropSources"));
         await page.Locator("#changeProfileCropperImage").EvaluateAsync("image => image.decode()");
         await page.Locator("#changeProfileCancelButton").ClickAsync();
         await Assertions.Expect(page.Locator("#takeProfileSelfieButton")).ToBeFocusedAsync();
-        await page.EvaluateAsync("() => profileReads[0].onload({target: {result: '/assets/content-images/play-athlete-placeholder.jpg?selection=first'}})");
+        await page.EvaluateAsync("() => profileReads[1]()");
         await Assertions.Expect(page.Locator("#changeProfileCropperModal")).ToBeHiddenAsync();
+        Assert.Equal(new[] { "latest.jpg" }, await page.EvaluateAsync<string[]>("() => profileCropSources"));
         await Assertions.Expect(page.Locator("#submitButton")).ToBeDisabledAsync();
         Assert.Null(await page.EvaluateAsync<string?>("() => sessionStorage.getItem('tempAthlete')"));
     }

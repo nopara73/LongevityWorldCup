@@ -27,24 +27,52 @@ const LwcUploadPhoto = (() => {
         return heicTo({ blob: file, type: 'bitmap' });
     }
 
-    async function read(file: File, maxDimension = Infinity): Promise<string> {
-        let blob: Blob = file;
-        if (isHeic(file)) {
+    // A phone photo can contain tens of millions of pixels. Release its decoded
+    // image and the caller's canvas before starting the next HEIC conversion.
+    let pendingHeic = Promise.resolve();
+    function withHeicImage<T>(file: File, consume: (image: HTMLImageElement | ImageBitmap) => Promise<T>): Promise<T> {
+        const next = pendingHeic.then(async () => {
             const image = await decode(file);
+            try {
+                return await consume(image);
+            } finally {
+                if ('close' in image) image.close();
+                else image.removeAttribute('src');
+            }
+        });
+        pendingHeic = next.then(() => {}, () => {});
+        return next;
+    }
+
+    function prepareBlob(file: File, maxDimension: number): Promise<Blob> {
+        if (!isHeic(file)) return Promise.resolve(file);
+        return withHeicImage(file, async image => {
             const canvas = document.createElement('canvas');
             try {
                 const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
                 canvas.width = Math.max(1, Math.round(image.width * scale));
                 canvas.height = Math.max(1, Math.round(image.height * scale));
                 canvas.getContext('2d')!.drawImage(image, 0, 0, canvas.width, canvas.height);
-                blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(
+                return await new Promise<Blob>((resolve, reject) => canvas.toBlob(
                     result => result ? resolve(result) : reject(new Error(recovery)), 'image/png'));
             } finally {
-                if ('close' in image) image.close();
                 canvas.width = canvas.height = 0;
             }
-        }
+        });
+    }
 
+    // Both portrait croppers export at most 1024px. Keep room for a 4x crop.
+    function prepareCrop(file: File): Promise<Blob> { return prepareBlob(file, 4096); }
+
+    function setCropImage(image: HTMLImageElement, blob: Blob | null): void {
+        const previous = image.getAttribute('src');
+        if (blob) image.src = URL.createObjectURL(blob);
+        else image.removeAttribute('src');
+        if (previous?.startsWith('blob:')) URL.revokeObjectURL(previous);
+    }
+
+    async function read(file: File, maxDimension: number): Promise<string> {
+        const blob = await prepareBlob(file, maxDimension);
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = event => {
@@ -57,5 +85,5 @@ const LwcUploadPhoto = (() => {
         });
     }
 
-    return { isHeic, decode, read, recovery };
+    return { isHeic, withHeicImage, prepareCrop, setCropImage, read, recovery };
 })();

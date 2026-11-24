@@ -62,6 +62,22 @@ public sealed class CustomEventArtworkTests(TestWebApplicationFactory factory)
     }
 
     [Theory]
+    [InlineData(247, CustomEventPostMode.Text)]
+    [InlineData(248, CustomEventPostMode.Image)]
+    public void XAnnouncement_UsesTheSameLinkBudgetInPreviewAndDelivery(int titleLength, CustomEventPostMode mode)
+    {
+        var title = new string('T', titleLength);
+        var raw = $"{title} [one](https://example.com/one) [two](https://example.com/two)";
+        foreach (var id in new[] { "preview", "fedcba98765432100123456789abcdef" })
+        {
+            var plan = XCustomEventPost.BuildPlan(id, raw);
+            Assert.Equal(mode, plan.Mode);
+            Assert.EndsWith(CustomEventSocialComposer.BuildEventUrl(id), plan.PostText);
+            if (mode == CustomEventPostMode.Text) Assert.StartsWith($"{title} one two\n\n", plan.PostText);
+        }
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void StoryFeed_ContainsHeaderAndArticleLink(bool atom)

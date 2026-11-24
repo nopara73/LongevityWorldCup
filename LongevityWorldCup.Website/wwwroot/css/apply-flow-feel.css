@@ -7,8 +7,8 @@
  *   a field that is done earns a quiet check.
  * - The photo and proof stages light up when files are dragged over the card.
  * - A saved portrait opens in the banner like an iris.
- * - The review page settles in order: the steps behind you, the line to the
- *   current step, then the words. A confirmed payment crosses its line.
+ * - The review page settles in order: the links between visible steps,
+ *   then the contact address. A confirmed payment crosses its line.
  *
  * Colours are the existing --lwc-* tokens; durations are the motion tokens.
  * Everything that moves sits behind prefers-reduced-motion: no-preference.
@@ -224,7 +224,7 @@ body[data-convergence-stage="7"] .convergence-stage-layout .sub-progress-contain
     background: color-mix(in srgb, var(--lwc-accent-soft) 88%, transparent);
     box-sizing: border-box;
     color: var(--lwc-accent);
-    font: 900 2.75rem/1 "Font Awesome 6 Free";
+    font: 900 2.75rem/1 var(--fa-style-family-classic, "Font Awesome 6 Free");
     opacity: 0;
     pointer-events: none;
     transform: scale(0.98);
@@ -302,42 +302,26 @@ body[data-convergence-stage="7"] .convergence-stage-layout .sub-progress-contain
     background: linear-gradient(var(--lwc-success), var(--lwc-success)) left center / 0% 100% no-repeat, var(--lwc-border);
 }
 
-.application-review-panel .application-review-trail li.is-done + li::before {
+.application-review-panel .application-review-trail li.is-done + li::before,
+.application-review-panel .application-review-trail li.is-done + li[hidden] + li::before {
     background-size: 100% 100%, auto;
 }
 
 @media (prefers-reduced-motion: no-preference) {
+    /* The status is readable immediately. Only its connectors and address arrive. */
     .application-review-panel .application-review-trail li + li::before {
-        transition: background-size 480ms var(--lwc-ease-standard);
+        transform-origin: left;
+        animation: apply-link-draw 260ms var(--lwc-ease-standard) backwards;
+        animation-delay: calc(100ms + var(--apply-trail-i, 0) * 70ms);
     }
 
-    /* Steps arrive left to right after the seal lands; the lines between finished
-       steps draw as the next one appears. */
-    .application-review-panel .application-review-trail li {
-        animation: apply-trail-step var(--lwc-motion-slow) var(--lwc-ease-pop) backwards;
-        animation-delay: calc(520ms + var(--apply-trail-i, 0) * 110ms);
+    .application-review-trail li:nth-child(3) { --apply-trail-i: 1; }
+    .application-review-trail li:nth-child(4) { --apply-trail-i: 2; }
+    .application-review-trail li:nth-child(5) { --apply-trail-i: 3; }
+
+    #contactEmailPlaceholder {
+        animation: apply-contact-arrive 340ms 360ms var(--lwc-ease-enter) backwards;
     }
-
-    .application-review-panel .application-review-trail li.is-done + li::before {
-        animation: apply-trail-draw 420ms var(--lwc-ease-standard) backwards;
-        animation-delay: calc(560ms + var(--apply-trail-i, 0) * 110ms);
-    }
-
-    .application-review-panel .application-review-trail li:nth-child(2) { --apply-trail-i: 1; }
-    .application-review-panel .application-review-trail li:nth-child(3) { --apply-trail-i: 2; }
-    .application-review-panel .application-review-trail li:nth-child(4) { --apply-trail-i: 3; }
-    .application-review-panel .application-review-trail li:nth-child(5) { --apply-trail-i: 4; }
-
-    /* The words settle under the trail, one after another. */
-    .application-review-panel .application-review-body > p,
-    .application-review-panel .application-review-foot > * {
-        animation: apply-settle 420ms var(--lwc-ease-enter) backwards;
-    }
-
-    .application-review-panel .application-review-body > p { animation-delay: 980ms; }
-    .application-review-panel .application-review-foot > :nth-child(1) { animation-delay: 1060ms; }
-    .application-review-panel .application-review-foot > :nth-child(2) { animation-delay: 1130ms; }
-    .application-review-panel .application-review-foot > :nth-child(3) { animation-delay: 1200ms; }
 
     /* One pass of light over the artwork as the page lands: the finish line. */
     .application-review-panel .application-review-frame::after {
@@ -348,15 +332,11 @@ body[data-convergence-stage="7"] .convergence-stage-layout .sub-progress-contain
         background: linear-gradient(105deg, transparent 30%, color-mix(in srgb, var(--lwc-surface) 45%, transparent) 50%, transparent 70%) no-repeat;
         background-size: 250% 100%;
         pointer-events: none;
-        animation: apply-finish-sweep 1100ms 260ms var(--lwc-ease-standard) both;
+        animation: apply-finish-sweep 800ms 120ms var(--lwc-ease-standard) both;
     }
 
     /* A confirmed payment crosses its line: the step pops, a ring spreads once,
        the line to the review draws and the seal stamps again. */
-    .application-review-panel .application-review-trail li[data-apply-crossed] {
-        animation: none;
-    }
-
     .application-review-panel .application-review-trail li[data-apply-crossed] .application-review-step {
         animation: apply-step-cross 640ms var(--lwc-ease-pop) both;
     }
@@ -374,16 +354,16 @@ body[data-convergence-stage="7"] .convergence-stage-layout .sub-progress-contain
     }
 }
 
-@keyframes apply-trail-step {
-    from { opacity: 0; transform: translateY(6px) scale(0.6); }
+@keyframes apply-link-draw {
+    from { transform: scaleX(0); }
 }
 
 @keyframes apply-trail-draw {
     from { background-size: 0% 100%, auto; }
 }
 
-@keyframes apply-settle {
-    from { opacity: 0; translate: 0 12px; }
+@keyframes apply-contact-arrive {
+    from { opacity: 0; transform: translateY(6px); }
 }
 
 @keyframes apply-finish-sweep {
