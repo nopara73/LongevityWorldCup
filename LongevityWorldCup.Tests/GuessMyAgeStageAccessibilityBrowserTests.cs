@@ -148,7 +148,7 @@ public sealed class GuessMyAgeStageAccessibilityBrowserTests(
         await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new RouteFulfillOptions
         {
             Status = 200, ContentType = "application/json",
-            Body = JsonSerializer.Serialize(new { crowdAge = 60, crowdCount, actualAge = 44, guessAccepted = true })
+            Body = JsonSerializer.Serialize(new { previousCrowdAge = crowdCount == 1 ? (int?)null : 60, crowdAge = crowdCount == 1 ? guess : 60, crowdCount, actualAge = 44, guessAccepted = true })
         }));
         var page = await context.NewPageAsync();
         await page.Clock.InstallAsync();
@@ -156,9 +156,12 @@ public sealed class GuessMyAgeStageAccessibilityBrowserTests(
         await page.EvaluateAsync("percent => document.documentElement.style.fontSize = percent + '%'", textPercent);
         await page.Locator("#gmaRange").EvaluateAsync("(range, guess) => { range.value = String(guess); range.dispatchEvent(new Event('input', { bubbles: true })); }", guess);
         var beforeHeight = await page.Locator("#guessAgeContainer").EvaluateAsync<double>("e => e.getBoundingClientRect().height");
-        await page.Locator(".gma-btn--primary").ClickAsync();
-        await page.Locator(".gma-pop-banner.show").WaitForAsync();
+        // Freeze before starting the reveal: pausing after observing the short-lived
+        // banner can let its removal timer win a slow Playwright round trip.
         await GuessMyAgeBrowserTests.PauseClockAsync(page);
+        await page.Locator(".gma-btn--primary").ClickAsync();
+        await GuessMyAgeBrowserTests.AdvanceRevealUntilAsync(page,
+            "() => !!document.querySelector('.gma-pop-banner.show')");
         await page.Locator(".gma-pop-banner").ScrollIntoViewIfNeededAsync();
         var bounds = await page.Locator(".gma-pop-banner").EvaluateAsync<JsonElement>(
             """
@@ -212,7 +215,7 @@ public sealed class GuessMyAgeStageAccessibilityBrowserTests(
         await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new RouteFulfillOptions
         {
             Status = 200, ContentType = "application/json",
-            Body = """{"crowdAge":60,"crowdCount":12,"actualAge":44,"guessAccepted":true}"""
+            Body = """{"previousCrowdAge":60,"crowdAge":60,"crowdCount":12,"actualAge":44,"guessAccepted":true}"""
         }));
         var page = await context.NewPageAsync();
         await page.Clock.InstallAsync();
@@ -303,7 +306,7 @@ public sealed class GuessMyAgeStageAccessibilityBrowserTests(
         await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new RouteFulfillOptions
         {
             Status = 200, ContentType = "application/json",
-            Body = """{"crowdAge":60,"crowdCount":12,"actualAge":44,"guessAccepted":true}"""
+            Body = """{"previousCrowdAge":60,"crowdAge":60,"crowdCount":12,"actualAge":44,"guessAccepted":true}"""
         }));
         var page = await context.NewPageAsync();
         await page.Clock.InstallAsync();

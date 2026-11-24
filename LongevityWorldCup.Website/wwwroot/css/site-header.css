@@ -2078,11 +2078,6 @@ header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* Pages without the footer have nothing for the menu to carry. */
-body:not(:has(.footer)) .site-menu-toggle {
-    display: none;
-}
-
 .site-menu-toggle:hover {
     border-color: rgba(25, 195, 209, 0.55);
     background: rgba(25, 195, 209, 0.1);

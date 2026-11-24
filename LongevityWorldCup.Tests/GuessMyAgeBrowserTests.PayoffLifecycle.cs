@@ -14,7 +14,7 @@ public sealed partial class GuessMyAgePayoffBrowserTests
     public async Task PayoffGeometry_UsesLocalCoordinatesWhileTheCardScales(int actual, int guess)
     {
         await using var context = await NewStageContextAsync(Browser, App.BaseAddress,
-            JsonSerializer.Serialize(new { crowdAge = 0, crowdCount = 1, actualAge = actual, guessAccepted = true }));
+            JsonSerializer.Serialize(new { previousCrowdAge = (int?)null, crowdAge = guess, crowdCount = 1, actualAge = actual, guessAccepted = true }));
         var page = await OpenStageAsync(context, "payoff-scaled-geometry", guess);
         await SubmitAndSettleAsync(page);
         await page.EvaluateAsync("""
@@ -57,7 +57,7 @@ public sealed partial class GuessMyAgePayoffBrowserTests
     public async Task HandoffCancellation_RestoresEveryInlineStyleAndDoesNotRestart(string interruption)
     {
         await using var context = await NewStageContextAsync(Browser, App.BaseAddress,
-            """{"crowdAge":49,"crowdCount":12,"actualAge":41,"guessAccepted":true}""");
+            """{"previousCrowdAge":49,"crowdAge":49,"crowdCount":12,"actualAge":41,"guessAccepted":true}""");
         var page = await OpenStageAsync(context, "payoff-handoff-cancel", 33);
         await PauseClockAsync(page);
         await page.EvaluateAsync("""
@@ -106,7 +106,7 @@ public sealed partial class GuessMyAgePayoffBrowserTests
     public async Task JackpotOrigin_FollowsTheAnswerDuringLayoutChanges()
     {
         await using var context = await NewStageContextAsync(Browser, App.BaseAddress,
-            """{"crowdAge":49,"crowdCount":12,"actualAge":41,"guessAccepted":true}""");
+            """{"previousCrowdAge":49,"crowdAge":49,"crowdCount":12,"actualAge":41,"guessAccepted":true}""");
         var page = await OpenStageAsync(context, "payoff-origin-layout", 41);
         await SubmitAndSettleAsync(page);
         for (var elapsed = 0; elapsed < 3000 && await page.Locator(".gma-exact-jackpot").CountAsync() == 0; elapsed += 50)
@@ -137,7 +137,7 @@ public sealed partial class GuessMyAgePayoffBrowserTests
     public async Task LiveReducedMotion_EndsDecorationsUntilTheNextAthlete(int guess)
     {
         await using var context = await NewStageContextAsync(Browser, App.BaseAddress,
-            """{"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}""");
+            """{"previousCrowdAge":100,"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}""");
         var page = await OpenStageAsync(context, "payoff-live-reduced", guess);
         await SubmitAndSettleAsync(page);
         await page.Clock.RunForAsync(64);
@@ -166,7 +166,7 @@ public sealed partial class GuessMyAgePayoffBrowserTests
     public async Task LoadingDuringAResult_CancelsThePresentationBeforeItCanReturn()
     {
         await using var context = await NewStageContextAsync(Browser, App.BaseAddress,
-            """{"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}""");
+            """{"previousCrowdAge":100,"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}""");
         var page = await OpenStageAsync(context, "payoff-interrupted-loading", 54);
         await SubmitAndSettleAsync(page);
         await page.EvaluateAsync("""
@@ -188,7 +188,7 @@ public sealed partial class GuessMyAgePayoffBrowserTests
     public async Task EnlargedJackpot_KeepsTheLandedCopyAndFinalePulseInsideTheViewport(int width, int height)
     {
         await using var context = await NewStageContextAsync(Browser, App.BaseAddress,
-            """{"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}""", width, height);
+            """{"previousCrowdAge":100,"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}""", width, height);
         var page = await OpenStageAsync(context, "payoff-enlarged-jackpot", 41);
         await page.EvaluateAsync("() => document.documentElement.style.fontSize = '200%'");
         await SubmitAndSettleAsync(page);
@@ -226,7 +226,7 @@ public sealed partial class GuessMyAgePayoffBrowserTests
     public async Task Handoff_RevealsAKeyboardFocusedPartWithoutRestartingItOnBlur()
     {
         await using var context = await NewStageContextAsync(Browser, App.BaseAddress,
-            """{"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}""");
+            """{"previousCrowdAge":100,"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}""");
         var page = await context.NewPageAsync();
         await page.GotoAsync("/athlete/patrick-ruff?guessmyage=1", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => document.querySelector('.modal-content.guess-mode:not(.is-loading)')");

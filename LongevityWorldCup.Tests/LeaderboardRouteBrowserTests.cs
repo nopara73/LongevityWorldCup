@@ -1,5 +1,4 @@
 using Microsoft.Playwright;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Xunit;
 
@@ -185,26 +184,22 @@ public sealed class LeaderboardRouteBrowserTests(
         Assert.Equal("Leaderboard: Live long enough to live forever", await collapsedTitle.GetAttributeAsync("aria-label"));
         Assert.Equal("Leaderboard: Live long enough to live forever | Longevity World Cup", await directPage.TitleAsync());
 
-        var geometry = await directPage.EvaluateAsync<JsonElement>(
+        // The label is set before ResizeObserver fits the rail to the rendered fonts.
+        await directPage.EvaluateAsync("() => document.fonts.ready");
+        await directPage.WaitForFunctionAsync(
             """
             () => {
                 const sidebar = document.querySelector('.leaderboard > .sidebar').getBoundingClientRect();
-                const table = document.querySelector('.leaderboard > table').getBoundingClientRect();
                 const frame = document.querySelector('.leaderboard').getBoundingClientRect();
                 const title = document.querySelector('.collapsed-title');
-                return {
-                    sidebarHeight: sidebar.height,
-                    tableHeight: table.height,
-                    frameHeight: frame.height,
-                    titleBottom: title.getBoundingClientRect().bottom,
-                    sidebarBottom: sidebar.bottom,
-                    titleOverflow: title.scrollHeight - title.clientHeight
-                };
+                const heightDifference = frame.height - sidebar.height;
+                const overflow = title.scrollHeight - title.clientHeight;
+                return title.clientHeight > 0
+                    && heightDifference >= 0 && heightDifference <= 2.5
+                    && title.getBoundingClientRect().bottom <= sidebar.bottom + 1
+                    && overflow >= -1 && overflow <= 1.5;
             }
             """);
-        Assert.InRange(geometry.GetProperty("frameHeight").GetDouble() - geometry.GetProperty("sidebarHeight").GetDouble(), 0, 2.5);
-        Assert.True(geometry.GetProperty("titleBottom").GetDouble() <= geometry.GetProperty("sidebarBottom").GetDouble() + 1);
-        Assert.InRange(geometry.GetProperty("titleOverflow").GetDouble(), -1, 1.5);
     }
 
     [Fact]

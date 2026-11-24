@@ -288,7 +288,7 @@ public sealed class BioageFlowBrowserTests(
         var chip = page.Locator(chipSelector);
         await chip.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
 
-        Assert.Equal(expectedChipText, await chip.InnerTextAsync());
+        Assert.Equal(expectedChipText, await chip.Locator(".bioage-input-comparison-chip__text").InnerTextAsync());
         var className = await chip.GetAttributeAsync("class") ?? "";
         Assert.Contains(expectedStateClass, className);
         Assert.Empty(errors);
@@ -854,6 +854,10 @@ public sealed class BioageFlowBrowserTests(
         page.PageError += (_, error) => errors.Add(error);
         await page.GotoAsync("/pheno-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => typeof window.LwcBioageFlow?.animateBioageResult === 'function'");
+        // Let the shared startup scroll reset finish before bringing the result into view.
+        await page.WaitForFunctionAsync("() => window.__lwcPlayFlowScrollInitialized === true");
+        await page.EvaluateAsync(
+            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
         await page.EvaluateAsync(
             """
             () => {
@@ -932,6 +936,8 @@ public sealed class BioageFlowBrowserTests(
         page.PageError += (_, error) => errors.Add(error);
         await page.GotoAsync("/pheno-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => typeof window.LwcBioageFlow?.animateBioageResult === 'function'");
+        // The shared scroll reset can run after the calculator helpers are available.
+        await page.WaitForFunctionAsync("() => window.__lwcPlayFlowScrollInitialized === true");
         await page.EvaluateAsync("() => document.fonts.ready");
         await page.EvaluateAsync(
             """

@@ -73,6 +73,7 @@ interface LwcFlagsApi {
     matchesFlagOption(option: FlagOption, query: unknown): boolean;
     normalizeFlagKey(flag: unknown): string;
     renderFlagIcon(flag: unknown, className?: string): string;
+    renderFlagTile(flag: unknown): string;
     renderFlagLabel(flag: unknown): string;
     renderFlagOptionLabel(flag: unknown, query?: unknown): string;
 }
@@ -275,6 +276,13 @@ interface RadarData {
     readonly tooltipContributors: string[][];
 }
 
+interface RadarCanvasPoint {
+    x: number;
+    y: number;
+    readonly skip: boolean;
+    inRange(x: number, y: number): boolean;
+}
+
 interface RadarChartInstance {
     readonly width: number;
     readonly height: number;
@@ -282,6 +290,14 @@ interface RadarChartInstance {
         labels: string[];
         datasets: Array<{ data: number[] }>;
     };
+    readonly scales: { r?: { getPointPositionForValue(index: number, value: number): { x: number; y: number } } };
+    getDatasetMeta(index: number): { data: RadarCanvasPoint[]; dataset: { points: RadarCanvasPoint[] } };
+    getActiveElements(): Array<{ index: number }>;
+    setActiveElements(active: Array<{ datasetIndex: number; index: number }>): void;
+    readonly tooltip: { setActiveElements(active: Array<{ datasetIndex: number; index: number }>, point: { x: number; y: number }): void };
+    draw(): void;
+    render(): void;
+    stop(): void;
     _radarTooltipContributors?: string[][];
     resize(): void;
     destroy(): void;
@@ -388,6 +404,7 @@ interface GuessMyAgeState {
     skipped: boolean;
     first: boolean;
     exact: boolean;
+    beatCrowd?: boolean;
 }
 
 interface GuessMyAgeStoredEntry {
@@ -523,6 +540,7 @@ interface Window {
     __lwcBadgeLightBound?: boolean;
     getBadgeRarity?(badge: ServerBadge): 'legendary' | 'rare' | '';
     LwcBadges?: {
+        searchText(athlete: BadgeAthlete, guess: unknown): string;
         celebrate(scope: Element | null | undefined): void;
         rarity(badge: ServerBadge): 'legendary' | 'rare' | '';
         stashOverflow(owner: HTMLElement, html: string): void;

@@ -75,7 +75,7 @@
 
         .media-kit-primary-download::before {
             content: "\f019" / "";
-            font-family: "Font Awesome 6 Free";
+            font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
             font-weight: 900;
             font-size: 0.95em;
             line-height: 1;
@@ -330,7 +330,7 @@
         .media-file-thumb[data-state="failed"]::after {
             content: "\f03e";
             color: var(--lwc-subtle);
-            font-family: "Font Awesome 6 Free";
+            font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
             font-weight: 400;
             font-size: 2.25rem;
             line-height: 1;
@@ -405,7 +405,7 @@
 
         .media-file-button::before {
             content: "\f019";
-            font-family: "Font Awesome 6 Free";
+            font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
             font-weight: 900;
             font-size: 1rem;
             line-height: 1;
@@ -472,7 +472,7 @@
         }
 
         @container media-kit-docs (max-width: 18rem) {
-            .media-kit-docs .media-file-doc {
+            .media-kit-docs .media-file-doc:not(:has(.media-file-details)) {
                 grid-template-columns: auto minmax(0, 1fr);
             }
 
@@ -481,6 +481,18 @@
             }
 
             .media-kit-docs .media-file-name {
+                grid-column: 1 / -1;
+                grid-row: 2;
+            }
+        }
+
+        /* Grouped captions wrap beside the icon until the controls need a full row. */
+        @container media-kit-docs (max-width: 15rem) {
+            .media-kit-docs .media-file-doc:has(.media-file-details) {
+                grid-template-columns: auto minmax(0, 1fr);
+            }
+
+            .media-file-doc .media-file-details {
                 grid-column: 1 / -1;
                 grid-row: 2;
             }
@@ -510,7 +522,7 @@
             background: var(--lwc-surface);
             color: var(--lwc-accent);
             box-shadow: var(--lwc-shadow-sm);
-            font-family: "Font Awesome 6 Free";
+            font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
             font-size: 1.15rem;
             font-weight: 400;
             line-height: 1;
@@ -870,13 +882,21 @@
                     }
                 }
 
-                function createTile(path) {
+                // One asset, many formats: files that differ only by extension share a
+                // tile. Its format switch (labelled with the existing extensions) picks
+                // which file the download control takes; the picture stays put.
+                let announcedBy;
+                function createTile(paths) {
+                    let path = paths[0];
                     const isPicture = Object.hasOwn(imageTypes, extensionOf(path));
-                    const filename = path.split('/').pop();
+                    const filenameOf = path => path.split('/').pop();
+                    const kitDownload = document.querySelector('.media-kit-primary-download');
+                    const pending = new Set();
+                    const collected = new Set();
                     const li = document.createElement('li');
                     // Documents share the download control and filename treatment.
                     li.className = isPicture ? 'media-file-row media-file-tile' : 'media-file-row media-file-tile media-file-doc';
-                    if (document.querySelector('.media-kit-primary-download').hasAttribute('data-taken')) li.dataset.collected = '';
+                    if (kitDownload.hasAttribute('data-taken')) li.dataset.collected = '';
 
                     const thumb = document.createElement('span');
                     if (isPicture) {
@@ -899,59 +919,125 @@
 
                     const name = document.createElement('span');
                     name.className = 'media-file-name';
-                    appendFileName(name, filename);
-
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.textContent = 'Download';
-                    btn.setAttribute('aria-label', `Download ${filename}`);
+                    btn.setAttribute('aria-label', `Download ${filenameOf(path)}`);
                     btn.className = 'media-file-button';
                     // This control owns its busy, success, and failure presentation.
                     btn.dataset.lwcWaitSkip = '';
+                    const status = document.getElementById('downloadStatus');
+                    function clearFailure() {
+                        btn.removeAttribute('data-download-failed');
+                        btn.removeAttribute('aria-description');
+                        btn.removeAttribute('title');
+                        if (announcedBy === btn) {
+                            status.textContent = '';
+                            announcedBy = undefined;
+                        }
+                    }
+
                     btn.addEventListener('click', async () => {
-                        const status = document.getElementById('downloadStatus');
-                        // The ring runs while the file is pulled out of the archive.
-                        if (btn.getAttribute('aria-busy') === 'true') return;
+                        const requested = path;
+                        if (pending.has(requested)) return;
+                        pending.add(requested);
                         clearTimeout(btn.downloadedTimer);
                         btn.removeAttribute('data-downloaded');
                         btn.setAttribute('aria-busy', 'true');
                         try {
-                            const extracted = await zip.file(path).async('blob');
-                            const blob = extracted.slice(0, extracted.size, typeOf(path));
+                            const extracted = await zip.file(requested).async('blob');
+                            const blob = extracted.slice(0, extracted.size, typeOf(requested));
                             const url = createFileUrl(blob);
                             const a = document.createElement('a');
                             a.href = url;
-                            a.download = filename;
+                            a.download = filenameOf(requested);
                             document.body.appendChild(a);
                             a.click();
                             a.remove();
                             // Allow the browser to consume the download before revoking.
                             setTimeout(() => releaseFileUrl(url), 60000);
-                            btn.removeAttribute('data-download-failed');
-                            // The press lands: the arrow drops into a check for a moment.
-                            btn.setAttribute('data-downloaded', '');
-                            clearTimeout(btn.downloadedTimer);
-                            btn.downloadedTimer = setTimeout(() => btn.removeAttribute('data-downloaded'), 1600);
-                            btn.removeAttribute('aria-description');
-                            btn.removeAttribute('title');
-                            status.textContent = '';
-                            // A taken file keeps a quiet stamp for the rest of the visit.
+                            collected.add(requested);
+                            if (path !== requested) return;
+                            clearFailure();
                             li.dataset.collected = '';
+                            btn.setAttribute('data-downloaded', '');
+                            btn.downloadedTimer = setTimeout(() => btn.removeAttribute('data-downloaded'), 1600);
                         } catch (_) {
-                            const message = `${filename}: Download failed. Try again or use the ZIP link above.`;
-                            btn.removeAttribute('data-downloaded');
+                            const message = `${filenameOf(requested)}: Download failed. Try again or use the ZIP link above.`;
+                            announcedBy = btn;
+                            status.textContent = message;
+                            if (path !== requested) return;
                             btn.setAttribute('data-download-failed', '');
                             btn.setAttribute('aria-description', message);
                             btn.title = message;
-                            status.textContent = message;
                         } finally {
-                            btn.removeAttribute('aria-busy');
+                            pending.delete(requested);
+                            if (path === requested) btn.removeAttribute('aria-busy');
                         }
                     });
 
-                    li.appendChild(name);
+                    if (paths.length > 1) {
+                        const details = document.createElement('div');
+                        details.className = 'media-file-details';
+                        const formats = document.createElement('span');
+                        formats.className = 'media-format-switch';
+                        formats.setAttribute('role', 'radiogroup');
+                        const filename = filenameOf(path);
+                        const dot = filename.lastIndexOf('.');
+                        appendFileName(name, filename.slice(0, dot + 1));
+                        const suffix = document.createTextNode(filename.slice(dot + 1));
+                        name.appendChild(suffix);
+                        formats.setAttribute('aria-label', `${filename.slice(0, dot)} formats`);
+                        for (const candidate of paths) {
+                            const label = document.createElement('label');
+                            const radio = document.createElement('input');
+                            radio.type = 'radio';
+                            radio.name = paths[0];
+                            radio.checked = candidate === path;
+                            label.append(radio, extensionOf(candidate));
+                            formats.appendChild(label);
+                            radio.addEventListener('change', () => {
+                                path = candidate;
+                                suffix.data = path.slice(path.lastIndexOf('.') + 1);
+                                btn.setAttribute('aria-label', `Download ${filenameOf(path)}`);
+                                if (!isPicture) {
+                                    thumb.firstElementChild.className = extensionOf(path) === 'pdf'
+                                        ? 'fas fa-file-pdf media-file-icon' : 'fas fa-file-lines media-file-icon';
+                                }
+                                clearTimeout(btn.downloadedTimer);
+                                btn.removeAttribute('data-downloaded');
+                                clearFailure();
+                                if (pending.has(path)) btn.setAttribute('aria-busy', 'true');
+                                else btn.removeAttribute('aria-busy');
+                                li.toggleAttribute('data-collected', collected.has(path) || kitDownload.hasAttribute('data-taken'));
+                            });
+                        }
+                        details.append(name, formats);
+                        li.appendChild(details);
+                    } else {
+                        appendFileName(name, filenameOf(path));
+                        li.appendChild(name);
+                    }
                     li.appendChild(btn);
                     return { li, isPicture };
+                }
+
+                // Retain the archive order of assets, with a previewable format first.
+                function assetsOf(paths) {
+                    const byBase = new Map();
+                    for (const path of paths) {
+                        const dot = path.lastIndexOf('.');
+                        const hasExtension = dot > path.lastIndexOf('/') + 1 && dot < path.length - 1;
+                        const base = hasExtension ? 'asset:' + path.slice(0, dot) : 'file:' + path;
+                        if (!byBase.has(base)) byBase.set(base, []);
+                        byBase.get(base).push(path);
+                    }
+                    const order = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'pdf', 'svg', 'md', 'txt'];
+                    const rank = path => {
+                        const index = order.indexOf(extensionOf(path));
+                        return index < 0 ? order.length : index;
+                    };
+                    return [...byBase.values()].map(group => group.sort((a, b) => rank(a) - rank(b)));
                 }
 
                 function createList(className, items) {
@@ -967,7 +1053,7 @@
                 }
 
                 for (const folder of folders) {
-                    const tiles = groups.get(folder).map(createTile);
+                    const tiles = assetsOf(groups.get(folder)).map(createTile);
                     // Documents lead, pictures follow, each in file-name order.
                     const docs = tiles.filter(tile => !tile.isPicture);
                     const pictures = tiles.filter(tile => tile.isPicture);
@@ -988,7 +1074,7 @@
                         title.textContent = folder;
                         const count = document.createElement('span');
                         count.className = 'media-kit-group-count';
-                        count.textContent = String(tiles.length);
+                        count.textContent = String(groups.get(folder).length);
                         head.append(title, count);
                         group.appendChild(head);
                         // Documents are download rows above the folder's pictures, and logo

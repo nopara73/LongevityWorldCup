@@ -262,11 +262,7 @@ public sealed class AthleteBrowseMotionBrowserTests(
     {
         await using var context = await NewContextAsync(1440, 900, dark: false, reducedMotion: false);
         var page = await context.NewPageAsync();
-        await NavigateToLeaderboardAsync(page, "/leaderboard");
-        var row = page.Locator($"{Rows}[data-tier='pro']:visible").Nth(4);
-        await row.Locator("a.athlete-name").ClickAsync();
-        await WaitForProfileAsync(page);
-        await page.EvaluateAsync("() => document.getElementById('athlete-stats').scrollIntoView({ block: 'center' })");
+        await OpenProfileAtBortzAgeAsync(page);
         await page.WaitForFunctionAsync(
             """
             () => window.__motion.counts.some(entry => entry.id === 'lowestBortzAge')
@@ -437,33 +433,40 @@ public sealed class AthleteBrowseMotionBrowserTests(
     {
         await using var context = await NewContextAsync(1440, 900, false, false);
         var page = await context.NewPageAsync();
-        await NavigateToLeaderboardAsync(page, "/leaderboard");
-        await page.Locator(Rows + "[data-tier='pro']:visible").Nth(4).Locator("a.athlete-name").ClickAsync();
-        await WaitForProfileAsync(page);
-        await page.Locator("#athlete-stats").ScrollIntoViewIfNeededAsync();
-        await page.WaitForFunctionAsync("() => window.__motion.visibility.some(c => c.id === 'lowestBortzAge' && c.visible)");
-        await Assertions.Expect(page.Locator("#lowestBortzAge")).Not.ToHaveAttributeAsync("data-lwc-count", new System.Text.RegularExpressions.Regex(".*"));
+        await page.Clock.InstallAsync();
+        var figure = await OpenProfileAtBortzAgeAsync(page);
+        var anyOverlay = new System.Text.RegularExpressions.Regex(".*");
+        await page.WaitForFunctionAsync("() => window.__motion.counts.some(c => c.id === 'lowestBortzAge')");
+        await Assertions.Expect(figure).Not.ToHaveAttributeAsync("data-lwc-count", anyOverlay);
+
         // Synthetic values isolate formatting from the athlete calculation pipeline.
         foreach (var value in new[] { "−5.4", "+3.2", "0.84", "—" })
         {
-            // An old counter can tick between separate host calls. Begin the
-            // recording window with the value change in one browser task.
-            await page.Locator("#lowestBortzAge").EvaluateAsync(
-                "(f, value) => { window.__motion.animations.length = 0; window.__motion.counts.length = 0; window.__motion.visibility.length = 0; f.textContent = value; }", value);
-            // Visibility is delivered asynchronously. Wait for the counter's
-            // cleanup only after this value has reached its visibility callback.
+            // Begin recording with the value change in one browser task.
+            await figure.EvaluateAsync(
+                "(f, value) => { window.__motion.counts.length = 0; window.__motion.visibility.length = 0; f.textContent = value; }", value);
             await page.WaitForFunctionAsync(
                 "value => window.__motion.visibility.some(c => c.id === 'lowestBortzAge' && c.text === value && c.visible)", value);
-            await Assertions.Expect(page.Locator("#lowestBortzAge")).Not.ToHaveAttributeAsync("data-lwc-count", new System.Text.RegularExpressions.Regex(".*"));
-            Assert.Equal(value, await page.Locator("#lowestBortzAge").InnerTextAsync());
-            Assert.False(await page.Locator("#lowestBortzAge").EvaluateAsync<bool>("f => f.hasAttribute('data-lwc-count')"));
-            Assert.False(await page.EvaluateAsync<bool>("() => window.__motion.counts.some(c => c.id === 'lowestBortzAge' && c.text !== document.getElementById('lowestBortzAge').textContent)"));
-            if (value == "—") Assert.Equal(0, await page.EvaluateAsync<int>("() => window.__motion.counts.filter(c => c.id === 'lowestBortzAge').length"));
+            await Assertions.Expect(figure).Not.ToHaveAttributeAsync("data-lwc-count", anyOverlay);
+            Assert.Equal(value, await figure.InnerTextAsync());
+
+            var recordedText = await page.EvaluateAsync<string[]>(
+                "() => window.__motion.counts.filter(c => c.id === 'lowestBortzAge').map(c => c.text)");
+            if (value == "—") Assert.Empty(recordedText);
+            else
+            {
+                Assert.NotEmpty(recordedText);
+                Assert.All(recordedText, text => Assert.Equal(value, text));
+            }
         }
-        await page.Locator("#lowestBortzAge").EvaluateAsync("f => { f.textContent = '28.0'; }");
+
+        // Hold an active overlay so only the motion preference change can clear it.
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
+        await figure.EvaluateAsync("f => { f.textContent = '28.0'; }");
+        await Assertions.Expect(figure).ToHaveAttributeAsync("data-lwc-count", anyOverlay);
         await page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
-        await page.WaitForFunctionAsync("() => !document.querySelector('[data-lwc-count]')");
-        Assert.Equal("28.0", await page.Locator("#lowestBortzAge").InnerTextAsync());
+        await Assertions.Expect(page.Locator("#detailsModal [data-lwc-count]")).ToHaveCountAsync(0);
+        Assert.Equal("28.0", await figure.InnerTextAsync());
     }
 
     [Fact]
@@ -533,6 +536,19 @@ public sealed class AthleteBrowseMotionBrowserTests(
             }
             """);
         Assert.Empty(failures);
+    }
+
+    private static async Task<ILocator> OpenProfileAtBortzAgeAsync(IPage page)
+    {
+        await NavigateToLeaderboardAsync(page, "/leaderboard?search=wen");
+        await page.Locator(Rows + " a.athlete-name[href='/athlete/wen-z']:visible").ClickAsync();
+        await WaitForProfileAsync(page);
+        // The browser fixture stubs Chart.js. Its shorter fallback moves the age
+        // board, so let it take its place before scrolling to the figure.
+        await Assertions.Expect(page.Locator("#ageRadarFallback")).ToBeVisibleAsync();
+        var figure = page.Locator("#lowestBortzAge");
+        await figure.ScrollIntoViewIfNeededAsync();
+        return figure;
     }
 
     private static async Task NavigateToLeaderboardAsync(IPage page, string path)

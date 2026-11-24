@@ -738,7 +738,7 @@
 
 .custom-event-expander::before{
     content:"\f078";
-    font-family:"Font Awesome 6 Free";
+    font-family:var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-weight:900;
     position:absolute;
     left:50%;
@@ -1065,8 +1065,8 @@
     color: var(--card-bg, #fff);
 }
 
-/* Compact feeds keep 24px portraits, too small to carry a mark. */
-.events-board:not(.event-board-page .events-board) .event-kind {
+/* Embedded histories keep their smaller, unmarked portraits. */
+.events-board:not(.event-board-page .events-board, #events-root-index .events-board) .event-kind {
     display: none;
 }
 
@@ -1409,4 +1409,74 @@
     .event-athlete-preview * {
         animation: none !important;
     }
+}
+
+/* Shared timeline anatomy for the full feed and homepage Highlights. */
+/* One quiet surface: days group events, not alternating stripes. */
+:is(.event-board-page, [id="events-root-index"]) .events-board table tbody tr,
+:is(.event-board-page, [id="events-root-index"]) .events-board table tbody tr.zebra-even,
+:is(.event-board-page, [id="events-root-index"]) .events-board table tbody tr.zebra-odd {
+    background-color: transparent;
+    box-shadow: none;
+    transform: none;
+}
+
+:is(.event-board-page, [id="events-root-index"]) .events-board table tbody tr.main-row,
+:is(.event-board-page, [id="events-root-index"]) .events-board table tbody tr.events-skeleton-row,
+:is(.event-board-page, [id="events-root-index"]) .events-board table tbody tr.custom-event-details {
+    /* Two layers: the month's rail, and the hairline that opens a new day. */
+    background-image: var(--event-rail-image, var(--event-rail)), var(--event-day-rule, none);
+    background-repeat: no-repeat;
+    background-position: var(--event-rail-x) var(--event-rail-y, 0), var(--event-message-start) 0;
+    background-size: 2px var(--event-rail-h, 100%), calc(100% - var(--event-message-start) - var(--feed-pad-x)) 1px;
+}
+
+/* Portraits sit on the rail with a ring of the card around them. */
+:is(.event-board-page, [id="events-root-index"]) .events-board .avatar,
+:is(.event-board-page, [id="events-root-index"]) .events-board .avatar-fallback,
+:is(.event-board-page, [id="events-root-index"]) .events-board .avatar-link:is(:hover, :focus) .avatar,
+:is(.event-board-page, [id="events-root-index"]) .events-board .avatar-link:is(:hover, :focus) .avatar-fallback,
+:is(.event-board-page, [id="events-root-index"]) .events-board .donation-gift-avatar,
+:is(.event-board-page, [id="events-root-index"]) .events-board .milestone-people-avatar {
+    width: var(--event-avatar-size);
+    height: var(--event-avatar-size);
+    box-sizing: border-box;
+    box-shadow: 0 0 0 4px var(--card-bg);
+}
+
+:is(.event-board-page, [id="events-root-index"]) .events-board .avatar-fallback {
+    font-size: min(.7rem, 14px);
+    line-height: 1;
+    white-space: nowrap;
+}
+
+:is(.event-board-page, [id="events-root-index"]) .events-board .donation-gift-avatar i,
+:is(.event-board-page, [id="events-root-index"]) .events-board .milestone-people-avatar i {
+    font-size: min(1rem, 16px);
+}
+
+/* Fresh: events from the last day breathe on the rail. */
+:is(.event-board-page, [id="events-root-index"]) .events-board tr.main-row.is-fresh .event-avatar-frame {
+    position: relative;
+}
+
+:is(.event-board-page, [id="events-root-index"]) .events-board tr.main-row.is-fresh .event-avatar-frame::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--secondary-color, #087685);
+    opacity: .9;
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    :is(.event-board-page, [id="events-root-index"]) .events-board tr.main-row.is-fresh .event-avatar-frame::before {
+        animation: events-fresh 2.4s ease-out 2;
+    }
+}
+
+@keyframes events-fresh {
+    0% { transform: scale(.85); opacity: .9; }
+    70%, 100% { transform: scale(1.35); opacity: 0; }
 }

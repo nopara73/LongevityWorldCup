@@ -19,7 +19,8 @@ public enum SocialEventSkipReason
     DeliveryRetriesExhausted,
     PermanentDeliveryFailure,
     RoutineConversationUpdate,
-    SupersededBadgeAward
+    SupersededBadgeAward,
+    SupersededUltimateRank
 }
 
 public static class SocialEventSkipPolicy
@@ -36,18 +37,15 @@ public static class SocialEventSkipPolicy
         return occurredAtUtc < freshCutoffUtc ? SocialEventSkipReason.StalePrimaryEvent : null;
     }
 
-    internal static bool IsSupersededBadgeAward(EventType type, string text, Func<string, bool> isCurrentBadgeAward) =>
-        type == EventType.BadgeAward && !isCurrentBadgeAward(text);
-
-    public static bool TryGetXOrThreadsTerminalSkipReason(
+    internal static bool TryGetBroadcastSkipReason(
         EventType type,
         string text,
         DateTime occurredAtUtc,
-        int priority,
+        SocialHeadline headline,
         DateTime freshCutoffUtc,
         Func<string, bool> hasSingleGlobalPlaceOneBadgeHolder,
         out SocialEventSkipReason reason,
-        Func<string, bool>? isCurrentBadgeAward = null)
+        Func<EventType, string, SocialEventSkipReason?>? supersededReason = null)
     {
         if (type == EventType.CustomEvent)
         {
@@ -63,7 +61,7 @@ public static class SocialEventSkipPolicy
             return reason != default;
         }
 
-        if (priority <= EventDataService.XPriorityPrimaryMax && occurredAtUtc < freshCutoffUtc)
+        if (headline.Tier != SocialHeadlineTier.Other && occurredAtUtc < freshCutoffUtc)
         {
             reason = SocialEventSkipReason.StalePrimaryEvent;
             return true;
@@ -81,41 +79,10 @@ public static class SocialEventSkipPolicy
             return true;
         }
 
-        if (type == EventType.CrowdAgeTop10Change)
+        if (type is EventType.NewRank or EventType.PhenoAgeTop10Change or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change)
         {
-            reason = EventHelpers.TryExtractSlug(text, out var slug) &&
-                     !string.IsNullOrWhiteSpace(slug) &&
-                     EventHelpers.TryExtractCrowdAgeTop10Change(text, out _, out _, out _, out _)
-                ? default
-                : SocialEventSkipReason.UnsupportedEventPayload;
-            return reason != default;
-        }
-
-        if (type == EventType.AgeImprovementTop10Change)
-        {
-            reason = EventHelpers.TryExtractSlug(text, out var slug) &&
-                     !string.IsNullOrWhiteSpace(slug) &&
-                     EventHelpers.TryExtractAgeImprovementTop10Change(text, out _, out _, out _, out _, out _)
-                ? default
-                : SocialEventSkipReason.UnsupportedEventPayload;
-            return reason != default;
-        }
-
-        if (type == EventType.PhenoAgeTop10Change)
-        {
-            reason = EventHelpers.TryExtractSlug(text, out var slug) &&
-                     !string.IsNullOrWhiteSpace(slug) &&
-                     EventHelpers.TryExtractPhenoAgeTop10Change(text, out _, out _, out _)
-                ? default
-                : SocialEventSkipReason.UnsupportedEventPayload;
-            return reason != default;
-        }
-
-        if (type == EventType.NewRank)
-        {
-            reason = EventHelpers.TryExtractRank(text, out var rank) && rank is >= 1 and <= 3
-                ? default
-                : SocialEventSkipReason.UnsupportedEventPayload;
+            reason = headline.Tier == SocialHeadlineTier.Other
+                ? SocialEventSkipReason.UnsupportedEventPayload : supersededReason?.Invoke(type, text) ?? default;
             return reason != default;
         }
 
@@ -144,7 +111,7 @@ public static class SocialEventSkipPolicy
             return true;
         }
 
-        if (IsSingleWinnerBadge(norm) &&
+        if (SocialHeadline.IsGlobalHeadlineBadge(norm) &&
             (!EventHelpers.TryExtractPlace(text, out var place) || place != 1))
         {
             reason = SocialEventSkipReason.NonWinningSingleWinnerBadge;
@@ -157,31 +124,14 @@ public static class SocialEventSkipPolicy
             return true;
         }
 
-        if (priority > EventDataService.XPriorityPrimaryMax)
+        if (headline.Tier == SocialHeadlineTier.Other)
         {
             reason = SocialEventSkipReason.UnsupportedBadgeAward;
             return true;
         }
 
-        if (isCurrentBadgeAward is not null && !isCurrentBadgeAward(text))
-        {
-            reason = SocialEventSkipReason.SupersededBadgeAward;
-            return true;
-        }
-
-        reason = default;
-        return false;
-    }
-
-    private static bool IsSingleWinnerBadge(string norm)
-    {
-        return
-            string.Equals(norm, "Pheno Age – lowest", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(norm, "Pheno Age best improvement", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(norm, "Bortz Age – lowest", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(norm, "Bortz Age best improvement", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(norm, "Chronological age – oldest", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(norm, "Chronological age – youngest", StringComparison.OrdinalIgnoreCase);
+        reason = supersededReason?.Invoke(type, text) ?? default;
+        return reason != default;
     }
 
     private static bool IsBestImprovementBadge(string norm)

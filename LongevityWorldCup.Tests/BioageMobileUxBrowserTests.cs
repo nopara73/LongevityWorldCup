@@ -225,7 +225,7 @@ public sealed class BioageMobileUxBrowserTests(
         Assert.Equal("0 new biomarkers",
             await page.Locator(".bioage-biomarker-progress").InnerTextAsync());
         Assert.Equal(biomarkerCount, await page.Locator(
-            "#lwc-step-2 .biomarker-card input[type=\"number\"][required]").CountAsync());
+            "#lwc-step-2 .biomarker-card input[type=\"text\"][required]").CountAsync());
 
         var bloodDrawDate = page.Locator("#blood-draw-date");
         await bloodDrawDate.FillAsync("");
@@ -407,7 +407,7 @@ public sealed class BioageMobileUxBrowserTests(
         await page.WaitForFunctionAsync(
             "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
 
-        var requiredInputs = page.Locator("#lwc-step-2 .biomarker-card input[type=\"number\"][required]");
+        var requiredInputs = page.Locator("#lwc-step-2 .biomarker-card input[type=\"text\"][required]");
         Assert.Equal(biomarkerCount, await requiredInputs.CountAsync());
         Assert.True(
             await requiredInputs.EvaluateAllAsync<bool>(
@@ -427,8 +427,7 @@ public sealed class BioageMobileUxBrowserTests(
         var firstUnit = page.Locator($"#{firstInputId}Unit");
         Assert.True(await firstInput.IsVisibleAsync());
         Assert.True(await firstUnit.IsVisibleAsync());
-        Assert.Equal("textfield", await firstInput.EvaluateAsync<string>(
-            "input => getComputedStyle(input).appearance"));
+        Assert.Equal("text", await firstInput.GetAttributeAsync("type"));
 
         var inlineLayout = await firstInput.EvaluateAsync<double[]>(
             """

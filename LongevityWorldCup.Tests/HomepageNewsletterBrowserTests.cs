@@ -13,6 +13,29 @@ public sealed class HomepageNewsletterBrowserTests(
     : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
+    [InlineData(390)]
+    [InlineData(1280)]
+    public async Task TypingAnAddress_PreservesTheSubscribeControl(int width)
+    {
+        await using var context = await NewsletterContextAsync(width);
+        var page = await OpenNewsletterAsync(context);
+        var input = page.Locator("#emailInput");
+        await input.FocusAsync();
+        await page.EvaluateAsync("""
+            () => {
+                window.subscribeMutations = 0;
+                new MutationObserver(records => subscribeMutations += records.length)
+                    .observe(document.querySelector('#newsletter-form button[type=submit]'), { childList: true, subtree: true });
+            }
+            """);
+        await input.PressSequentiallyAsync("test@example.test");
+        Assert.Equal(0, await page.EvaluateAsync<int>("subscribeMutations"));
+        await Assertions.Expect(input).ToHaveValueAsync("test@example.test");
+        await Assertions.Expect(input).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#newsletter-form button[type=submit]")).ToContainTextAsync("Subscribe");
+    }
+
+    [Theory]
     [InlineData(1280, 100, 6)]
     [InlineData(1440, 200, 6)]
     [InlineData(769, 100, 6)]
@@ -34,8 +57,10 @@ public sealed class HomepageNewsletterBrowserTests(
             """
             input => {
                 const style = getComputedStyle(input);
-                return (input.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight))
-                    / parseFloat(style.fontSize);
+                // Chromium can report a text input's clientWidth without inline padding.
+                const contentWidth = input.offsetWidth - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth)
+                    - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+                return contentWidth / parseFloat(style.fontSize);
             }
             """);
         Assert.True(contentWidthInEm >= minimumTextEm, $"The email field has only {contentWidthInEm:F2}em of usable text space.");

@@ -77,23 +77,78 @@
 }
 :root[data-lwc-disclosure] .flag-leaderboard .flag-team summary:active .flag-team-chevron { scale: .88; }
 
-/* The stack previews the roster: on hover the faces part a little. */
+/* The stack previews the roster: on hover the faces part a little, leftward
+   into room the stack already keeps, so the name column and its strip hold
+   still. */
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team-portraits {
+    justify-content: flex-end;
+    box-sizing: border-box;
+    min-inline-size: calc(3 * var(--flag-seat) - 4px);
+}
 :root[data-lwc-disclosure] .flag-leaderboard .flag-team-portraits > img {
-    transition: margin 220ms var(--lwc-ease-standard, ease), opacity 0s, scale 220ms var(--lwc-ease-pop, ease);
+    transition: translate 220ms var(--lwc-ease-standard, ease), opacity 0s, scale 220ms var(--lwc-ease-pop, ease);
 }
 @media (hover: hover) {
-    :root[data-lwc-disclosure] .flag-leaderboard .flag-team:not([open]) summary:hover .flag-team-portraits > img + img { margin-inline-start: -2px; }
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team:not([open]) summary:hover .flag-team-portraits > img:nth-last-child(3) { translate: -16px 0; }
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team:not([open]) summary:hover .flag-team-portraits > img:nth-last-child(2) { translate: -8px 0; }
     :root[data-lwc-disclosure] .flag-leaderboard .flag-team:not([open]) summary:hover .flag-team-portraits > img { scale: 1.06; }
 }
-/* While open, the faces have stepped down into the roster; their seats wait
-   as the same dashed rings the board uses for a missing member. */
+/* While open, the faces have stepped down into the roster and the stack
+   steps aside; the strip under the flag keeps the team's shape. */
 :root[data-lwc-disclosure] .flag-leaderboard .flag-team[open] .flag-team-portraits > img,
 :root[data-lwc-disclosure] .flag-leaderboard .flag-team[data-disclosure] .flag-team-portraits > img {
-    object-position: -999px -999px;
-    border-style: dashed;
-    border-color: var(--lwc-border-strong);
-    background: var(--lwc-surface);
-    box-shadow: none;
+    opacity: 0;
+}
+
+/* Team strip: the members' pieces stacked under the flag, as long as the
+   team's total is against the best team on its clock, on a faint
+   full-length track. Read down the board each section is one stacked bar
+   chart; on phones, where the faces step aside, it is the team's
+   composition at a glance. */
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip {
+    position: relative;
+    height: 5px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--lwc-border) 55%, transparent);
+    pointer-events: none;
+}
+/* The name stays centred in the row and the strip hangs 5px under it, in
+   a row of its own so long or enlarged names never run into it. */
+@container flag-results (width > 22rem) {
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team summary { grid-template-rows: 1fr auto 1fr; row-gap: 0; }
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team summary > :not(.flag-team-name, .flag-team-strip) { grid-row: 1 / -1; }
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team-name { grid-column: 2; grid-row: 2; }
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip { grid-column: 2; grid-row: 3; align-self: start; margin-block-start: 5px; }
+}
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip > i {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: calc(var(--lwc-start) * var(--lwc-unit));
+    width: calc(var(--lwc-span) * var(--lwc-unit));
+    border-radius: 999px;
+    background: var(--lwc-accent);
+    transform-origin: left center;
+}
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip > i:nth-child(2) { background: color-mix(in srgb, var(--lwc-accent) 68%, var(--lwc-surface)); }
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip > i:nth-child(n + 3) { background: color-mix(in srgb, var(--lwc-accent) 42%, var(--lwc-surface)); }
+/* Incomplete teams read in ink, like their total. */
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team-rank[data-rank=""] ~ .flag-team-strip > i:not([data-debt]) { background: var(--lwc-border-strong); }
+/* A member who aged faster takes years back: a hatched piece laid back over
+   the end of the solid run, which then stops at the team's net total. The
+   same hatch is their bar in the roster. */
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip > i[data-debt],
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team-athletes > li[data-share-debt] .flag-athlete-link::after {
+    background: repeating-linear-gradient(-45deg, var(--lwc-border-strong) 0 1.5px, var(--lwc-surface) 1.5px 3.5px);
+}
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip > i[data-debt] { z-index: 1; }
+
+/* Leave a seam between members without changing the measured endpoints. */
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip > i + i:not([data-debt]) {
+    box-shadow: inset 1px 0 var(--lwc-surface);
+}
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team[open] .flag-team-strip > i + i:not([data-debt]) {
+    box-shadow: inset 2px 0 var(--lwc-surface);
 }
 
 /* Roster: one lifted sheet under the team row. */
@@ -130,12 +185,14 @@
     transform-origin: left center;
     transform: scaleX(var(--lwc-share, 0));
 }
-:root[data-lwc-disclosure] .flag-leaderboard .flag-team[open] .flag-athlete-link::after {
-    animation: lwc-share-grow 520ms cubic-bezier(.2, 0, 0, 1) both;
-    animation-delay: calc(140ms + var(--lwc-i, 0) * 70ms);
+/* Clip rather than squeeze the hatch, so its stripes keep their pitch. */
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team-athletes > li[data-share-debt] .flag-athlete-link::after {
+    transform: none;
+    clip-path: inset(0 calc((1 - var(--lwc-share, 0)) * 100%) 0 0 round 999px);
 }
+/* The strip's pieces are in flight to (or from) these bars. */
+:root[data-lwc-disclosure] .flag-leaderboard .flag-team[data-disclosure][data-share-flown] .flag-athlete-link::after { visibility: hidden; }
 :root[data-lwc-disclosure] .flag-leaderboard .flag-team-athletes > li { position: relative; }
-@keyframes lwc-share-grow { from { transform: scaleX(0); } }
 
 /* Gold / silver / bronze rows: the top team's rank medal breathes once on open. */
 :root[data-lwc-disclosure] .flag-leaderboard .flag-team[data-disclosure='opening'] .flag-team-rank:is([data-rank="1"], [data-rank="2"], [data-rank="3"]) {
@@ -152,20 +209,28 @@
         height: 3px;
     }
 }
+/* Small phones: the strip gets its own line between the name and the total
+   (very large text keeps the board's own one-part-per-line layout). */
+@container flag-results (14rem < width <= 22rem) {
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team summary { grid-template-areas: "rank name chevron" ". strip ." ". score score"; }
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip { grid-area: strip; height: 4px; margin-block: 3px 2px; }
+}
 @container flag-results (max-width: 14rem) {
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team summary {
+        grid-template-areas: "rank flag chevron" "name name name" "strip strip strip" "score score score";
+    }
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip { grid-area: strip; height: 4px; }
     :root[data-lwc-disclosure] .flag-leaderboard .flag-athlete-link::before,
     :root[data-lwc-disclosure] .flag-leaderboard .flag-athlete-link::after {
         inset-inline-start: 0;
     }
 }
 
-/* -------------------------------------------------------- profile proofs */
-#detailsModal #proofsGallery .proof-item { transition: translate 200ms var(--lwc-ease-standard, ease), box-shadow 200ms ease; }
-
 @media (prefers-reduced-motion: reduce) {
     :root[data-lwc-disclosure] details > summary::before,
     :root[data-lwc-disclosure] .flag-leaderboard .flag-team-chevron,
-    :root[data-lwc-disclosure] .flag-leaderboard .flag-team-portraits > img { transition: none; }
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team-portraits > img,
+    :root[data-lwc-disclosure] .flag-leaderboard .flag-team-strip { transition: none; }
     :root[data-lwc-disclosure] .flag-leaderboard .flag-team[open] .flag-athlete-link::after,
     :root[data-lwc-disclosure] .flag-leaderboard .flag-team-rank { animation: none; }
 }
@@ -180,4 +245,8 @@
     transform-origin: center;
     box-shadow: 0 10px 22px -10px rgba(0, 0, 0, .55);
     will-change: transform;
+}
+.lwc-disclosure-ghost--share {
+    border-radius: 999px;
+    box-shadow: 0 6px 12px -6px rgba(0, 0, 0, .45);
 }

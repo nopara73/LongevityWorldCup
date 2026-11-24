@@ -98,7 +98,7 @@ public sealed class BioageBiomarkerGroupsBrowserTests(
 
         // Exercise every actual label/error, including long Bortz names. Empty
         // geometry alone cannot detect a clipped error or a lost completion mark.
-        var inputs = page.Locator("#lwc-step-2 .biomarker-card input[type=number]");
+        var inputs = page.Locator("#lwc-step-2 .biomarker-card input[type=text]");
         for (var index = 0; index < total; index++)
         {
             var input = inputs.Nth(index);
@@ -107,8 +107,7 @@ public sealed class BioageBiomarkerGroupsBrowserTests(
             var fontSize = await input.EvaluateAsync<double>("input => parseFloat(getComputedStyle(input).fontSize)");
             Assert.InRange(fontSize, 16 * textPercent / 100d - 0.5, double.MaxValue);
             Assert.False(string.IsNullOrWhiteSpace(await input.GetAttributeAsync("aria-label")));
-            await input.FillAsync("");
-            await BlurBiomarkerAsync(page, input, id, "empty");
+            await FillAndBlurBiomarkerAsync(page, input, id, "", "empty");
             var error = page.Locator($"#{id}-entry-error");
             await Assertions.Expect(error).ToBeVisibleAsync();
             await Assertions.Expect(input).ToHaveAttributeAsync("aria-invalid", "true");
@@ -147,8 +146,7 @@ public sealed class BioageBiomarkerGroupsBrowserTests(
                 }
                 """);
             Assert.True(problems.Length == 0, $"{path} {width}px {textPercent}% {id}: {string.Join("; ", problems)}");
-            await input.FillAsync(value);
-            await BlurBiomarkerAsync(page, input, id, "restored");
+            await FillAndBlurBiomarkerAsync(page, input, id, value, "restored");
             await Assertions.Expect(error).ToBeHiddenAsync();
         }
         await Assertions.Expect(page.Locator(".biomarker-card--complete")).ToHaveCountAsync(total);
@@ -156,15 +154,21 @@ public sealed class BioageBiomarkerGroupsBrowserTests(
         Assert.Empty(errors);
     }
 
-    private async Task BlurBiomarkerAsync(IPage page, ILocator input, string? id, string phase)
+    private async Task FillAndBlurBiomarkerAsync(IPage page, ILocator input, string? id, string value, string phase)
     {
+        var operation = $"Fill {phase} {id}";
         try
         {
-            await input.PressAsync("Tab");
+            await input.FillAsync(value);
+            operation = $"Tab after {phase} {id}";
+            await Assertions.Expect(input).ToBeFocusedAsync();
+            // Fill already focused the field. Send Tab without waiting for navigation
+            // after an edit that stays on the biomarker form.
+            await page.Keyboard.PressAsync("Tab").WaitAsync(TimeSpan.FromSeconds(30));
         }
-        catch (PlaywrightException)
+        catch (Exception error) when (error is TimeoutException or PlaywrightException)
         {
-            await WriteFailureDiagnosticsAsync(page, output, $"Tab after {phase} {id}", """
+            await WriteFailureDiagnosticsAsync(page, output, operation, """
                 id => {
                     const input = document.getElementById(id);
                     const describe = element => element && ({
@@ -178,7 +182,7 @@ public sealed class BioageBiomarkerGroupsBrowserTests(
                         readyState: document.readyState, viewport: [innerWidth, innerHeight],
                         scroll: [scrollX, scrollY], active: describe(document.activeElement),
                         input: describe(input), card: describe(input?.closest('.biomarker-card')),
-                        invalid: input?.getAttribute('aria-invalid'),
+                        value: input?.value, invalid: input?.getAttribute('aria-invalid'),
                         progress: document.querySelector('.bioage-biomarker-progress')?.textContent,
                         dock: describe(document.querySelector('[data-flow-dock].flow-action-dock-active')),
                         errors: [...document.querySelectorAll('.bioage-biomarker-error:not([hidden])')]

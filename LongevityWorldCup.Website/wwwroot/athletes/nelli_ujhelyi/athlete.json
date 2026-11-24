@@ -1,0 +1,28 @@
+{
+  "Name": "Nelli Ujhelyi",
+  "DisplayName": null,
+  "MediaContact": "ujhelyinelli@gmail.com",
+  "DateOfBirth": {
+    "Year": 1993,
+    "Month": 3,
+    "Day": 28
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-02-17",
+      "AlbGL": 49,
+      "CreatUmolL": 55,
+      "GluMmolL": 4.9,
+      "CrpMgL": 0.31,
+      "LymPc": 38.3,
+      "McvFL": 92,
+      "RdwPc": 12.8,
+      "AlpUL": 47,
+      "Wbc1000cellsuL": 5.2
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Hungary",
+  "Why": "My goal is to stay healthy for as long as possible, and that’s what longevity means to me. My journey began with a lifestyle change that helped me lose 46 kg. Today, my mission is to show as many people as possible how simple it can be to build healt",
+  "PersonalLink": "https://www.instagram.com/drujhelyinelli"
+}

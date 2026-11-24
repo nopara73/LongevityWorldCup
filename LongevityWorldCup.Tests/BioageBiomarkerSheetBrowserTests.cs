@@ -71,7 +71,7 @@ public sealed class BioageBiomarkerSheetBrowserTests(
                 for (const card of document.querySelectorAll('#lwc-step-2 .biomarker-card')) {
                     const header = card.querySelector('.biomarker-card-header');
                     const name = header.childNodes[0].textContent.trim();
-                    const input = card.querySelector('input[type="number"]');
+                    const input = card.querySelector('input[type="text"]');
                     const nameRect = (() => { const r = document.createRange(); r.selectNodeContents(header.childNodes[0]); return r.getBoundingClientRect(); })();
                     const headerRect = header.getBoundingClientRect();
                     const markerRect = header.querySelector('.toggle-icon').getBoundingClientRect();
@@ -106,7 +106,7 @@ public sealed class BioageBiomarkerSheetBrowserTests(
             await Assertions.Expect(page.Locator("#wbcUnit")).ToBeFocusedAsync();
         }
         await page.Keyboard.PressAsync("Tab");
-        await Assertions.Expect(page.Locator("#lwc-step-2 .biomarker-card").Nth(1).Locator("input[type=number]")).ToBeFocusedAsync();
+        await Assertions.Expect(page.Locator("#lwc-step-2 .biomarker-card").Nth(1).Locator("input[type=text]")).ToBeFocusedAsync();
         await AssertPlainBiomarkerHeadersAsync(page);
 
         // Focus, validation, and draft restoration must not revive accordion semantics.

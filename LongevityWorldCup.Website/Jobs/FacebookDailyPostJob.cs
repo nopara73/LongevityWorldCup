@@ -29,20 +29,19 @@ public class FacebookDailyPostJob : IJob
 
         _logger.LogInformation("FacebookDailyPostJob {ts}", DateTime.UtcNow);
         _facebookEvents.SetAthletesForFacebook(_athletes.GetAthletesForX());
-        var pending = _events.GetPendingFacebookEvents();
+        var pending = _athletes.ReadPublishedEvents(() => _events.GetPendingFacebookEvents());
         var skippedEvents = new List<(string Id, SocialEventSkipReason Reason)>();
 
-        foreach (var (id, type, text, occurredAtUtc, _, visibleOnWebsite, priority) in pending)
+        foreach (var (id, type, text, occurredAtUtc, _, visibleOnWebsite, headline) in pending)
         {
-            if (SocialEventSkipPolicy.TryGetXOrThreadsTerminalSkipReason(type, text, occurredAtUtc, priority,
-                    DateTime.UtcNow.AddDays(-7), _athletes.HasSingleGlobalPlaceOneBadgeHolder, out var skipReason, _athletes.IsCurrentBadgeAward))
+            if (SocialEventSkipPolicy.TryGetBroadcastSkipReason(type, text, occurredAtUtc, headline,
+                    DateTime.UtcNow.AddDays(-7), _athletes.HasSingleGlobalPlaceOneBadgeHolder, out var skipReason, _athletes.SupersededAnnouncementReason))
             {
                 skippedEvents.Add((id, skipReason));
                 continue;
             }
 
-            var subject = type is EventType.NewRank or EventType.BadgeAward or EventType.CrowdAgeTop10Change or EventType.AgeImprovementTop10Change or EventType.PhenoAgeTop10Change
-                && EventHelpers.TryExtractSlug(text, out var slug) ? slug : null;
+            var subject = headline.Subject;
             if (subject is not null && _fillerLog.IsSubjectOnCooldown(subject, SubjectCooldown, DateTime.UtcNow))
                 continue;
 
