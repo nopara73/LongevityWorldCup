@@ -229,6 +229,16 @@ html body main.homepage-main .podium-item.third .podium-item-lower {
         width: 100%;
     }
 
+    /* Keep the space below the photo outside its link, so its centre stays tappable. */
+    html body main.homepage-main .podium-item > .athlete-profile-link {
+        margin-bottom: 1.2rem;
+    }
+
+    html body main.homepage-main .podium-item :is(.podium-portrait, .rank-change) {
+        display: block;
+        margin-block: 0;
+    }
+
     html body main.homepage-main .podium-item:not(:last-child) {
         border-right: 0;
         border-bottom: 1px solid var(--lwc-border);
