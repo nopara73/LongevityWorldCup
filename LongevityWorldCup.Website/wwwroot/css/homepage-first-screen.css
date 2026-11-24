@@ -2,17 +2,12 @@
    touch and motion sheets take precedence when their richer states arrive. */
 @layer homepage-input {
     @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-        :root:not([data-lwc-input="touch"]) .podium-item:hover:not(:has(.podium-item-lower:hover))
-            :is(.athlete-profile-link, .podium-rank) {
-            translate: 0 -5px;
-        }
-
         :root:not([data-lwc-input="touch"]) :is(.option-button, .flow-action, .rankings-btn, .leaderboard-order-toggle, .view-badge):not(:disabled, [aria-disabled="true"], :active):hover {
             translate: 0 -1px;
         }
     }
 
-    @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: reduce) {
+    @media (hover: hover) and (pointer: fine) {
         :root:has(> head > link[href^="/css/pointer.css"][media^="not all"]) .podium-item:hover:not(:has(.podium-item-lower:hover)) .podium-portrait {
             outline: 2px solid var(--lwc-accent, #087685);
             outline-offset: 2px;
@@ -56,44 +51,48 @@
     }
 }
 
-.game-description {
+/* The about link caps the podium, or the standings when a ranking is selected. */
+html body main.homepage-main > .game-description {
+    margin: 0;
+    border-radius: var(--lwc-radius-lg) var(--lwc-radius-lg) 0 0;
+    outline: 1px solid var(--lwc-border);
+    outline-offset: -1px;
+    background: var(--lwc-surface-accent);
+    color: var(--lwc-accent);
+    font-size: 0.8rem;
+    font-weight: 800;
+    line-height: 1.3;
+    letter-spacing: 0.12em;
     text-align: center;
-    margin: 0 auto 1.1rem;
-    line-height: 1.55;
-    color: var(--lwc-ink, #334155);
-    font-size: clamp(1.02rem, 1.3vw, 1.08rem);
-    font-weight: 400;
-    letter-spacing: 0.005em;
-    max-width: 43em;
-    padding: 0 1rem;
-}
-
-.game-description strong {
-    font-weight: 600;
-    color: var(--lwc-ink, #1f2937);
+    text-transform: uppercase;
 }
 
 .game-description a {
+    display: block;
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: 0.85rem min(1.25rem, 4%);
     color: inherit;
     font-weight: inherit;
     text-decoration: none;
-    border-radius: 3px;
+    border-radius: inherit;
 }
 
 .game-description a:hover,
 .game-description a:focus-visible {
-    color: var(--primary-color);
     text-decoration: underline;
     text-decoration-thickness: 0.08em;
     text-underline-offset: 0.16em;
-    outline: none;
 }
 
-@media (max-width: 576px) {
-    .game-description {
-        margin-bottom: 1.05rem;
-        padding: 0 1.35rem;
-        line-height: 1.5;
+.game-description a:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: -3px;
+}
+
+@media (max-width: 360px) {
+    html body main.homepage-main > .game-description {
+        margin-inline: -0.5rem;
     }
 }
 
@@ -102,12 +101,16 @@ html body main.homepage-main {
     --home-card-inset: 20px;
 }
 
-html body main.homepage-main .game-description {
-    margin-bottom: var(--lwc-space-4);
+html body main.homepage-main .podium[style*="none"] ~ .leaderboard-controls {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
 }
 
 /* The stage: one card, the three athletes on it and their prize steps as its floor. */
 html body main.homepage-main .podium {
+    --champion-light:
+        conic-gradient(at 50% -14%, transparent 170deg, color-mix(in srgb, var(--lwc-gold) 16%, transparent) 180deg, transparent 190deg),
+        radial-gradient(ellipse 30% 46% at 50% 34%, color-mix(in srgb, var(--lwc-gold) 12%, transparent), transparent 100%);
     margin: 0 0 var(--home-gap);
     padding: var(--lwc-space-6) 0 0;
     overflow: hidden;
@@ -115,7 +118,7 @@ html body main.homepage-main .podium {
        full stage width, and the edge still draws over the prize steps. */
     outline: 1px solid var(--lwc-border);
     outline-offset: -1px;
-    border-radius: var(--lwc-radius-lg);
+    border-radius: 0 0 var(--lwc-radius-lg) var(--lwc-radius-lg);
     background: var(--lwc-surface);
     box-shadow: var(--lwc-shadow-sm);
 }
@@ -159,6 +162,7 @@ html body main.homepage-main .podium-item.third .podium-item-lower {
         width: 100%;
         max-width: none;
         border-bottom: 1px solid var(--lwc-border);
+        background-image: var(--champion-light);
     }
 
     html body main.homepage-main .podium-item.second {
@@ -170,6 +174,7 @@ html body main.homepage-main .podium-item.third .podium-item-lower {
 @media (min-width: 769px) and (min-height: 481px), (min-width: 933px) {
     html body main.homepage-main .podium {
         background:
+            var(--champion-light),
             radial-gradient(ellipse 42% 78% at 50% 0, var(--lwc-surface-accent), transparent 100%),
             var(--lwc-surface);
     }
@@ -224,6 +229,16 @@ html body main.homepage-main .podium-item.third .podium-item-lower {
         width: 100%;
     }
 
+    /* Keep the space below the photo outside its link, so its centre stays tappable. */
+    html body main.homepage-main .podium-item > .athlete-profile-link {
+        margin-bottom: 1.2rem;
+    }
+
+    html body main.homepage-main .podium-item :is(.podium-portrait, .rank-change) {
+        display: block;
+        margin-block: 0;
+    }
+
     html body main.homepage-main .podium-item:not(:last-child) {
         border-right: 0;
         border-bottom: 1px solid var(--lwc-border);
@@ -263,16 +278,5 @@ html body main.homepage-main .podium-score .age-reduction {
     @keyframes home-champion-ring {
         0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lwc-gold, #f3c623) 70%, transparent); }
         100% { box-shadow: 0 0 0 18px color-mix(in srgb, var(--lwc-gold, #f3c623) 0%, transparent); }
-    }
-}
-
-@media (prefers-reduced-motion: no-preference) and (hover: hover) {
-    html body main.homepage-main .podium-item:not(.podium-skeleton-item) .podium-portrait {
-        transition: translate var(--lwc-motion-base) var(--lwc-ease-standard), box-shadow var(--lwc-motion-base) var(--lwc-ease-standard);
-    }
-
-    html body main.homepage-main .podium-item:not(.podium-skeleton-item):hover .podium-portrait {
-        translate: 0 -4px;
-        box-shadow: 0 14px 24px -14px rgb(0 0 0 / 0.45);
     }
 }

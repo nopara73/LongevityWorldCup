@@ -219,19 +219,22 @@ interface Window {
         void animatePicture(pose, target, 220);
     }
 
+    const motionAllowed = (): boolean => !reduce.matches && typeof Element.prototype.animate === 'function'
+        && typeof Element.prototype.getAnimations === 'function';
+
     function animatePicture(from: Pose, to: Pose, duration: number, easing = SETTLE_EASE): Promise<void> {
         apply(to);
-        if (reduce.matches || duration <= 0) return Promise.resolve();
+        if (!motionAllowed() || duration <= 0) return Promise.resolve();
         return picture.animate([{ transform: transformOf(from) }, { transform: transformOf(to) }], { duration, easing })
             .finished.then(() => undefined, () => undefined);
     }
 
     function dim(level: number, duration = 0): void {
-        const from = getComputedStyle(scrim).opacity;
-        scrim.style.opacity = String(level);
-        if (duration > 0 && !reduce.matches) {
+        if (duration > 0 && motionAllowed()) {
+            const from = getComputedStyle(scrim).opacity;
             scrim.animate([{ opacity: from }, { opacity: String(level) }], { duration, easing: 'ease-out' });
         }
+        scrim.style.opacity = String(level);
     }
 
     // Zoom about a screen point, keeping the pixel under it in place.
@@ -476,11 +479,16 @@ interface Window {
         reopenAfterClose = false;
         dialog.setAttribute('data-state', 'closing');
         const home = set[index] ?? source;
+        if (home && home !== source) {
+            // Back restores the opening scroll position after popstate returns.
+            // Place the selected print once that restoration has finished.
+            await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+        }
         if (home) options.beforeClose?.(home);
         let landing = home ? onScreen(home) : null;
-        if (home && !landing && home.isConnected) {
-            // Bring the picture you ended on back into view underneath, then land on it.
-            home.scrollIntoView({ block: 'center', behavior: 'instant' });
+        if (home?.isConnected && (!landing || home !== source)) {
+            // A neighbouring print can peek into the viewport from a clipped strip.
+            home.scrollIntoView({ block: landing ? 'nearest' : 'center', inline: 'nearest', behavior: 'instant' });
             landing = onScreen(home);
         }
         if (home !== source) {
@@ -490,13 +498,13 @@ interface Window {
         dim(0, FLIGHT_MS * 0.85);
         if (landing) {
             await animatePicture(fromPose, poseOf(landing), FLIGHT_MS * 0.9);
-        } else if (!reduce.matches) {
+        } else if (motionAllowed()) {
             await picture.animate([{ opacity: 1 }, { opacity: 0, transform: transformOf({ ...fromPose, z: fromPose.z * 0.92 }) }],
                 { duration: 200, easing: 'ease-in', fill: 'forwards' }).finished.catch(() => undefined);
         }
         home?.removeAttribute('data-lwc-view-away');
         source?.removeAttribute('data-lwc-view-away');
-        picture.getAnimations().forEach(animation => animation.cancel());
+        picture.getAnimations?.().forEach(animation => animation.cancel());
         dialog.close();
         dialog.setAttribute('aria-hidden', 'true');
         document.documentElement.style.overflow = savedOverflow;
@@ -537,7 +545,7 @@ interface Window {
         dialog!.dataset.state = 'stepping';
         const travel = Math.min(window.innerWidth * 0.32, 260);
         const out = { x: -direction * travel, y: 0, z: 1 };
-        if (!reduce.matches) {
+        if (motionAllowed()) {
             await picture.animate(
                 [{ transform: transformOf({ x: carried, y: 0, z: pose.z }), opacity: 1 },
                     { transform: transformOf(out), opacity: 0 }],
@@ -547,9 +555,9 @@ interface Window {
         const image = set[index]!;
         show(image);
         syncChrome();
-        picture.getAnimations().forEach(animation => animation.cancel());
+        picture.getAnimations?.().forEach(animation => animation.cancel());
         apply({ x: 0, y: 0, z: 1 });
-        if (!reduce.matches) {
+        if (motionAllowed()) {
             await picture.animate(
                 [{ transform: transformOf({ x: direction * travel, y: 0, z: 1 }), opacity: 0 },
                     { transform: transformOf({ x: 0, y: 0, z: 1 }), opacity: 1 }],
@@ -619,7 +627,7 @@ interface Window {
             if (busy || event.button > 0) return;
             stage.setPointerCapture(event.pointerId);
             pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-            picture.getAnimations().forEach(animation => animation.cancel());
+            picture.getAnimations?.().forEach(animation => animation.cancel());
             moved = false;
             if (pointers.size === 2) {
                 moved = true;
@@ -745,7 +753,7 @@ interface Window {
         stage.addEventListener('wheel', event => {
             event.preventDefault();
             if (busy || !loadedImage) return;
-            picture.getAnimations().forEach(animation => animation.cancel());
+            picture.getAnimations?.().forEach(animation => animation.cancel());
             const factor = Math.exp(-event.deltaY * (event.ctrlKey ? 0.01 : 0.0022));
             apply(rememberGestureZoom(zoomAt(event.clientX, event.clientY, pose.z * factor)));
         }, { passive: false });

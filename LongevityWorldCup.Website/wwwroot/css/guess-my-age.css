@@ -318,6 +318,93 @@
     transition: filter var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
 }
 
+/* The first sixty years light in cyan, the next sixty in cream, and years
+   121–130 start a new cyan lap. The wedge starts halfway between ticks. */
+.gma-dial {
+    display: none;
+}
+
+#detailsModal .guess-mode .gma-dial {
+    --gma-lit: var(--lwc-accent-bright, #19c3d1);
+    --gma-lap: var(--athlete-modal-cream, rgba(246,244,237,.92));
+    display: block;
+    position: absolute;
+    inset: calc(-1 * var(--gma-bezel-gap));
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+}
+.gma-dial::before,
+.gma-dial::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+        repeating-conic-gradient(from -1.4deg, currentColor 0 2.8deg, transparent 2.8deg 30deg),
+        repeating-conic-gradient(from -0.9deg, currentColor 0 1.8deg, transparent 1.8deg 6deg);
+    mask: radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 7px)),
+        var(--gma-wedge);
+    mask-composite: intersect;
+}
+.gma-dial::before {
+    color: var(--gma-lit);
+    --gma-wedge: conic-gradient(from 3deg, #000 calc(var(--gma-years) * 6deg), transparent 0);
+    filter: drop-shadow(0 0 4px color-mix(in srgb, currentColor 70%, transparent));
+}
+.gma-dial::after {
+    color: var(--gma-lap);
+    --gma-wedge: conic-gradient(from 3deg,
+        transparent max(0deg, calc((var(--gma-years) - 120) * 6deg)),
+        #000 0 max(0deg, calc((var(--gma-years) - 60) * 6deg)), transparent 0);
+    filter: drop-shadow(0 0 5px color-mix(in srgb, currentColor 70%, transparent));
+}
+.gma-dial-hand {
+    position: absolute;
+    left: calc(50% - 4.5px);
+    top: 0;
+    width: 9px;
+    height: 50%;
+    transform-origin: bottom center;
+    rotate: calc(var(--gma-years) * 6deg);
+    z-index: 1;
+}
+.gma-dial-hand::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: -5px;
+    width: 100%;
+    height: 20px;
+    border-radius: 5px;
+    background: var(--gma-lap);
+    box-shadow: 0 0 0 2px var(--gma-lit), 0 0 14px 2px color-mix(in srgb, var(--gma-lit) 60%, transparent);
+    transform-origin: bottom center;
+}
+#detailsModal .guess-mode:is(.gma-result-ready, :has(.gma-card.is-submitting)) .gma-dial {
+    opacity: 0.55;
+}
+@media (prefers-reduced-motion: no-preference) {
+    .guess-mode:not(.gma-motion-stopped) .gma-dial-hand.is-clicking::before {
+        animation: gma-dial-click 240ms ease-out;
+    }
+    .guess-mode:not(.gma-motion-stopped) #gmaBubble.gma-roll-up {
+        animation: gma-roll-up 200ms cubic-bezier(.22,1,.36,1);
+    }
+    .guess-mode:not(.gma-motion-stopped) #gmaBubble.gma-roll-down {
+        animation: gma-roll-down 200ms cubic-bezier(.22,1,.36,1);
+    }
+}
+@keyframes gma-dial-click {
+    40% { scale: 1.35 1.15; }
+}
+@keyframes gma-roll-up {
+    from { translate: 0 9px; }
+}
+@keyframes gma-roll-down {
+    from { translate: 0 -9px; }
+}
+
 /* The sweep hand only runs while the real age is travelling. */
 #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper::after {
     background: conic-gradient(from 0deg, transparent 0 250deg, rgba(246,244,237,.08) 280deg, var(--athlete-modal-cream, rgba(246,244,237,.92)) 357deg, transparent 357deg);
@@ -1658,6 +1745,7 @@
  */
 #detailsModal .gma-card {
     --gma-ruler-room: 1.1rem;
+    --gma-card-inset: clamp(1rem, 4vw, 2.25rem);
     --gma-slider-gap: clamp(0.85rem, 2.2vh, 1.35rem);
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -1677,7 +1765,7 @@
     box-shadow: 0 1.15rem 2.65rem rgba(0,0,0,.38), 0 0 0 1px rgba(255,255,255,.08) inset;
     padding:
         calc(var(--gma-overlap, 0px) + var(--gma-bezel-gap, 0px) + clamp(0.6rem, 1.6vh, 1rem))
-        clamp(1rem, 4vw, 2.25rem)
+        var(--gma-card-inset)
         clamp(1rem, 2.6vh, 1.6rem);
 }
 #detailsModal .gma-avatar {
@@ -1732,7 +1820,8 @@
     padding-bottom: var(--gma-ruler-room);
 }
 /* Decade ticks under the track turn the slider into an age ruler. */
-#detailsModal .gma-slider-wrap::after {
+#detailsModal .gma-slider-wrap::after,
+#detailsModal .guess-mode .gma-slider-wrap::before {
     content: '';
     position: absolute;
     left: calc(var(--gma-thumb, 64px) / 2);
@@ -1741,11 +1830,26 @@
     height: 0.5rem;
     pointer-events: none;
     background:
-        linear-gradient(90deg, var(--athlete-modal-cream-border, rgba(246,244,237,.52)) 0 2px, transparent 2px) 0 0 / calc((100% - 2px) / 13) 100% repeat-x,
-        linear-gradient(90deg, var(--athlete-modal-border, rgba(246,244,237,.34)) 0 1px, transparent 1px) calc((100% - 2px) / 26) 100% / calc((100% - 2px) / 13) 50% repeat-x;
+        linear-gradient(90deg, var(--gma-ruler-major, var(--athlete-modal-cream-border, rgba(246,244,237,.52))) 0 2px, transparent 2px) 0 0 / calc((100% - 2px) / 13) 100% repeat-x,
+        linear-gradient(90deg, var(--gma-ruler-minor, var(--athlete-modal-border, rgba(246,244,237,.34))) 0 1px, transparent 1px) calc((100% - 2px) / 26) 100% / calc((100% - 2px) / 13) 50% repeat-x;
+}
+#detailsModal .gma-slider-wrap::after {
     -webkit-mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
     mask: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
     opacity: 0.85;
+}
+#detailsModal .guess-mode .gma-slider-wrap::before {
+    --gma-ruler-major: var(--lwc-accent-bright, #19c3d1);
+    --gma-ruler-minor: var(--gma-ruler-major);
+    z-index: 1;
+    clip-path: inset(0 calc((1 - var(--gma-frac)) * 100% - 1px) 0 0);
+    filter: drop-shadow(0 0 3px var(--gma-ruler-major));
+}
+
+/* Track and guess bubble share the native thumb's travel even as the dialog resizes. */
+#detailsModal #gmaRange,
+#detailsModal #gmaBubble {
+    --percent: calc(var(--gma-thumb, 64px) / 2 + (100% - var(--gma-thumb, 64px)) * var(--gma-frac));
 }
 #detailsModal .gma-payoff-region,
 #detailsModal .gma-actions {
@@ -1794,6 +1898,12 @@
     font-size: var(--gma-bubble-font, 2.6rem);
     line-height: 1;
     padding: var(--gma-bubble-pad, 0.7rem 1.4rem);
+}
+/* The bubble stays centered on the thumb at either end. With enlarged text,
+   its padding can use only the space between the thumb center and the card edge. */
+#detailsModal #gmaBubble {
+    box-sizing: border-box;
+    max-inline-size: calc(var(--gma-thumb, 64px) + 2 * (var(--gma-card-inset) + var(--gma-slider-inset, 0.25rem)));
 }
 #detailsModal #gmaRange:focus-visible {
     outline: 3px solid var(--lwc-accent-bright, #19c3d1);
@@ -2083,7 +2193,8 @@
         --gma-ruler-room: .75rem;
         --gma-slider-gap: .55rem;
         width: 100%;
-        padding: .7rem .9rem .8rem;
+        --gma-card-inset: .9rem;
+        padding: .7rem var(--gma-card-inset) .8rem;
     }
 
     #detailsModal .modal-content.guess-mode .gma-heading,

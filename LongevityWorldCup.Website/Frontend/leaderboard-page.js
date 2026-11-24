@@ -789,7 +789,9 @@ function initializeAthletePortraitMotion() {
         bindings.set(img, { link, motion, controller });
         let pointerInside = false;
         const follow = () => surfaces.get(img)?.follow();
-        for (const event of ['pointermove', 'pointerenter', 'pointerleave', 'pointerdown', 'pointerup', 'pointercancel', 'focus', 'blur']) img.addEventListener(event, follow, options);
+        const followEvents = ['pointerdown', 'pointerup', 'pointercancel', 'focus', 'blur'];
+        if (!img.classList.contains('podium-portrait')) followEvents.push('pointermove', 'pointerenter', 'pointerleave');
+        for (const event of followEvents) img.addEventListener(event, follow, options);
         img.addEventListener('pointerenter', event => {
             pointerInside = event.pointerType !== 'touch';
             if (pointerInside) play(img);

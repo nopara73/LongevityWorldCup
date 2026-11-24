@@ -2460,16 +2460,6 @@ body.site-menu-open {
     }
 }
 
-/* The sheet's indicator lands with the items, not ahead of them. */
-.site-menu.is-open .nav-glide.is-shown {
-    animation: site-menu-glide-in var(--lwc-motion-move, 260ms) var(--lwc-ease-enter, ease-out) backwards;
-    animation-delay: 160ms;
-}
-
-@keyframes site-menu-glide-in {
-    from { opacity: 0; }
-}
-
 /* The travelling tint supplements the focused link's own visible outline. */
 .has-nav-glide > .footer-link.footer-link:focus-visible {
     outline-color: var(--site-nav-accent);
@@ -2477,10 +2467,6 @@ body.site-menu-open {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .site-menu.is-open .nav-glide.is-shown {
-        animation: none;
-    }
-
     .site-sticky-header-link {
         transition: none;
     }
@@ -2562,3 +2548,78 @@ html:has(#site-menu[open][data-page-scrollbar]) { scrollbar-gutter: stable; }
     transform: translateX(var(--footer-label-shift, 0px));
 }
 #site-menu .site-menu-follow .footer-link-label.is-below { bottom: auto; top: calc(100% + 0.55rem); }
+
+
+/* The native dialog owns keyboard and pointer input while open. Put its
+   Close button over the banner's animated cross without reserving a row. */
+.site-menu[data-layout="panel"]:not([data-inline-close]) .site-menu-toolbar {
+    position: absolute;
+    bottom: calc(100% + 11px);
+    right: -1px;
+}
+
+.site-menu[data-layout="panel"]:not([data-inline-close]) .site-menu-close {
+    border-color: transparent;
+    border-radius: var(--radius-md);
+    background: transparent;
+}
+
+.site-menu[data-layout="panel"]:not([data-inline-close]) .site-menu-close > span {
+    visibility: hidden;
+}
+
+.site-menu[data-layout="panel"] .site-menu-body {
+    padding-top: 0.75rem;
+}
+
+/* The current page's tile keeps its accent even while the pointer is elsewhere. */
+#site-menu .site-menu-pages .footer-link[aria-current="page"] {
+    color: #ffffff;
+}
+
+#site-menu .site-menu-pages .footer-link[aria-current="page"] i,
+#site-menu .site-menu-pages .footer-link[aria-current="page"] svg {
+    color: var(--site-nav-accent, #19c3d1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .site-menu.is-open .site-menu-pages .footer-link {
+        animation: site-menu-tile-in 260ms var(--lwc-ease-enter, cubic-bezier(0, 0, 0, 1)) backwards;
+        animation-delay: calc(60ms + var(--site-menu-i, 0) * 35ms);
+    }
+
+    .site-menu.is-open .site-menu-follow .footer-link {
+        animation: site-menu-icon-in 200ms var(--lwc-ease-pop, cubic-bezier(0.34, 1.4, 0.64, 1)) backwards;
+        animation-delay: calc(90ms + var(--site-menu-i, 0) * 12ms);
+    }
+
+    /* Closing folds the tiles away quickly instead of fading the panel alone. */
+    .site-menu.is-closing .site-menu-pages .footer-link,
+    .site-menu.is-closing .site-menu-follow .footer-link {
+        opacity: 0;
+        transform: translateY(-4px);
+        transition: opacity 120ms ease, transform 160ms ease;
+    }
+
+    /* The indicator folds with its tile, and the Escape that closes the menu
+       does not flash a focus ring on the tile that held focus. */
+    .site-menu.is-closing .site-menu-pages .nav-glide {
+        opacity: 0;
+        transition: opacity 120ms ease;
+    }
+
+    #site-menu.is-closing .footer-link:focus-visible {
+        outline-color: transparent;
+    }
+}
+
+/* The deal moves the tiles and icons, never fades them: the panel's first
+   visible frame already holds readable links (see "Keep menu content
+   readable during arrival"). */
+@keyframes site-menu-tile-in {
+    from { transform: translateY(8px); }
+}
+
+@keyframes site-menu-icon-in {
+    from { transform: scale(0.6); }
+}
