@@ -10,14 +10,22 @@
 
     /* Rows stop lighting one by one; the lane carries the highlight. */
     :root[data-lb-lane] .leaderboard table tbody tr:hover,
-    :root[data-lb-lane] .leaderboard table tbody tr.tier-amateur:hover {
+    :root[data-lb-lane] .leaderboard table tbody tr.tier-amateur:hover,
+    :root[data-lb-lane]:not([data-lwc-input="touch"]) #athleteLeaderboard > table > tbody > tr[data-athlete-name]:is(:hover, :has(.athlete-name:focus-visible)):not(:active) {
         background: inherit;
     }
     :root[data-lb-lane] .leaderboard table tbody tr:hover > td { background: transparent; }
 
+    /* A focused control keeps its own colours above the lane's tint. The
+       lane sits before the table, so this stays under the sticky column heads. */
+    :root[data-lb-lane] #athleteLeaderboard tr.is-laned :focus-visible {
+        position: relative;
+        z-index: 1;
+    }
+
     .lb-lane {
         position: absolute;
-        z-index: 2;
+        z-index: 1;
         top: 0;
         left: 0;
         width: var(--lane-w, 0px);

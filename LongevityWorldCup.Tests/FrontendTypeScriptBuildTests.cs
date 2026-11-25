@@ -25,6 +25,7 @@ public sealed class FrontendTypeScriptBuildTests
         "initial-view",
         "icons",
         "leaderboard-feel",
+        "leaderboard-lane",
         "leaderboard-podium",
         "leaderboard-row-preview",
         "layout-system",
