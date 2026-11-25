@@ -2311,7 +2311,7 @@ public sealed class AestheticSystemBrowserTests(
                             applied = clear.top >= chips.bottom - 1;
                         }
                         else if (arg.Name === 'athlete-stats') applied = arg.Value < 20
-                            ? getComputedStyle(probe.querySelector('.athlete-info-basics tr')).gridTemplateColumns.split(' ').length === 1
+                            ? getComputedStyle(probe.querySelector('.athlete-info-basics')).gridTemplateColumns.split(' ').length === 1
                             : parseFloat(getComputedStyle(probe.querySelector('.athlete-age-board > tr')).paddingLeft) < 15.5;
                         else if (arg.Name === 'athlete-proofs') applied = getComputedStyle(probe.querySelector('.proofs-gallery')).gridTemplateColumns.split(' ').length === 1;
                         else if (arg.Name === 'athlete-results') applied = getComputedStyle(probe.querySelector('.result-summary')).display === 'grid';
