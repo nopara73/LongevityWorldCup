@@ -343,7 +343,7 @@ public sealed class FlowActionDockResultBrowserTests(
 
     [Theory]
     [InlineData(390, 844, 245, false)]
-    [InlineData(390, 740, 220, true)]
+    [InlineData(390, 640, 220, true)]
     [InlineData(1366, 768, 68, false)]
     [InlineData(1366, 540, 68, true)]
     [InlineData(1280, 720, 68, false)]
@@ -646,6 +646,9 @@ public sealed class FlowActionDockResultBrowserTests(
         await page.GotoAsync("/dashboard", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         await page.WaitForFunctionAsync(
             "() => document.querySelectorAll('#athleteDashboardActions .flow-action').length >= 4");
+        await ExpectActionStackInViewportAsync(page, ".play-dashboard-actions:not(.flow-action-stack--docked)");
+
+        await page.SetViewportSizeAndWaitForLayoutAsync(390, 640);
         await ExpectActionStackDockedInViewportAsync(page, ".play-dashboard-actions");
         await page.Locator("#playDashboardBackBtn > i").EvaluateAsync(
             "icon => { icon.textContent = '\u2190'; icon.style.fontSize = '16px'; }");

@@ -5,9 +5,17 @@ namespace LongevityWorldCup.Website.Tools;
 
 internal static partial class HomepagePodiumAssets
 {
+    public const string SectionStyles = """
+        <link rel="stylesheet" href="{{ASSET_HOMEPAGE_CSS}}">
+        <link rel="stylesheet" href="{{ASSET_PRIZE_POOL_CSS}}">
+        <link rel="stylesheet" href="{{ASSET_MERCH_SHELF_CSS}}">
+        """;
+
+    private const string EnhancementMedia = "not all and (scripting:enabled)";
     // The podium, header, typography and layout keep their normal blocking styles.
     private static readonly HashSet<string> EnhancementStyles = new(StringComparer.Ordinal)
     {
+        "/vendor/font-awesome/6.7.2/css/all.min.css", "/css/icons.css", "/css/portrait-system.css",
         "/css/badges.css", "/css/mobile-roughness.css", "/css/flow-controls.css",
         "/vendor/flag-icons/css/flag-icons.min.css", "/css/entry-journey.css",
         "/css/prize-pool.css", "/css/merch-shelf.css", "/css/touch.css", "/css/pointer.css",
@@ -17,17 +25,52 @@ internal static partial class HomepagePodiumAssets
         "/css/leaderboard-filters.css"
     };
 
-    public static string Preloads(string? portrait) => portrait is null ? string.Empty :
-        $"<link rel=\"preload\" as=\"image\" fetchpriority=\"high\" href=\"{WebUtility.HtmlEncode(portrait)}\">\n" +
-        "<link rel=\"preload\" as=\"style\" href=\"{{ASSET_LEADERBOARD_CONTENT_CSS}}\">\n" +
-        "<link rel=\"preload\" as=\"style\" href=\"{{ASSET_SITE_HEADER_CSS}}\">";
+    public static string PrepareHead(string head, string? portrait)
+    {
+        // The populated homepage can paint its title with the metric-adjusted fallback
+        // while Roboto loads on demand. Discover its render-blocking styles before the page modules.
+        var preloads = portrait is null
+            ? """
+              <link rel="preload" href="{{ASSET_ROBOTO_REGULAR}}" as="font" type="font/woff2" crossorigin>
+              <link rel="preload" href="{{ASSET_ROBOTO_BOLD}}" as="font" type="font/woff2" crossorigin>
+              <link rel="preload" href="{{ASSET_FONT_AWESOME_CSS}}" as="style">
+              """
+            : $$$"""
+              <link rel="preload" as="style" fetchpriority="high" href="{{ASSET_SITE_HEADER_CSS}}">
+              <link rel="preload" as="image" fetchpriority="high" href="{{{WebUtility.HtmlEncode(portrait)}}}">
+              <link rel="preload" as="style" href="{{ASSET_AESTHETIC_SYSTEM_CSS}}">
+              <link rel="preload" as="style" href="{{ASSET_TYPE_SYSTEM_CSS}}">
+              <link rel="preload" as="style" href="{{ASSET_LAYOUT_SYSTEM_CSS}}">
+              <link rel="preload" as="style" href="{{ASSET_DEPTH_SYSTEM_CSS}}">
+              <link rel="preload" as="style" href="{{ASSET_LEADERBOARD_PODIUM_CSS}}">
+              <script>
+              document.addEventListener('load', ({ target }) => {
+                  if (target instanceof HTMLLinkElement && target.media === '{{{EnhancementMedia}}}') target.media = 'all';
+              }, true);
+              </script>
+              """;
+        return head.Replace("<!--FIRST-SCREEN-PRELOADS-->", preloads, StringComparison.Ordinal)
+            .Replace("{{ICON_SCRIPT_LOADING}}", portrait is null ? "" : " defer", StringComparison.Ordinal);
+    }
 
-    // With scripting disabled the media query matches immediately. With scripting
-    // enabled each sheet joins the cascade in its original position once downloaded.
-    public static string DeferEnhancementStyles(string html) => VersionedStyle().Replace(html, match =>
-        EnhancementStyles.Contains(match.Groups[1].Value)
-            ? match.Value[..^1] + " media=\"not all and (scripting: enabled)\" onload=\"this.media='all'\">"
-            : match.Value);
+    public static string PrioritizeStyles(string html) => VersionedStyle().Replace(html, match =>
+    {
+        var path = match.Groups[1].Value;
+        // Later sections wait for their styles in the body, behind the title and winners.
+        if (path is "/css/leaderboard-content.css" or "/css/homepage.css")
+            return match.Value[..^1] + " fetchpriority=\"low\">";
+
+        // This entire sheet is inside the same media query. Light pages can paint
+        // immediately and a live theme change still enables the dark surfaces.
+        if (path == "/css/dark-system.css")
+            return match.Value[..^1] + " media=\"(prefers-color-scheme: dark) and (forced-colors: none)\">";
+
+        // With scripting disabled the media query matches immediately. Otherwise each
+        // enhancement joins the cascade in its original position once downloaded.
+        return EnhancementStyles.Contains(path)
+            ? match.Value[..^1] + $" media=\"{EnhancementMedia}\">"
+            : match.Value;
+    });
 
     [GeneratedRegex("""<link rel="stylesheet" href="(/[^"?]+)\?v=[^"]+">""", RegexOptions.CultureInvariant)]
     private static partial Regex VersionedStyle();

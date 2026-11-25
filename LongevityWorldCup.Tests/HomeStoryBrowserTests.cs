@@ -133,17 +133,20 @@ public sealed class HomeStoryBrowserTests(
                 const main = document.querySelector('main.homepage-main');
                 const rect = selector => main.querySelector(selector).getBoundingClientRect();
                 const highlights = rect('.lwc-highlights-countdown-wrapper');
+                const heading = rect('.game-description');
+                const headingToPodium = rect('.podium').top - heading.bottom;
                 const boardBottom = rect('.full-rankings-action').bottom;
                 const hallTop = rect('#hall-of-fame').top;
                 return main.dataset.homepageVisitLayout === 'repeat'
-                    ? [rect('.podium').top - highlights.bottom, hallTop - boardBottom]
-                    : [highlights.top - boardBottom, hallTop - highlights.bottom];
+                    ? [heading.top - highlights.bottom, hallTop - boardBottom, headingToPodium]
+                    : [highlights.top - boardBottom, hallTop - highlights.bottom, headingToPodium];
             }
             """);
         var gap = width <= 768 ? 16 : 24;
         Assert.Equal(visits >= 3 ? "repeat" : "default", await page.Locator("main").GetAttributeAsync("data-homepage-visit-layout"));
         Assert.InRange(gaps[0], gap - 1, gap + 1);
         Assert.InRange(gaps[1], gap * 2 - 1, gap * 2 + 1);
+        Assert.Equal(0d, gaps[2]);
     }
 
     [Theory]

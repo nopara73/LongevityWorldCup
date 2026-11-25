@@ -116,6 +116,36 @@ public sealed class DocumentationContentsBarBrowserTests(
     }
 
     [Theory]
+    [InlineData(1440, 900)]
+    [InlineData(390, 844)]
+    public async Task ContentsLinks_RevisitingTheCurrentSectionKeepsBackAndForwardNavigation(int width, int height)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = height },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/ruleset");
+        var nav = page.GetByRole(AriaRole.Navigation, new() { Name = "Document navigation" });
+        const string previous = "#tracks";
+        const string current = "#prizes-and-payouts";
+
+        foreach (var fragment in new[] { previous, current, current })
+        {
+            if (width == 390)
+                await nav.GetByRole(AriaRole.Button).ClickAsync();
+            await nav.Locator($"a[href='{fragment}']").ClickAsync();
+            Assert.Equal(fragment, new Uri(page.Url).Fragment);
+        }
+
+        await page.GoBackAsync(new() { WaitUntil = WaitUntilState.Commit });
+        Assert.Equal(previous, new Uri(page.Url).Fragment);
+        await page.GoForwardAsync(new() { WaitUntil = WaitUntilState.Commit });
+        Assert.Equal(current, new Uri(page.Url).Fragment);
+    }
+
+    [Theory]
     [InlineData("/privacy", "#storage-and-retention")]
     [InlineData("/ruleset", "#prizes-and-payouts")]
     public async Task ContentsBar_UpdatesTheLabelInTheSameClickAsTheActiveLink(string path, string href)

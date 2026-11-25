@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using Xunit;
+using Xunit.Abstractions;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
 
 namespace LongevityWorldCup.Tests;
@@ -7,8 +8,67 @@ namespace LongevityWorldCup.Tests;
 [Collection(BrowserTestCollections.WorkloadB)]
 public sealed class ProfileDraftBrowserTests(
     PlaywrightBrowserFixture browserFixture,
-    BrowserTestAppFixture appFixture) : BrowserIntegrationTest(browserFixture, appFixture)
+    BrowserTestAppFixture appFixture,
+    ITestOutputHelper output) : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    [Fact]
+    public async Task TypingWithACroppedPortraitKeepsWritesSmallAndRestoresTheWholeDraft()
+    {
+        await using var context = await CreateContextAsync(390);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/health");
+        // Seed a legacy draft before opening the editor. A pending division response
+        // in an already-open editor can overwrite session storage with its current form.
+        await page.EvaluateAsync("""
+            () => {
+                const png = document.createElement('canvas').toDataURL().split(',')[1];
+                const draft = JSON.parse(sessionStorage.getItem('selectedAthlete'));
+                draft.ProfilePic = 'data:image/png;base64,' + btoa(atob(png) + '\0'.repeat(900 * 1024));
+                sessionStorage.setItem('tempAthlete', JSON.stringify(draft));
+            }
+            """);
+        await page.GotoAsync("/edit-profile");
+        await Assertions.Expect(page.Locator("#resetProfileDraftButton")).ToBeVisibleAsync();
+        var image = page.Locator(".illustration");
+        var portrait = await image.GetAttributeAsync("data-profile-pic-value");
+        Assert.True(portrait?.Length > 1_200_000);
+        await page.EvaluateAsync("""
+            () => {
+                window.draftWriteSizes = [];
+                const set = Storage.prototype.setItem;
+                Storage.prototype.setItem = function(key, value) {
+                    if (this === sessionStorage) window.draftWriteSizes.push(value.length);
+                    return set.call(this, key, value);
+                };
+            }
+            """);
+        var why = page.Locator("#whyDisplayInput");
+        await why.FillAsync("");
+        await why.PressSequentiallyAsync("Twelve edits");
+        var sizes = await page.EvaluateAsync<int[]>("window.draftWriteSizes");
+        Assert.NotEmpty(sizes);
+        output.WriteLine($"{sizes.Length} writes, {sizes.Sum()} characters total, largest {sizes.Max()}.");
+        Assert.True(sizes.Max() < 4096, $"Typing rewrote {sizes.Max():N0} characters in one storage operation.");
+
+        await page.EvaluateAsync("""
+            () => {
+                const selected = JSON.parse(sessionStorage.getItem('selectedAthlete'));
+                selected.DisplayName = 'Alex Morgan Sr.';
+                sessionStorage.setItem('selectedAthlete', JSON.stringify(selected));
+            }
+            """);
+        await page.ReloadAsync();
+        await Assertions.Expect(page.Locator("#character-title")).ToHaveTextAsync("Alex Morgan Sr.");
+        await Assertions.Expect(why).ToHaveValueAsync("Twelve edits");
+        Assert.True(portrait == await image.GetAttributeAsync("data-profile-pic-value"));
+        await page.Locator("#resetProfileDraftButton").ClickAsync();
+        await Assertions.Expect(page.Locator("#submitButton")).ToBeDisabledAsync();
+        await page.Locator("#undoProfileDraftButton").ClickAsync();
+        await page.ReloadAsync();
+        await Assertions.Expect(why).ToHaveValueAsync("Twelve edits");
+        Assert.True(portrait == await image.GetAttributeAsync("data-profile-pic-value"));
+    }
+
     [Theory]
     [InlineData(320, true)]
     [InlineData(1280, false)]
@@ -88,8 +148,9 @@ public sealed class ProfileDraftBrowserTests(
         });
         await page.EvaluateAsync("""
             () => { const draft = JSON.parse(sessionStorage.getItem('selectedAthlete'));
-                draft.Name = 'Another Athlete'; draft.DisplayName = 'Another Athlete'; draft.Why = 'Someone else';
+                draft.Name = 'Another Athlete'; draft.DisplayName = 'Another Athlete'; draft.PortraitRevision = 'old-photo';
                 sessionStorage.setItem('tempAthlete', JSON.stringify(draft));
+                sessionStorage.setItem('tempAthleteEdits', JSON.stringify({Name:draft.Name, PortraitRevision:draft.PortraitRevision, Why:'Someone else'}));
                 window.rememberPendingApplicationSubmission({submissionId:'another-athlete-request', payloadFingerprint:'other-draft',
                     submissionKind:'edit-request', applicantName:draft.Name}); }
             """);
@@ -98,6 +159,7 @@ public sealed class ProfileDraftBrowserTests(
         await Assertions.Expect(page.Locator("#whyDisplayInput")).ToHaveValueAsync("Training for a longer, healthier life.");
         await Assertions.Expect(page.Locator("#submitButton")).ToBeDisabledAsync();
         Assert.Null(await page.EvaluateAsync<string?>("sessionStorage.getItem('tempAthlete')"));
+        Assert.Null(await page.EvaluateAsync<string?>("sessionStorage.getItem('tempAthleteEdits')"));
         Assert.Equal(0, recoveries);
     }
 
@@ -162,6 +224,48 @@ public sealed class ProfileDraftBrowserTests(
         Assert.False(await page.EvaluateAsync<bool>("Boolean(window.getPendingApplicationSubmission('edit-request'))"));
         Assert.Equal(blockReplacement ? 1 : 0, recoveries);
         Assert.Equal(1, submissions);
+    }
+
+    [Fact]
+    public async Task FailedPortraitReplacementKeepsTheLastSavedPortraitAndTextTogether()
+    {
+        await using var context = await CreateContextAsync(1280);
+        var page = await OpenEditorAsync(context);
+        var image = page.Locator(".illustration");
+        var original = await image.GetAttributeAsync("data-profile-pic-value");
+        var png = await page.EvaluateAsync<string>("document.createElement('canvas').toDataURL().split(',')[1]");
+        await page.Locator("#profilePicInputModal").SetInputFilesAsync(new FilePayload
+        {
+            Name = "portrait.png", MimeType = "image/png", Buffer = Convert.FromBase64String(png)
+        });
+        await page.Locator("#changeProfileCropButton").ClickAsync();
+        var restore = page.Locator("#restoreProfilePicButton");
+        await Assertions.Expect(restore).ToBeVisibleAsync();
+        var savedPortrait = await image.GetAttributeAsync("data-profile-pic-value");
+        Assert.StartsWith("data:image/", savedPortrait);
+        var why = page.Locator("#whyDisplayInput");
+        await why.FillAsync("Keep this edit with my portrait.");
+        await page.EvaluateAsync("""
+            () => {
+                const set = Storage.prototype.setItem;
+                Storage.prototype.setItem = function(key, value) {
+                    if (this === sessionStorage && key === 'tempAthlete') throw new DOMException('Storage full', 'QuotaExceededError');
+                    return set.call(this, key, value);
+                };
+            }
+            """);
+        await restore.ClickAsync();
+        await Assertions.Expect(page.Locator("#profileDraftStatus")).ToContainTextAsync("could not be saved");
+        page.Dialog += async (_, dialog) => await dialog.AcceptAsync();
+        await page.ReloadAsync();
+        await Assertions.Expect(why).ToHaveValueAsync("Keep this edit with my portrait.");
+        Assert.True(savedPortrait == await image.GetAttributeAsync("data-profile-pic-value"));
+
+        await restore.ClickAsync();
+        await page.ReloadAsync();
+        await Assertions.Expect(why).ToHaveValueAsync("Keep this edit with my portrait.");
+        Assert.Equal(original, await image.GetAttributeAsync("data-profile-pic-value"));
+        Assert.Null(await page.EvaluateAsync<string?>("sessionStorage.getItem('tempAthleteEdits')"));
     }
 
     [Fact]

@@ -42,7 +42,7 @@ interface Window {
         const rr = replies.getBoundingClientRect();
         // On phones the post text runs under the author row, so the line starts
         // at the replies instead of cutting through the text and media.
-        const body = note.querySelector<HTMLElement>(":scope > p, :scope > .lmx-note-photo-grid, :scope > .lmx-announcement-content");
+        const body = note.querySelector<HTMLElement>(":scope > :is(.lmx-post-editor, p, .lmx-note-photo-grid, .lmx-announcement-content)");
         // Announcements indent their content with padding rather than margin.
         const bodyStart = visible(body)
             ? body.getBoundingClientRect().left + body.clientLeft + parseFloat(getComputedStyle(body).paddingLeft)

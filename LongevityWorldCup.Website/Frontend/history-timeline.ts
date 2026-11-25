@@ -24,12 +24,86 @@ interface Window {
     if (window.LwcHistoryTimeline) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
 
+    // Evidence strip: the screenshots in an entry (old leaderboards, posters)
+    // gather into one row of cards under its story, instead of each running the
+    // full column width. The cards keep their images, so they still open in the
+    // shared image reader. Each card leans slightly, like a print pinned to the
+    // timeline, and straightens under the pointer. The first time a visit
+    // reaches an entry, its strip deals the cards in; returning to the page
+    // later in the visit shows them settled. The strip owns this arrival, so
+    // its cards leave the document's own fade-in (documentation.js).
+    const PRINTS_DEALT = "lwc:history-prints-dealt";
+    function gatherEvidence(entries: readonly HTMLElement[]): void {
+        const isPicture = (node: Element | null): node is HTMLElement =>
+            node instanceof HTMLElement && node.tagName === "P"
+            && node.children.length === 1 && node.firstElementChild?.tagName === "IMG"
+            && !node.textContent?.trim();
+        for (const entry of entries) {
+            let index = 0;
+            for (const child of Array.from(entry.children)) {
+                if (!isPicture(child) || child.parentElement?.classList.contains("history-evidence")) continue;
+                const strip = document.createElement("div");
+                strip.className = "history-evidence";
+                child.before(strip);
+                let card: Element | null = child;
+                while (isPicture(card)) {
+                    const next: Element | null = card.nextElementSibling;
+                    card.classList.remove("documentation-reveal", "is-instant");
+                    card.classList.add("history-evidence-card");
+                    card.style.setProperty("--evidence-tilt", `${index++ % 2 ? 1.1 : -1.3}deg`);
+                    card.style.setProperty("--evidence-index", String(strip.childElementCount));
+                    strip.appendChild(card);
+                    card = next;
+                }
+                strip.dataset["count"] = String(strip.childElementCount);
+            }
+        }
+        const strips = Array.from(document.querySelectorAll<HTMLElement>(".history-evidence"));
+        let dealtBefore = false;
+        try { dealtBefore = sessionStorage.getItem(PRINTS_DEALT) === "1"; } catch { /* storage unavailable */ }
+        const settle = (strip: Element): void => {
+            strip.classList.remove("is-dealt");
+            strip.classList.add("is-settled");
+        };
+        if (dealtBefore || reduced.matches || !("IntersectionObserver" in window)) {
+            strips.forEach(settle);
+            return;
+        }
+        const observer = new IntersectionObserver(seen => {
+            for (const item of seen) {
+                if (!item.isIntersecting) continue;
+                observer.unobserve(item.target);
+                if (item.target.classList.contains("is-settled")) continue;
+                item.target.classList.add("is-dealt");
+                if (!dealtBefore) {
+                    dealtBefore = true;
+                    try { sessionStorage.setItem(PRINTS_DEALT, "1"); } catch { /* storage unavailable */ }
+                }
+            }
+        }, { rootMargin: "0px 0px -12% 0px" });
+        strips.forEach(strip => {
+            observer.observe(strip);
+            // Keyboard focus never lands on a print that is still waiting to
+            // deal in: it is simply there, with its focus ring.
+            strip.addEventListener("focusin", () => {
+                observer.unobserve(strip);
+                settle(strip);
+            }, { once: true });
+        });
+        reduced.addEventListener?.("change", () => {
+            if (!reduced.matches) return;
+            observer.disconnect();
+            strips.forEach(settle);
+        });
+    }
+
     function start(): void {
         const timeline = document.querySelector<HTMLElement>(".documentation-timeline");
         if (!timeline) return;
         const entries = Array.from(timeline.querySelectorAll<HTMLElement>(":scope > .documentation-timeline-entry"));
         if (!entries.length) return;
         timeline.dataset.live = "";
+        gatherEvidence(entries);
 
         // Decorations (all aria-hidden).
         const fill = document.createElement("span");
@@ -63,7 +137,7 @@ interface Window {
             const goingUp = shownYear !== "" && year < shownYear;
             shownYear = year;
             yearAnimation?.cancel();
-            if (reduced.matches || !yearFace.textContent) { settleYear(); return; }
+            if (reduced.matches || !yearFace.textContent || typeof yearFace.animate !== "function") { settleYear(); return; }
             const out = yearFace.animate(
                 [{ transform: "none", opacity: 1 }, { transform: `translateY(${goingUp ? 40 : -40}%)`, opacity: 0 }],
                 { duration: 160, easing: "cubic-bezier(.3,0,1,1)" }
@@ -116,7 +190,7 @@ interface Window {
         window.addEventListener("resize", schedule, { passive: true });
         window.addEventListener("pageshow", schedule);
         window.addEventListener("pagehide", settleYear);
-        reduced.addEventListener("change", () => { if (reduced.matches) settleYear(); });
+        reduced.addEventListener?.("change", () => { if (reduced.matches) settleYear(); });
         new ResizeObserver(schedule).observe(timeline);
         timeline.addEventListener("load", schedule, true);
         measure();

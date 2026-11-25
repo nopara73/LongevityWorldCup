@@ -738,7 +738,7 @@
 
 .custom-event-expander::before{
     content:"\f078";
-    font-family:"Font Awesome 6 Free";
+    font-family:var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-weight:900;
     position:absolute;
     left:50%;

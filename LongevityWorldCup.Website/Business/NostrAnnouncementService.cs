@@ -69,7 +69,8 @@ public sealed class NostrAnnouncementService(
                     }
                     var saved = JsonSerializer.Deserialize<NostrEvent>(json)
                         ?? throw new NostrRelayException("NostrInvalidPreparedEvent");
-                    if (deliveries.SuppressSupersededBadge(Platform, item.Id, item.Type, item.Text, athletes.IsCurrentBadgeAward, time.GetUtcNow())) continue;
+                    if (deliveries.SuppressIfSuperseded(Platform, item.Id,
+                            athletes.SupersededAnnouncementReason(item.Type, item.Text), time.GetUtcNow())) continue;
                     if (!deliveries.BeginAttempt(Platform, item.Id, time.GetUtcNow())) continue;
                     var receipt = await relays.PublishAsync(saved, ct);
                     deliveries.Complete(Platform, item.Id, receipt, time.GetUtcNow());

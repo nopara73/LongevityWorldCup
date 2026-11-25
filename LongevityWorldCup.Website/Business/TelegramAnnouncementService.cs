@@ -100,6 +100,7 @@ public sealed class TelegramAnnouncementService(
                     ? new TelegramPostRequest(saved.RootElement.GetString()!)
                     : saved.RootElement.Deserialize<TelegramPostRequest>()
                         ?? throw new InvalidOperationException("The saved Telegram post is invalid.");
+                if (deliveries.SuppressIfSuperseded(Platform, item.Id, athletes.SupersededAnnouncementReason(item.Type, item.Text), now)) continue;
                 if (!deliveries.BeginAttempt(Platform, item.Id, time.GetUtcNow(), onlyIfUnattempted: true)) continue;
                 postStarted = true;
                 var receipt = await api.PublishAsync(prepared, ct);

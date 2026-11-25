@@ -433,25 +433,28 @@ html body :is(label, .lmx-label, legend)[data-lwc-label~="invalid"] {
     clip-path: none;
 }
 
-:where(input[type="checkbox"], input[type="radio"]):is(:checked, :indeterminate) {
+/* Every radio in an unanswered group matches :indeterminate. Only a checkbox shows a mixed mark. */
+:where(input[type="checkbox"], input[type="radio"]):checked,
+:where(input[type="checkbox"]):indeterminate {
     border-color: var(--lwc-control-tone);
     background: var(--lwc-control-tone);
 }
 
-:where(input[type="checkbox"], input[type="radio"]):is(:checked, :indeterminate)::before {
+:where(input[type="checkbox"], input[type="radio"]):checked::before,
+:where(input[type="checkbox"]):indeterminate::before {
     scale: 1;
     opacity: 1;
     clip-path: inset(0 0 0 0);
 }
 
 @media (hover: hover) {
-    :where(input[type="checkbox"], input[type="radio"]):hover:not(:disabled, :checked, :indeterminate) {
+    :where(input[type="checkbox"]:not(:indeterminate), input[type="radio"]):hover:not(:disabled, :checked) {
         border-color: var(--lwc-control-hover);
         background: color-mix(in srgb, var(--lwc-control-tone) 8%, var(--lwc-surface));
     }
 
     /* Hovering the whole row reads as hovering its box. */
-    :where(label):hover > :where(input[type="checkbox"], input[type="radio"]):not(:disabled, :checked, :indeterminate) {
+    :where(label):hover > :where(input[type="checkbox"]:not(:indeterminate), input[type="radio"]):not(:disabled, :checked) {
         border-color: var(--lwc-control-hover);
     }
 }
@@ -468,7 +471,8 @@ html body :is(label, .lmx-label, legend)[data-lwc-label~="invalid"] {
     cursor: not-allowed;
 }
 
-:where(input[type="checkbox"], input[type="radio"]):disabled:is(:checked, :indeterminate) {
+:where(input[type="checkbox"], input[type="radio"]):disabled:checked,
+:where(input[type="checkbox"]):disabled:indeterminate {
     background: var(--lwc-border);
 }
 
@@ -526,7 +530,7 @@ html body :is(label, .lmx-label, legend)[data-lwc-label~="invalid"] {
     }
 
     /* Unchecking is a quick fade, never a reverse draw. */
-    :where(input[type="checkbox"], input[type="radio"]):not(:checked, :indeterminate)::before {
+    :where(input[type="checkbox"]:not(:indeterminate), input[type="radio"]):not(:checked)::before {
         transition-duration: var(--lwc-motion-press, 90ms);
         transition-delay: 0s;
     }
