@@ -21,12 +21,9 @@
 (() => {
     const modal = document.getElementById("detailsModal");
     const content = modal?.querySelector<HTMLElement>(".modal-content");
-    if (!modal || !content) return;
+    if (!modal || !content || typeof IntersectionObserver !== "function") return;
     const dialog: HTMLElement = modal;
     const scroller: HTMLElement = content;
-
-    type ChartLike = { reset(): void; update(mode?: string): void };
-    type ChartStatic = { getChart?(canvas: HTMLCanvasElement): ChartLike | undefined };
 
     const root = document.documentElement;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -113,7 +110,7 @@
     // Each chapter plays its own entrance once its section is on screen.
     function chapterArrived(chapter: HTMLElement, atOpen: boolean): void {
         if (chapter.id === "modalBadgeStrip") unlockBadges(chapter, atOpen ? 260 : 120);
-        if (chapter.id === "ageVisualization") { if (!atOpen) redrawRadar(); gapFor(chapter, true); }
+        if (chapter.id === "ageVisualization") gapFor(chapter, true);
         if (chapter.id === "athlete-biomarkers") armRows(chapter);
     }
 
@@ -206,14 +203,6 @@
             }
             frame(() => gap.style.setProperty("--story-gap", String(ratio)));
         });
-    }
-
-    function redrawRadar(): void {
-        const canvas = document.getElementById("ageRadarChart");
-        const chart = canvas instanceof HTMLCanvasElement ? (window.Chart as unknown as ChartStatic | undefined)?.getChart?.(canvas) : undefined;
-        if (!chart || !enabled()) return;
-        chart.reset();
-        chart.update();
     }
 
     // --- A timeline of every blood draw, scrubbable ---------------------------------

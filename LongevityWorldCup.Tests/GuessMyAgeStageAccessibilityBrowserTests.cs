@@ -148,7 +148,7 @@ public sealed class GuessMyAgeStageAccessibilityBrowserTests(
         await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new RouteFulfillOptions
         {
             Status = 200, ContentType = "application/json",
-            Body = JsonSerializer.Serialize(new { crowdAge = 60, crowdCount, actualAge = 44, guessAccepted = true })
+            Body = JsonSerializer.Serialize(new { previousCrowdAge = crowdCount == 1 ? (int?)null : 60, crowdAge = crowdCount == 1 ? guess : 60, crowdCount, actualAge = 44, guessAccepted = true })
         }));
         var page = await context.NewPageAsync();
         await page.Clock.InstallAsync();
@@ -215,7 +215,7 @@ public sealed class GuessMyAgeStageAccessibilityBrowserTests(
         await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new RouteFulfillOptions
         {
             Status = 200, ContentType = "application/json",
-            Body = """{"crowdAge":60,"crowdCount":12,"actualAge":44,"guessAccepted":true}"""
+            Body = """{"previousCrowdAge":60,"crowdAge":60,"crowdCount":12,"actualAge":44,"guessAccepted":true}"""
         }));
         var page = await context.NewPageAsync();
         await page.Clock.InstallAsync();
@@ -306,7 +306,7 @@ public sealed class GuessMyAgeStageAccessibilityBrowserTests(
         await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new RouteFulfillOptions
         {
             Status = 200, ContentType = "application/json",
-            Body = """{"crowdAge":60,"crowdCount":12,"actualAge":44,"guessAccepted":true}"""
+            Body = """{"previousCrowdAge":60,"crowdAge":60,"crowdCount":12,"actualAge":44,"guessAccepted":true}"""
         }));
         var page = await context.NewPageAsync();
         await page.Clock.InstallAsync();

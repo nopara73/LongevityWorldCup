@@ -871,7 +871,7 @@ html[data-play-entry="join"]:not(.play-route-ready) .play-hub-main {
         margin-left: 1.05rem;
         z-index: 1;
         color: var(--lwc-muted, #526373);
-        font-family: "Font Awesome 6 Free";
+        font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
         font-size: 1.05rem;
         font-weight: 900;
         line-height: 1;
@@ -3312,7 +3312,7 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     border-radius: 10px;
     background: #17212b;
     color: #ffffff;
-    font-family: "Font Awesome 6 Free";
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-size: 1rem;
     font-weight: 900;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
@@ -3325,11 +3325,7 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
 
 /* The dashboard deals itself: caption, then perks, then commands. */
 @media (prefers-reduced-motion: no-preference) {
-    .play-dashboard-panel:not([hidden]) .play-dashboard-card .play-dashboard-title {
-        animation: play-stage-rise 320ms 90ms var(--play-ease-enter, cubic-bezier(0, 0, 0, 1)) backwards;
-    }
-
-    .play-dashboard-panel:not([hidden]) .pro-discount-line {
+    .play-dashboard-panel[data-dashboard-deal] .pro-discount-line {
         animation: play-stage-rise 280ms 160ms var(--play-ease-enter, cubic-bezier(0, 0, 0, 1)) backwards;
     }
 
@@ -3338,7 +3334,6 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     .play-dashboard-panel:not([hidden]) .pro-discount-line:nth-child(n + 4) { animation-delay: 310ms; }
 
     .play-dashboard-panel:not([hidden]) .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(:disabled):hover {
-        translate: 0 -2px;
         box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
     }
 }
@@ -3387,7 +3382,7 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     border-radius: 50%;
     background: var(--lwc-success, #2e7d32);
     color: var(--lwc-on-accent, #fff);
-    font-family: "Font Awesome 6 Free";
+    font-family: var(--fa-style-family-classic, "Font Awesome 6 Free");
     font-size: 0.55rem;
     font-weight: 900;
     line-height: 1;
@@ -3463,6 +3458,166 @@ body.play-start-active .play-menu-actions:not(.flow-action-stack--docked) .flow-
     }
 
     .play-join-biomarkers details::details-content {
+        transition: none;
+    }
+}
+
+/* ==========================================================================
+   Athlete dashboard as a command deck.
+   The commands (Edit profile, Longevitymaxxing, Update Pheno/Bortz Age, or
+   Submit new results / Go pro) become even tiles, two by two at every width:
+   an icon tile leads each label, so the deck reads at a glance instead of as
+   a column of identical bars. Change athlete stays a quiet back link below.
+   The first deal moves the portrait, caption and glyphs. The commands retain
+   their full labels, focus rings and hit areas throughout.
+   Docked phone actions keep their existing bar.
+   ========================================================================== */
+#athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) {
+    width: min(100%, 680px);
+    max-width: 680px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, max(9em, 40%)), 1fr));
+    gap: 0.65rem;
+}
+
+#athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) #athleteDashboardDynamicActions {
+    display: contents;
+}
+
+#athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.55rem;
+    width: 100%;
+    max-width: none;
+    min-height: 3.25rem;
+    margin: 0;
+    padding: 0.35rem 0.7rem;
+    text-align: left;
+    border-radius: var(--lwc-radius-md, 8px);
+}
+
+#athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) > i {
+    position: static;
+    order: -1;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 2rem;
+    height: 2rem;
+    margin: 0;
+    border-radius: 12px;
+    background: var(--lwc-accent-soft);
+    color: var(--lwc-accent);
+    font-size: 1.05rem;
+    transform: none;
+    transition: transform 240ms var(--lwc-ease-pop, ease-out), background-color 200ms ease;
+}
+
+#athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .option-button.green.flow-action > i {
+    background: color-mix(in srgb, var(--lwc-on-accent, #fff) 22%, transparent);
+    color: inherit;
+}
+
+#athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) .flow-action__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+    line-height: 1.25;
+}
+
+@media (hover: hover) {
+    /* Let the icon tilt while the command stays under a pointer at its edge. */
+    #athleteDashboardActions .flow-action:not(:disabled, :active):hover {
+        translate: none;
+        transform: none;
+    }
+
+    #athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn):hover > i {
+        transform: rotate(-10deg) scale(1.1);
+    }
+
+    #athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .option-button.grey.flow-action:not(#playDashboardBackBtn):hover > i {
+        background: var(--lwc-accent);
+        color: var(--lwc-on-accent, #fff);
+    }
+}
+
+#athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) #playDashboardBackBtn {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: auto;
+    min-width: min(100%, 11rem);
+    margin-top: 0.15rem;
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+}
+
+/* Phones: two by two as well, with the icon over the label. */
+@media (max-width: 760px) {
+    #athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) {
+        gap: 0.55rem;
+        margin-top: 0;
+    }
+
+    #athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) {
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.35rem;
+        min-height: 4.75rem;
+        padding: 0.5rem 0.7rem;
+    }
+
+    #athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) > i {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 10px;
+        font-size: 0.95rem;
+    }
+
+    #athleteDashboardPanel .play-dashboard-actions:not(.flow-action-stack--docked) .flow-action:not(#playDashboardBackBtn) .flow-action__label {
+        font-size: 0.95rem;
+    }
+}
+
+/* Only the first committed dashboard starts a deal. The caption finishes last.
+   Backwards fill releases the icon transform for the existing hover treatment. */
+@media (prefers-reduced-motion: no-preference) {
+    .play-dashboard-panel[data-dashboard-deal] .athlete-picture-frame img {
+        animation: play-dashboard-settle 500ms var(--play-ease-enter, ease-out) backwards;
+    }
+
+    .play-dashboard-panel[data-dashboard-deal] .play-dashboard-title {
+        animation: play-dashboard-name 560ms var(--play-ease-enter, ease-out) backwards;
+    }
+
+    .play-dashboard-panel[data-dashboard-deal] .play-dashboard-actions .flow-action:not(.back-button) > i {
+        animation: play-dashboard-icon 320ms var(--lwc-ease-pop, ease-out) backwards;
+    }
+
+    .play-dashboard-panel[data-dashboard-deal] #athleteDashboardDynamicActions > :nth-child(1) > i { animation-delay: 55ms; }
+    .play-dashboard-panel[data-dashboard-deal] #athleteDashboardDynamicActions > :nth-child(2) > i { animation-delay: 110ms; }
+    .play-dashboard-panel[data-dashboard-deal] #athleteDashboardDynamicActions > :nth-child(3) > i { animation-delay: 165ms; }
+}
+
+@keyframes play-dashboard-settle {
+    from { transform: scale(1.08); filter: saturate(0.6) brightness(0.85); }
+}
+
+@keyframes play-dashboard-name {
+    from { transform: translateY(8px); }
+}
+
+@keyframes play-dashboard-icon {
+    from { transform: translateY(4px) scale(0.8) rotate(-18deg); }
+    100% { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #athleteDashboardPanel .play-dashboard-actions .flow-action > i {
         transition: none;
     }
 }

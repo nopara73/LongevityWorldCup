@@ -367,7 +367,7 @@ interface Window {
     let driftY = 0;
 
     function deep(img: Element | null): img is HTMLImageElement {
-        return img instanceof HTMLImageElement
+        return img instanceof HTMLImageElement && !img.classList.contains("podium-portrait")
             && known.has(img) && isAthletePortrait(img)
             && (img.dataset["lwcPortraitTier"] === "md" || img.dataset["lwcPortraitTier"] === "lg");
     }

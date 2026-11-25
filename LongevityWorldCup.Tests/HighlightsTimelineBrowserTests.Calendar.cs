@@ -8,6 +8,51 @@ namespace LongevityWorldCup.Tests;
 public sealed partial class HighlightsTimelineBrowserTests
 {
     [Theory]
+    [InlineData(1440)]
+    [InlineData(390)]
+    public async Task SparseArchiveKeepsEveryDateReachableWhenALongGapSplits(int width)
+    {
+        List<string> dates = ["2026-11-19", "2026-11-17", "2026-11-02", "2026-10-30", "2026-09-07", "1990-01-01"];
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 844 }, TimezoneId = "UTC",
+            Locale = "en-US", ReducedMotion = ReducedMotion.Reduce
+        });
+        await context.RouteAsync("**/api/events", route => route.FulfillAsync(new()
+        {
+            ContentType = "application/json",
+            Body = JsonSerializer.Serialize(dates.Select(date => new
+            {
+                Id = date, Type = 6, Text = $"Archive {date}\n\nDetails.", OccurredAt = date + "T12:00:00Z"
+            }))
+        }));
+        await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new() { ContentType = "application/json", Body = "[]" }));
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/events");
+        var calendar = page.GetByRole(AriaRole.Navigation, new() { Name = "Highlights by day" });
+        await Assertions.Expect(calendar.GetByRole(AriaRole.Button)).ToHaveCountAsync(dates.Count);
+        Assert.Equal(dates.Count, await calendar.Locator("button").CountAsync());
+        await Assertions.Expect(calendar.GetByRole(AriaRole.Img, new() { NameRegex = new("^No highlights") })).ToHaveCountAsync(2);
+        await Assertions.Expect(calendar.GetByRole(AriaRole.Img, new() { NameRegex = new("January 8, 1990.*September 6, 2026") })).ToHaveCountAsync(1);
+        // The single empty week between November 2 and 16 keeps its seven weekday slots.
+        Assert.Equal(1, await calendar.Locator(".event-pulse-week:not(:has(button))").CountAsync());
+        var september = calendar.Locator("[data-day='2026-9-7']");
+        await september.FocusAsync();
+        await september.EvaluateAsync("b => window.retainedArchiveDay = b");
+
+        dates.Add("2010-06-16");
+        await page.EvaluateAsync("() => loadEventsTable(null, false, null, true, {live:true})");
+        Assert.True(await september.EvaluateAsync<bool>("b => b === window.retainedArchiveDay && document.activeElement === b"));
+        await Assertions.Expect(calendar.GetByRole(AriaRole.Img, new() { NameRegex = new("^No highlights") })).ToHaveCountAsync(3);
+        await september.PressAsync(width >= 1280 ? "ArrowDown" : "ArrowRight");
+        await Assertions.Expect(calendar.Locator("[data-day='2010-6-16']")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("End");
+        await Assertions.Expect(calendar.Locator("[data-day='1990-1-1']")).ToBeFocusedAsync();
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(page.Locator("tr.main-row[data-event-id='1990-01-01']")).ToBeInViewportAsync();
+    }
+
+    [Theory]
     [InlineData(1440, "light")]
     [InlineData(390, "dark")]
     public async Task CalendarTracksLocalDaysWithoutRescanningAndKeepsFocusedButtons(int width, string theme)
@@ -44,8 +89,19 @@ public sealed partial class HighlightsTimelineBrowserTests
         Assert.Equal(0, await pendingRow.CountAsync());
         var pendingDate = start.AddDays(-3 * 145).AddHours(-8);
         var pendingDay = calendar.Locator($"button[data-day='{pendingDate.Year}-{pendingDate.Month}-{pendingDate.Day}']");
+        await pendingDay.EvaluateAsync("""
+            button => {
+                const count = () => document.querySelectorAll('#eventsTable tr.main-row').length;
+                let before;
+                button.addEventListener('click', () => { before = count(); }, {once:true});
+                button.closest('.event-pulse').addEventListener('click', () => {
+                    window.rowsAddedDuringCalendarClick = count() - before;
+                }, {once:true});
+            }
+            """);
         await pendingDay.PressAsync("Enter");
         await Assertions.Expect(pendingDay).ToHaveAttributeAsync("aria-current", "date");
+        Assert.InRange(await page.EvaluateAsync<int>("window.rowsAddedDuringCalendarClick"), 0, 40);
         Assert.InRange(await pendingRow.EvaluateAsync<double>("""
             row => row.getBoundingClientRect().top - row.parentElement.querySelector('.events-month-row').getBoundingClientRect().bottom
             """), -1, 2);

@@ -24,6 +24,10 @@ namespace LongevityWorldCup.Website.Business
         public DateOfBirthData? DateOfBirth { get; set; }
 
         public List<BiomarkerData>? Biomarkers { get; set; }
+        // Private lab wording by blood draw date; published athlete panels remain numeric.
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public Dictionary<string, string>? CrpReports { get; set; }
+
         public PaymentOfferData? PaymentOffer { get; set; }
     }
 

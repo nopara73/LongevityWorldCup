@@ -71,7 +71,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var form = page.Locator(".lmx-checkin-card");
         await AnswerHabitAsync(form, "sleep", "no");
         await AnswerHabitAsync(form, "exercise", "yes");
-        const string note = "  A walk with @Ari tomorrow.  ";
+        const string note = "\n  A walk with @Ari tomorrow.\n\nTake the longer route home.  ";
         await form.Locator("textarea").First.FillAsync(note);
         await AddCheckInPhotosAsync(form, "walk.png");
         await page.Locator(".lmx-checkin-switcher button[data-day='21']").ClickAsync();
@@ -148,16 +148,39 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         Assert.Equal(new[] { "walk.png", "three.png", "four.png", "five.png" }, await form.Locator("figcaption").AllTextContentsAsync());
     }
 
-    [Fact]
-    public async Task CheckInSaveFailure_KeepsFilesAndAnswersForOneRetry()
+    [Theory]
+    [InlineData(390)]
+    [InlineData(1280)]
+    public async Task CheckInRecoversFromDeploymentAndLostConfirmationWithOneTap(int width)
     {
-        await using var context = await NewContextAsync(Browser, App, new());
+        var mobile = width == 390;
+        await using var context = await NewContextAsync(Browser, App, new() {
+            ViewportSize = new() { Width = width, Height = 844 }, IsMobile = mobile, HasTouch = mobile
+        });
         var state = CheckInWorkspaceState();
-        var page = await OpenCheckInWorkspaceAsync(context, state);
+        var page = await OpenCheckInWorkspaceAsync(context, state, direct: true);
         var requests = new List<string>();
+        var receiptIds = new List<string>();
+        var stateReads = 0;
+        await page.RouteAsync("**/api/longevitymaxxing/participant", async route => {
+            if (++stateReads == 1 && !mobile)
+                await route.AbortAsync("connectionreset");
+            else
+                await FulfillJsonAsync(route, state.ToJsonString());
+        });
+        await page.RouteAsync("**/api/longevitymaxxing/check-in/receipt", async route => {
+            var body = JsonNode.Parse(route.Request.PostData!)!;
+            Assert.Equal("browser-token", body["accessToken"]!.GetValue<string>());
+            receiptIds.Add(body["submissionId"]!.GetValue<string>());
+            if (receiptIds.Count == 1)
+                await route.FulfillAsync(new() { Status = 503, ContentType = "text/html", Body = "<html>Restarting</html>" });
+            else
+                await FulfillJsonAsync(route, requests.Count == 2 ? "true" : "false");
+        });
         await page.RouteAsync("**/api/longevitymaxxing/check-in", async route => {
             requests.Add(route.Request.PostData ?? "");
-            if (requests.Count == 1) await route.FulfillAsync(new() { Status = 503, ContentType = "application/json", Body = "{\"message\":\"Connection interrupted. Try again.\"}" });
+            if (requests.Count == 1)
+                await route.FulfillAsync(new() { Status = 502, ContentType = "text/html", Body = "<html>Bad Gateway</html>" });
             else {
                 state["eligibleDays"]![0]!["existing"] = SavedCheckIn("Keep this note.", 2);
                 state["eligibleDays"]![0]!["existing"]!["images"] = JsonSerializer.SerializeToNode(new[]
@@ -165,30 +188,34 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
                     CheckInImage("/generated/longevitymaxxing/check-in-photos/walk.webp"),
                     CheckInImage("/generated/longevitymaxxing/check-in-photos/lunch.webp")
                 });
-                await FulfillJsonAsync(route, state.ToJsonString());
+                // The server committed both photos before the phone lost the response.
+                await route.AbortAsync("connectionreset");
             }
         });
         var form = page.Locator(".lmx-checkin-card");
         await AnswerAllHabitsAsync(form);
         await form.Locator("textarea").First.FillAsync("Keep this note.");
         await AddCheckInPhotosAsync(form, "walk.png", "lunch.png");
-        await form.Locator("button[type='submit']").ClickAsync();
-        await Assertions.Expect(form.Locator("[data-checkin-status]")).ToContainTextAsync("Not saved. Connection interrupted");
-        Assert.Equal(2, await form.Locator("[data-photo-previews] img").CountAsync());
-        Assert.Equal("Keep this note.", await form.Locator("textarea").First.InputValueAsync());
-        await page.Locator(".lmx-checkin-switcher button[data-day='21']").ClickAsync();
-        await page.Locator(".lmx-checkin-switcher button[data-day='17']").ClickAsync();
-        await form.GetByRole(AriaRole.Button, new() { Name = "Retry", Exact = true }).ClickAsync();
-        await Assertions.Expect(form).ToHaveAttributeAsync("data-day", "21");
+        var save = form.Locator("button[type='submit']");
+        if (mobile) await save.TapAsync();
+        else await save.ClickAsync();
+        await Assertions.Expect(save).ToHaveAttributeAsync("aria-busy", "true");
+        await Assertions.Expect(form.Locator("[data-checkin-status]")).ToBeEmptyAsync();
+        await Assertions.Expect(form.Locator("[data-photo-previews] img")).ToHaveCountAsync(2);
+        await Assertions.Expect(form).ToHaveAttributeAsync("data-day", "21", new() { Timeout = 35000 });
         Assert.Equal(2, requests.Count);
+        Assert.Equal(mobile ? 1 : 2, stateReads);
         var submissionIds = requests.Select(request => Regex.Match(request, "name=\"submissionId\"\\r\\n\\r\\n([^\\r\\n]+)").Groups[1].Value).ToArray();
         Assert.All(submissionIds, id => Assert.True(Guid.TryParse(id, out _)));
         Assert.Equal(submissionIds[0], submissionIds[1]);
+        Assert.Equal(3, receiptIds.Count);
+        Assert.All(receiptIds, id => Assert.Equal(submissionIds[0], id));
         foreach (var request in requests) {
             Assert.Contains("Keep this note.", request);
             Assert.Contains("walk.webp", request);
             Assert.Contains("lunch.webp", request);
         }
+        await page.Locator("#lmxCheckinDialogClose").ClickAsync();
         await page.Locator(".lmx-checkin-switcher button[data-day='17']").ClickAsync();
         Assert.Equal(0, await form.Locator("[data-photo-previews] img").CountAsync());
         Assert.Equal(2, await form.Locator(".lmx-note-photo-grid.saved img").CountAsync());
@@ -384,7 +411,7 @@ public sealed partial class LongevitymaxxingChallengeBrowserTests
         var requests = new List<JsonObject>();
         await page.RouteAsync("**/api/longevitymaxxing/check-in", async route => {
             requests.Add(JsonNode.Parse(route.Request.PostData!)!.AsObject());
-            await route.FulfillAsync(new() { Status = 503, ContentType = "application/json", Body = "{\"message\":\"Try again.\"}" });
+            await route.FulfillAsync(new() { Status = 429, ContentType = "application/json", Body = "{\"message\":\"Try again.\"}" });
         });
         var form = page.Locator(".lmx-checkin-card");
         await AnswerAllHabitsAsync(form);

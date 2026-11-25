@@ -125,7 +125,7 @@ public sealed class GuessMyAgeStageBrowserTests(
         {
             Status = 200,
             ContentType = "application/json",
-            Body = """{"crowdAge":60,"crowdCount":12,"actualAge":44,"guessAccepted":true}"""
+            Body = """{"previousCrowdAge":50,"crowdAge":45,"crowdCount":2,"actualAge":44,"guessAccepted":true}"""
         }));
         var page = await context.NewPageAsync();
         await page.Clock.InstallAsync();

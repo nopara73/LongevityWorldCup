@@ -314,8 +314,14 @@ const eventsPageAssets = document.currentScript.dataset;
         const k=map["currentplacement"];
         if(!k) return null;
         const v=Number(a[k]);
-        if(!Number.isFinite(v)) return null;
-        return Math.max(1,Math.floor(v));
+        return Number.isFinite(v) && v >= 1 ? Math.floor(v) : null;
+    }
+
+    function athletePodcastUrl(athlete){
+        if (!athlete) return '';
+        const keys = lowerKeyMap(athlete);
+        const url = String(athlete[keys.podcastlink || keys.podcasturl || keys.podcast] || '').trim();
+        return isSafeHttpUrl(url) ? url : '';
     }
 
     function extractSlugs(text){
@@ -708,6 +714,19 @@ const eventsPageAssets = document.currentScript.dataset;
         container.querySelectorAll('.row-appear:not(.is-visible)').forEach(applyVisibleNow);
     }
 
+    function revealNewRows(rows){
+        if (!rows.length) return;
+        if (prefersReducedMotion() || typeof IntersectionObserver !== 'function') {
+            rows.forEach(row => row.classList.add('is-visible'));
+            return;
+        }
+        const observer = ensureRowObserver();
+        rows.forEach(row => observer.observe(row));
+        requestAnimationFrame(() => rows.forEach(row => {
+            if (row.isConnected && !row.classList.contains('is-visible')) applyVisibleNow(row);
+        }));
+    }
+
     function applyArrivalOrderEpsilon(rows, stepMs=1){
         const seen=new Map();
         for(const r of rows){
@@ -842,16 +861,10 @@ const eventsPageAssets = document.currentScript.dataset;
         return out;
     }
 
-    function applyZebraStriping(tbody){
-        let idx=0;
-        const rows=[...tbody.closest('table').querySelectorAll('tbody tr.main-row')];
-        rows.forEach(r=>{
-            if(r.classList.contains('details-row')) return;
-            r.classList.remove('zebra-even','zebra-odd');
-            const cls=(idx%2===0)?'zebra-even':'zebra-odd';
-            r.classList.add(cls);
-            idx++;
-        });
+    function setFeedRowIndex(row, index){
+        row.dataset.rowIndex = String(index);
+        row.classList.toggle('zebra-even', index % 2 === 0);
+        row.classList.toggle('zebra-odd', index % 2 !== 0);
     }
 
     // The feed groups by month: a month's events sit together, and a repeated
@@ -1176,13 +1189,10 @@ const eventsPageAssets = document.currentScript.dataset;
         queue();
     }
 
-    function updateFreshHighlights(){
-        const now = Date.now();
-        document.querySelectorAll(':is(.event-board-page, #events-root-index) tr.main-row').forEach(row => {
-            const stamp = Date.parse(row.querySelector('time[datetime]')?.getAttribute('datetime') || '');
-            const age = now - stamp;
-            row.classList.toggle('is-fresh', Number.isFinite(age) && age >= 0 && age < 86400000);
-        });
+    function updateHighlightFreshness(row, now){
+        const stamp = Date.parse(row.querySelector('time[datetime]')?.getAttribute('datetime') || '');
+        const age = now - stamp;
+        row.classList.toggle('is-fresh', age >= 0 && age < 86400000);
     }
 
     // /events grows in chunks: skeletons wait at the end and settle into rows.
@@ -1208,6 +1218,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
     function appendFeedUnits(table, units){
         table.querySelector('tbody.events-more')?.remove();
+        const now = Date.now();
         let group = [...table.tBodies].at(-1);
         let previous = group?.querySelector('tr.main-row:last-child') || group?.lastElementChild?.previousElementSibling?.closest('tr.main-row');
         // Extend the final month without detaching existing rows. Regrouping
@@ -1231,11 +1242,10 @@ const eventsPageAssets = document.currentScript.dataset;
                 if (month) appendMonthHeading(table, group, month);
             }
             if (day) group._readingRows.push(row);
+            updateHighlightFreshness(row, now);
             group.append(...unit);
             previous = row;
         });
-        applyZebraStriping(group);
-        updateFreshHighlights();
     }
 
     function mountFeedMore(table){
@@ -1271,14 +1281,7 @@ const eventsPageAssets = document.currentScript.dataset;
             appendFeedUnits(table, units);
             mountFeedMore(table);
             queueMonthHandoff();
-            const fresh = table.querySelectorAll('.row-appear:not(.is-visible)');
-            if (prefersReducedMotion()) {
-                fresh.forEach(row => row.classList.add('is-visible'));
-            } else {
-                const io = ensureRowObserver();
-                fresh.forEach((row, i) => { row.dataset.rowIndex = String(i); io.observe(row); });
-                requestAnimationFrame(() => revealVisibleRowsImmediately(table));
-            }
+            revealNewRows(units.map(([row]) => row));
         }, dwell);
     }
 
@@ -1304,14 +1307,15 @@ const eventsPageAssets = document.currentScript.dataset;
     // Relative labels ("joined 3 days ago") follow the clock, rolling to the
     // new value instead of waiting for a reload.
     function tickRelativeLabels(){
-        updateFreshHighlights();
+        const now = Date.now();
+        document.querySelectorAll(':is(.event-board-page, #events-root-index) tr.main-row').forEach(row => updateHighlightFreshness(row, now));
         const reduced = prefersReducedMotion();
         document.querySelectorAll('.event-rel[data-rel-at]').forEach(el => {
             const next = relativeDayLabel(el.dataset.relAt);
             const current = el.dataset.relHtml ?? el.innerHTML;
             el.dataset.relHtml = next;
-            if (reduced) { el.innerHTML = next; return; }
             if (next === current) return;
+            if (reduced) { el.innerHTML = next; return; }
             el.innerHTML = `<span class="event-rel-out" aria-hidden="true">${current}</span><span class="event-rel-in">${next}</span>`;
             window.setTimeout(() => { if (el.dataset.relHtml === next) el.innerHTML = next; }, 520);
         });
@@ -1708,23 +1712,49 @@ const eventsPageAssets = document.currentScript.dataset;
         }));
     }
 
-    // Compare the fetched chapter data before touching the mounted timeline.
-    // A directory refresh can update athletes who appear nowhere in this feed.
-    function chapterSnapshot(rows, athletes, linkNames) {
+    // Compute display dependencies once per athlete in this directory response.
+    // Historical badge tooltips also depend on which badges the athlete still holds.
+    function feedAthleteSnapshot(athletes){
+        const cache = new Map();
+        return slug => {
+            if (!cache.has(slug)) {
+                const athlete = athletes.get(slug);
+                if (!athlete) return null;
+                const keys = lowerKeyMap(athlete);
+                const badges = athlete[keys.badges || keys.athletebadges || keys.awards || keys.badge];
+                cache.set(slug, [athleteName(athlete), athletePic(athlete), getCurrentPlacement(athlete),
+                    athletePodcastUrl(athlete), Array.isArray(badges) ? badges.filter(badge => badge && typeof badge === 'object').map(badge =>
+                        [badge, window.makeTooltipFromServerBadge?.(badge, athlete)]) : []]);
+            }
+            return cache.get(slug);
+        };
+    }
+
+    function feedRowSlugs(row){
+        if (row.type !== EVENT_TYPE.CustomEvent) return row.slugs || [];
+        const slugs = new Set(row.slugs);
+        window.CustomEventMarkup.toPlainText(row.text, { mentionResolver: slug => {
+            slugs.add(slugifyLocal(normalizeLinkId(slug)));
+            return slug;
+        } });
+        return [...slugs];
+    }
+
+    function chapterSnapshot(rows, snapshotFor, linkNames) {
         const referenced = new Set();
         const fresh = [];
         const now = new Date();
         for (const row of rows) {
-            for (const slug of row.slugs) referenced.add(slug);
+            for (const slug of feedRowSlugs(row)) referenced.add(slug);
             const age = now - Date.parse(row.displayOccurredAt || row.occurredAt);
             if (age >= 0 && age < 86400000) fresh.push(row.id);
         }
         const locale = new Intl.DateTimeFormat().resolvedOptions();
-        return JSON.stringify([rows, [...referenced].map(slug => athletes.get(slug)), linkNames,
+        return JSON.stringify([rows, [...referenced].map(snapshotFor), linkNames,
             now.toDateString(), locale.locale, locale.timeZone, fresh]);
     }
 
-    function renderRows(rows, athletesIndex, linkNames, options=null){
+    function renderRows(rows, athletesIndex, linkNames, options){
         const tbody = document.querySelector("#eventsTable tbody");
         const table=tbody.closest('table');
         // Reobserve only the surviving, unrevealed rows after reconciliation.
@@ -1769,7 +1799,6 @@ const eventsPageAssets = document.currentScript.dataset;
         }
 
         const nextNodes = [];
-        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const rowsToRender = rows;
 
         const afterNameWithCurrentRankFor = () => (slug, aObj) => {
@@ -1801,10 +1830,10 @@ const eventsPageAssets = document.currentScript.dataset;
             // Selection bookkeeping can change during fitting without changing
             // the event's content or its already decoded portrait.
             const { homepageHighlightSelection, ...content } = r;
-            const signature = JSON.stringify([content, dateLabel, (r.slugs || []).map(slug => athletesIndex.get(slug)), linkNames, openLinksInNewTab, allowBadgeClicks]);
+            const signature = JSON.stringify([content, dateLabel, feedRowSlugs(r).map(options.snapshotFor), linkNames, openLinksInNewTab, allowBadgeClicks]);
             const retained = existingRows.get(String(r.id));
             if (retained?._feedSignature === signature) {
-                retained.dataset.rowIndex = String(idx);
+                setFeedRowIndex(retained, idx);
                 if (homepageHighlightSelection) retained.dataset.highlightSelection = homepageHighlightSelection;
                 else delete retained.dataset.highlightSelection;
                 nextNodes.push(retained);
@@ -1876,13 +1905,7 @@ const eventsPageAssets = document.currentScript.dataset;
 
                 const badgeKey = String(r.badgeLabel||"").trim().toLowerCase();
                 if(!isLost && !isSolo && badgeKey === "podcast"){
-                    const podcastUrl = (function(){
-                        if(!a) return "";
-                        const am = lowerKeyMap(a);
-                        const key = am["podcastlink"] || am["podcasturl"] || am["podcast"];
-                        const v = key ? String(a[key]).trim() : "";
-                        return isSafeHttpUrl(v) ? v : "";
-                    })();
+                    const podcastUrl = athletePodcastUrl(a);
 
                     const episodeHtml = podcastUrl
                         ? `<a href="${esc(podcastUrl)}" target="_blank" rel="noopener">episode</a>`
@@ -2197,7 +2220,7 @@ const eventsPageAssets = document.currentScript.dataset;
             delete tr.dataset.highlightSelection;
             delete tr.dataset.day;
             tr.className = "row-appear main-row";
-            tr.dataset.rowIndex = String(idx);
+            setFeedRowIndex(tr, idx);
             tr.dataset.groupId = `g_${idx}`;
             tr.dataset.eventTypeName = eventTypeName(r.type);
             tr.dataset.badgeEarned = String(r.type === EVENT_TYPE.BadgeAward && r.badgeDirection !== 'lost' && r.badgeDirection !== 'solo' && !r.isSolo);
@@ -2270,7 +2293,6 @@ const eventsPageAssets = document.currentScript.dataset;
                         btn.setAttribute("title", open ? "Hide details" : "Show details");
                         btn.setAttribute("aria-label", open ? "Hide details" : "Show details");
                     }
-                    applyZebraStriping(tbody);
                 };
                 tr._setCustomEventExpanded = setExpanded;
                 const toggleOpen = () => setExpanded(!tr.classList.contains('is-open'));
@@ -2305,20 +2327,25 @@ const eventsPageAssets = document.currentScript.dataset;
             const keep = Math.max(FEED_CHUNK, retainedEnd + 1, requestedIndex + 10, restoredFeed?.rendered || 0);
             units.slice(0, keep).forEach(unit => tbody.append(...unit));
             table._feedPending = units.slice(keep);
-            window.highlightsCalendar?.update(units, row => {
+            window.highlightsCalendar?.update(units, async (row, isCurrent) => {
                 if (!row.isConnected) {
-                    const index = table._feedPending.findIndex(unit => unit[0] === row);
-                    if (index < 0) return;
+                    const pending = table._feedPending;
                     window.clearTimeout(table._feedMoreTimer);
                     table._feedLoadingMore = false;
-                    const added = table._feedPending.splice(0, index + FEED_CHUNK);
-                    appendFeedUnits(table, added);
-                    added.forEach(([event]) => event.classList.add('is-visible'));
+                    // Keep a long archive jump responsive to a second selection.
+                    while (pending.length && !row.isConnected && isCurrent()) {
+                        const added = pending.splice(0, FEED_CHUNK);
+                        appendFeedUnits(table, added);
+                        added.forEach(([event]) => event.classList.add('is-visible'));
+                        if (!row.isConnected && pending.length)
+                            await (window.scheduler?.yield?.() ?? new Promise(resolve => setTimeout(resolve, 0)));
+                    }
+                    if (pending !== table._feedPending) return;
                     mountFeedMore(table);
                     queueMonthHandoff();
                 }
                 // A just-mounted chapter has not received its first resize entry yet.
-                measureMonthHeading(row.parentElement.firstElementChild);
+                if (row.isConnected && isCurrent()) measureMonthHeading(row.parentElement.firstElementChild);
             });
         } else {
             // Keep unchanged rows and their images attached. Reattaching the
@@ -2343,7 +2370,6 @@ const eventsPageAssets = document.currentScript.dataset;
             : []);
         expandedEvents.forEach(id => renderedTimelineRows.get(id)?._setCustomEventExpanded?.(true));
 
-        applyZebraStriping(tbody);
         markFeedGroups(tbody);
         if (chapters) mountFeedMore(table);
         table.closest('.events-board').style.removeProperty('min-height');
@@ -2387,14 +2413,7 @@ const eventsPageAssets = document.currentScript.dataset;
             (timelineRows.includes(focusedMainRow) && active?.isConnected ? active : control)?.focus({ preventScroll: true });
         }
 
-        const rowsNow = table.querySelectorAll(".row-appear:not(.is-visible)");
-        if (!prefersReduced && rowsNow.length && typeof IntersectionObserver === 'function'){
-            const io = ensureRowObserver();
-            rowsNow.forEach(r => io.observe(r));
-            requestAnimationFrame(() => revealVisibleRowsImmediately(table));
-        } else {
-            rowsNow.forEach(r => r.classList.add("is-visible"));
-        }
+        revealNewRows(table.querySelectorAll('.row-appear:not(.is-visible)'));
         tickRelativeLabels();
 
         const requestedEventId = getRequestedEventId();
@@ -2869,10 +2888,12 @@ const eventsPageAssets = document.currentScript.dataset;
 
             if(n!==null) rows=rows.slice(0,n);
             const currentRowIds = rows.map(r => r && r.id ? String(r.id) : '').filter(Boolean);
+            const snapshotFor = feedAthleteSnapshot(athletesIndex);
             const snapshot = mode === "viewAll" && root?.closest('.event-board-page')
-                ? chapterSnapshot(rows, athletesIndex, !!linkNames) : null;
+                ? chapterSnapshot(rows, snapshotFor, !!linkNames) : null;
             if (!live || snapshot === null || snapshot !== loadRoot._chapterSnapshot) {
                 renderRows(rows,athletesIndex,!!linkNames,{
+                    snapshotFor,
                     seenMode: (!live && mode !== "athlete") ? mode : null,
                     layoutOnly: !!options?.layoutOnly && !live
                 });

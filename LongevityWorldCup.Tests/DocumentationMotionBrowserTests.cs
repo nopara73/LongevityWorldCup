@@ -37,6 +37,28 @@ public sealed class DocumentationMotionBrowserTests(PlaywrightBrowserFixture bro
         Assert.Empty(hidden);
     }
 
+    [Theory]
+    [InlineData("/ruleset", "#point-system-ranking-body > ul")]
+    [InlineData("/privacy", ".documentation-document > ul")]
+    public async Task ReadingList_BelowTheFoldHasItsTextAndStopsOnFirstPaint(string path, string selector)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = 390, Height = 844 },
+            ReducedMotion = ReducedMotion.NoPreference
+        });
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, path);
+        Assert.True(await page.Locator(selector).EvaluateAsync<bool>("""
+            list => list.getBoundingClientRect().top > innerHeight &&
+                getComputedStyle(list).opacity === '1' &&
+                [...list.children].every(item => {
+                    const stop = getComputedStyle(item, '::before');
+                    return stop.content !== 'none' && stop.transform === 'none';
+                })
+            """), "The list and its markers should already be visible before scrolling.");
+    }
+
     [Fact]
     public async Task Rules_InitializeOnceReverseFoldsAndKeepTheirAccessibleState()
     {

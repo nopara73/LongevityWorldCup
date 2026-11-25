@@ -63,6 +63,31 @@ public sealed class ProofPreviewBrowserTests(PlaywrightBrowserFixture browserFix
         await Assertions.Expect(viewer.Locator(".lwc-viewer-stage img")).ToHaveAttributeAsync("src", Original(1));
     }
 
+    [Fact]
+    public async Task OpenGalleryRecoversWhenPreviewAndOriginalFailDuringTheSameOutage()
+    {
+        var originals = new ConcurrentQueue<string>();
+        await using var context = await CreateContextAsync(390, originals);
+        var failures = new ConcurrentQueue<string>();
+        await context.RouteAsync("**/michael_lustgarten/proof_preview_test_1.png?*", route =>
+        {
+            failures.Enqueue(new Uri(route.Request.Url).PathAndQuery);
+            return route.FulfillAsync(new() { Status = 502, ContentType = "text/html", Body = "Bad Gateway" });
+        }, new() { Times = 2 });
+
+        var page = await OpenAsync(context);
+        var first = page.Locator("#proofsGallery img").First;
+        await first.FocusAsync();
+        await page.WaitForFunctionAsync("() => document.querySelector('#proofsGallery img').naturalWidth === 90");
+        Assert.Equal([Original(1).Replace("/athletes/", "/api/proof-previews/"), Original(1)], failures);
+        await Assertions.Expect(first).ToHaveAccessibleNameAsync("Enlarge proof image 1");
+        await Assertions.Expect(first).ToBeFocusedAsync();
+        Assert.Empty(originals);
+        await page.Keyboard.PressAsync("Enter");
+        await Assertions.Expect(page.Locator(".lwc-viewer")).ToHaveAttributeAsync("data-image-state", "ready");
+        Assert.Equal([Original(1)], originals.Select(url => new Uri(url).PathAndQuery));
+    }
+
     [Theory]
     [InlineData("anton-eich", 390)]
     [InlineData("roman-v", 1280)]

@@ -369,8 +369,8 @@ public sealed class SwaggerOpenApiTests(TestWebApplicationFactory sharedFactory)
 
         var css = await client.GetStringAsync("/css/swagger-ui-mobile.css");
 
-        Assert.Contains(".swagger-ui .model-box-control > span:last-child:not(.model-toggle)", css);
-        Assert.DoesNotContain(".swagger-ui .model-box-control > span:last-child {", css);
+        Assert.Contains(".model-container .model-box-control:not(table *) > span:last-child:not(.model-toggle)", css);
+        Assert.DoesNotContain(".swagger-ui .model-box-control > span:last-child", css);
     }
 
     [Fact]
