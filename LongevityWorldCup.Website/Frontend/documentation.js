@@ -323,7 +323,8 @@ function setDocumentationNavOpen(documentationNav, open) {
             if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
                 return;
             }
-            const target = document.getElementById(decodeURIComponent(link.getAttribute("href").slice(1)));
+            const hash = link.hash;
+            const target = document.getElementById(decodeURIComponent(hash.slice(1)));
             if (!target) {
                 return;
             }
@@ -339,7 +340,9 @@ function setDocumentationNavOpen(documentationNav, open) {
             const top = Math.min(
                 target.getBoundingClientRect().top + window.scrollY - getOffset(),
                 document.documentElement.scrollHeight - window.innerHeight);
-            history.pushState(history.state, "", link.getAttribute("href"));
+            if (hash !== window.location.hash) {
+                history.pushState(history.state, "", hash);
+            }
 
             const land = () => {
                 jump?.cleanup();
