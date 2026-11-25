@@ -6725,7 +6725,10 @@ function resultUnit(text) {
 }
 
 function disposeBiomarkerHistory() {
-    const history = getRuntimeElementById('athlete-biomarkers')?._biomarkerHistory;
+    const section = getRuntimeElementById('athlete-biomarkers');
+    const history = section?._biomarkerHistory;
+    // A panel still folding away belongs to the athlete being replaced.
+    section?.querySelectorAll('.result-detail-row').forEach(settleResultDetailMotion);
     history?.expanded?.chart?.destroy();
     history?.clockHistoryObserver?.disconnect();
     if (history) history.expanded = null;
@@ -6805,8 +6808,13 @@ function renderBiomarkerHistory(history, athletes) {
         if (measure.clock) {
             sparkline.appendChild(createClockHistory(history, measure, measuredIndices));
         } else {
-            sparkline.setAttribute('aria-hidden', 'true');
-            sparkline.appendChild(createBiomarkerSparkline(history.labels, measure.values));
+            // A biomarker's trend lane: the drawn trend, then its change since the first reading.
+            const lane = document.createElement('div');
+            lane.className = 'biomarker-overview-trend';
+            const trend = createBiomarkerSparkline(history.labels, measure.values);
+            trend.setAttribute('aria-hidden', 'true');
+            lane.appendChild(trend);
+            sparkline.appendChild(lane);
         }
         const result = document.createElement('td');
         result.className = 'biomarker-overview-result';
@@ -6817,13 +6825,20 @@ function renderBiomarkerHistory(history, athletes) {
         arrow.className = 'biomarker-overview-arrow';
         arrow.setAttribute('aria-hidden', 'true');
         result.append(current);
+        // A clock's change sits under its headline figure; a biomarker's ends its trend,
+        // so every latest value stands alone on one line.
         const change = createResultChange(measure, measuredIndices);
-        if (change) result.appendChild(change);
+        if (change) (measure.clock ? result : sparkline.firstElementChild).appendChild(change);
         result.appendChild(arrow);
         row.append(heading, sparkline, result);
         rows.append(row, detail);
     });
     table.tBodies[0].replaceChildren(rows);
+    // The change tags share one column, as wide as the longest of them.
+    const changeChars = Math.max(0, ...[...table.querySelectorAll('.biomarker-overview-trend .biomarker-overview-change')]
+        .map(change => change.textContent.length));
+    table.style.setProperty('--result-change-width', changeChars ? `calc(${changeChars}ch + 1.6rem)` : '0px');
+    table.toggleAttribute('data-result-changes', changeChars > 0);
     const strips = table.querySelectorAll('.clock-history-scroll');
     if (strips.length) {
         history.clockHistoryObserver = new ResizeObserver(entries => entries.forEach(({ target }) =>
@@ -6890,16 +6905,80 @@ function createClockHistory(history, measure, indices) {
     return strip;
 }
 
+// A result's panel unfolds from its row on the press and folds back into it.
+// The fold animates its single grid row between minmax(0, 0fr) and
+// minmax(0, 1fr), so no height is measured. Reduced motion, or a browser
+// without Element.animate, switches at once.
+function playResultDetailMotion(detail, opening, done) {
+    const fold = detail.querySelector('.result-detail-fold');
+    const still = !fold || typeof fold.animate !== 'function'
+        || (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    if (still) {
+        done?.();
+        return;
+    }
+    const open = { gridTemplateRows: 'minmax(0, 1fr)', opacity: 1 };
+    const shut = { gridTemplateRows: 'minmax(0, 0fr)', opacity: 0 };
+    const motion = fold.animate(opening ? [shut, open] : [open, shut],
+        { duration: opening ? 260 : 200, easing: opening ? 'cubic-bezier(0.2, 0, 0, 1)' : 'cubic-bezier(0.4, 0, 1, 1)' });
+    detail._resultMotion = motion;
+    motion.onfinish = () => {
+        if (detail._resultMotion !== motion) return;
+        detail._resultMotion = null;
+        done?.();
+    };
+}
+
+// Settles a panel that is still moving; a chart still folding away goes with it.
+function settleResultDetailMotion(detail) {
+    const motion = detail._resultMotion;
+    if (!motion) return;
+    detail._resultMotion = null;
+    motion.cancel();
+    detail._closingResult?.chart?.destroy();
+    detail._closingResult = null;
+}
+
+// Returns the pressed result to where it was. The read waits for the next
+// frame, so it shares that frame's layout and still lands before it paints.
+function keepResultRowAt(row, top) {
+    const scroller = row.closest('#detailsModal .modal-content');
+    if (!scroller || typeof scroller.scrollTo !== 'function') return;
+    requestAnimationFrame(() => {
+        if (!row.isConnected) return;
+        const drift = row.getBoundingClientRect().top - top;
+        if (Math.abs(drift) >= .5) scroller.scrollTo({ top: scroller.scrollTop + drift, behavior: 'instant' });
+    });
+}
+
 function toggleResultDetail(history, measure, row, detail, button) {
     const previous = history.expanded;
+    // Folding a panel above the result in hand would carry that result away.
+    // It closes at once instead, and once the new panel is in place the dialog
+    // scrolls by the height it gave back (keepResultRowAt), so the result stays
+    // exactly where it was pressed. The position is read before anything changes.
+    const above = previous && previous.detail !== detail
+        && previous.detail.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING;
+    const pressedTop = above ? row.getBoundingClientRect().top : null;
     if (previous) {
-        previous.chart?.destroy();
-        previous.detail.hidden = true;
+        history.expanded = null;
         previous.button.setAttribute('aria-expanded', 'false');
         previous.row.classList.remove('is-expanded');
-        history.expanded = null;
+        settleResultDetailMotion(previous.detail);
+        if (above) {
+            previous.chart?.destroy();
+            previous.detail.hidden = true;
+        } else {
+            previous.detail._closingResult = previous;
+            playResultDetailMotion(previous.detail, false, () => {
+                previous.detail._closingResult = null;
+                previous.chart?.destroy();
+                previous.detail.hidden = true;
+            });
+        }
     }
     if (previous?.detail === detail) return;
+    settleResultDetailMotion(detail);
     detail.hidden = false;
     button.setAttribute('aria-expanded', 'true');
     row.classList.add('is-expanded');
@@ -6935,11 +7014,16 @@ function toggleResultDetail(history, measure, row, detail, button) {
     const plot = document.createElement('div');
     plot.className = 'result-plot';
     body.append(plot, createResultHistoryTable(history, measure));
-    cell.appendChild(body);
+    const fold = document.createElement('div');
+    fold.className = 'result-detail-fold';
+    fold.appendChild(body);
+    cell.appendChild(fold);
     detail.replaceChildren(cell);
     const state = { history, measure, row, detail, button, plot, points, chart: null };
     history.expanded = state;
     drawResultPlot(state);
+    playResultDetailMotion(detail, true);
+    if (pressedTop != null) keepResultRowAt(row, pressedTop);
     body.onkeydown = event => {
         if (event.key !== 'Escape') return;
         event.stopPropagation();
@@ -7006,7 +7090,7 @@ function historySvgNode(parent, tag, attributes, text) {
 
 function createBiomarkerSparkline(labels, values) {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('viewBox', '0 0 120 40');
+    svg.setAttribute('viewBox', '0 0 160 40');
     const dates = labels.map((date, index) => ({ index, timestamp: biomarkerHistoryTimestamp(date) }))
         .filter(date => Number.isFinite(date.timestamp)).sort((a, b) => a.timestamp - b.timestamp);
     const measured = dates.filter(date => isBiomarkerHistoryValue(values[date.index]));
@@ -7016,10 +7100,10 @@ function createBiomarkerSparkline(labels, values) {
     const valueScale = Math.max(Math.abs(min), Math.abs(max), 1);
     const start = dates[0]?.timestamp ?? 0;
     const duration = (dates.at(-1)?.timestamp ?? start) - start;
-    const xAt = date => duration ? 8 + (date.timestamp - start) / duration * 104 : 60;
+    const xAt = date => duration ? 8 + (date.timestamp - start) / duration * 144 : 80;
     const latest = measured.at(-1)?.index;
     // The whole test timeline sits under every trend, so a short series reads as recent, not misplaced.
-    historySvgNode(svg, 'line', { class: 'sparkline-track', x1: 8, y1: 36, x2: 112, y2: 36 });
+    historySvgNode(svg, 'line', { class: 'sparkline-track', x1: 8, y1: 36, x2: 152, y2: 36 });
     dates.forEach(date => {
         const x = xAt(date);
         historySvgNode(svg, 'line', { class: 'sparkline-tick', x1: x, y1: 34, x2: x, y2: 38 });
@@ -7070,6 +7154,7 @@ function drawResultPlot(state) {
             plot.replaceChildren(retry);
             return;
         }
+        plot.classList.add('is-drawn');
         const style = getComputedStyle(plot);
         const color = token => style.getPropertyValue(token).trim();
         const accent = color(measure.clock === 'bortz' ? '--athlete-modal-chart-bortz' : '--athlete-modal-chart-pheno');

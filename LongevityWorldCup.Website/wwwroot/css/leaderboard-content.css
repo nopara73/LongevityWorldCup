@@ -1811,7 +1811,6 @@
  #detailsModal .result-field-count{ margin:.3rem 0 .2rem; color:var(--athlete-modal-muted); font-size:.75rem; }
  #detailsModal .result-plot{ position:relative; width:100%; height:320px; min-width:0; margin:.5rem 0 1rem; contain:inline-size; user-select:none; }
  #detailsModal .result-plot canvas{ display:block; max-width:100%; cursor:crosshair; touch-action:pan-y; }
- #detailsModal .result-plot[aria-busy="true"]{ opacity:.5; }
  #detailsModal .biomarker-history-table{ width:100%; border-collapse:collapse; font-size:.85rem; }
  #detailsModal .biomarker-history-table caption,
  #detailsModal .biomarker-overview-table caption{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
@@ -3968,7 +3967,8 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
    Results over time, the proofs and the proof viewer read like one data
    product: a column-head rule under the section band, numbers on a tabular
    grid, every trend drawn on the same test timeline, and the change since
-   the first reading under each latest value. */
+   the first reading under each clock's latest value and at the end of each
+   biomarker's trend. */
 #detailsModal .modal-content > #athlete-biomarkers{
     --result-name-width:38%;
     --result-trend-width:34%;
@@ -4077,14 +4077,15 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
 /* Younger is better for both clocks, so their drop carries the clock's own colour. */
 #detailsModal .result-clock .biomarker-overview-change[data-direction="down"]{ color:var(--result-accent); }
 
-/* The disclosure chevron is quieter and turns rather than jumps. */
+/* The disclosure chevron is quieter, turns rather than jumps, and leans
+   toward the panel it opens. */
 #detailsModal .biomarker-overview-arrow{
     right:.9rem;
     width:.45rem;
     height:.45rem;
     margin-top:-.28rem;
     opacity:.75;
-    transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+    transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), translate var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
 }
 
 /* Trends: an area under the line in the result's colour, on the shared test timeline. */
@@ -4124,6 +4125,55 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     stroke-width:1.5;
 }
 #detailsModal .result-summary:has(button:disabled) .biomarker-overview-history svg{ opacity:.5; }
+
+/* A biomarker's trend lane: the trend, then its change since the first
+   reading as a small tag in a column as wide as the longest change
+   (--result-change-width, set by leaderboard-page.js). Every trend ends at the
+   same place, so the latest readings line up down the list, and every latest
+   value stands alone in its own column. */
+#detailsModal .biomarker-overview-trend{
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) var(--result-change-width, 0px);
+    align-items:center;
+    gap:.5rem;
+    min-width:0;
+}
+#detailsModal .biomarker-overview-trend svg{
+    justify-self:end;
+    margin:0;
+}
+/* With a single test there are no changes: each lone reading sits centred under its column. */
+#detailsModal .biomarker-overview-table:not([data-result-changes]) .biomarker-overview-trend{ grid-template-columns:minmax(0, 1fr); }
+#detailsModal .biomarker-overview-table:not([data-result-changes]) .biomarker-overview-trend svg{ justify-self:center; }
+#detailsModal .biomarker-overview-trend .biomarker-overview-change{
+    justify-self:start;
+    margin:0;
+    padding:.1rem .45rem;
+    border:1px solid var(--athlete-doc-rule, rgba(246,244,237,.1));
+    border-radius:var(--lwc-radius-pill, 999px);
+    background:rgba(246,244,237,.04);
+    line-height:1.25;
+    white-space:nowrap;
+}
+
+/* The row in hand lifts its trend: a firmer line, a fuller area and a larger
+   latest point; a press deepens the band. */
+#detailsModal .biomarker-overview-history :is(line, path){
+    transition:stroke-width var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+#detailsModal .biomarker-overview-history circle{
+    transform-box:fill-box;
+    transform-origin:center;
+    transition:transform 180ms var(--lwc-ease, ease);
+}
+#detailsModal .result-summary:is(:has(button:enabled):hover, :has(button:focus-visible), .is-expanded) .biomarker-overview-trend line:not(.sparkline-track):not(.sparkline-tick){
+    stroke-width:2.4;
+    opacity:1;
+}
+#detailsModal .result-summary:is(:has(button:enabled):hover, :has(button:focus-visible), .is-expanded) .biomarker-overview-trend .sparkline-area path{ opacity:.26; }
+#detailsModal .result-summary:is(:has(button:enabled):hover, :has(button:focus-visible), .is-expanded) .biomarker-overview-trend circle.is-latest{ transform:scale(1.35); }
+#detailsModal .result-summary:has(button:enabled):hover:not(.is-expanded) .biomarker-overview-arrow{ translate:2px 0; }
+#detailsModal .result-summary:has(button:enabled):active{ background:rgba(246,244,237,.08); }
 
 /* Clock history: the readings sit on one timeline with the latest as a filled node. */
 #detailsModal .clock-history-reading{ gap:.4rem; font-size:.78rem; font-variant-numeric:tabular-nums; }
@@ -4168,6 +4218,33 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     border-radius:var(--lwc-radius-md, 8px);
     background:rgba(8,10,10,.18);
 }
+/* The panel unfolds from its row (leaderboard-page.js). Under its title, the
+   legend and the field size share one line; the frame keeps the chart's
+   height from the first frame, shows quiet rules while the chart library
+   loads, and the chart then fades into it. */
+#detailsModal .result-detail-fold{ display:grid; grid-template-rows:minmax(0, 1fr); overflow:hidden; }
+#detailsModal .result-detail{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:.35rem 1rem;
+    min-height:0;
+    overflow:hidden;
+}
+#detailsModal .result-detail > :is(h4, .result-plot, .biomarker-history-table){ flex:1 0 100%; }
+#detailsModal .result-detail > .result-field-count{ margin:0 0 0 auto; }
+#detailsModal .result-plot[aria-busy="true"]{
+    background-image:repeating-linear-gradient(to bottom, transparent 0 calc(20% - 1px), var(--athlete-doc-rule, rgba(246,244,237,.1)) calc(20% - 1px) 20%);
+    background-origin:content-box;
+    background-clip:content-box;
+}
+#detailsModal .result-plot canvas{ opacity:0; transition:opacity 220ms var(--lwc-ease, ease); }
+#detailsModal .result-plot.is-drawn canvas{ opacity:1; }
+@media (prefers-reduced-motion: reduce){
+    #detailsModal .biomarker-overview-history :is(line, path, circle),
+    #detailsModal .biomarker-overview-arrow,
+    #detailsModal .result-plot canvas{ transition:none; }
+}
 /* The dated readings are a ledger: dates muted, values as figures, rows banded. */
 #detailsModal .biomarker-history-table{
     border:1px solid var(--athlete-doc-rule, rgba(246,244,237,.1));
@@ -4200,9 +4277,18 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
 
 @media (max-width:600px){
     #detailsModal .modal-content > #athlete-biomarkers{
-        --result-name-width:44%;
-        --result-trend-width:26%;
+        --result-name-width:40%;
+        --result-trend-width:34%;
     }
+    /* Rows stay one compact line with the unit beside the name, so the change
+       tag sits under its trend, right under the latest reading. */
+    #detailsModal .biomarker-overview-trend{
+        grid-template-columns:minmax(0, 1fr);
+        justify-items:end;
+        row-gap:.15rem;
+    }
+    #detailsModal .result-summary:not(.result-clock) .biomarker-overview-trend svg{ height:24px; }
+    #detailsModal .biomarker-overview-trend .biomarker-overview-change{ justify-self:end; padding-block:0; }
     #detailsModal #biomarkerResultList{ --result-content-inset:.85rem; }
     #detailsModal .biomarker-overview-table > tbody > .result-summary > td:last-child,
     #detailsModal .biomarker-overview-table > thead > tr > th:last-child{ padding-right:1.7rem; }
@@ -4217,7 +4303,7 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
 @media (max-width:360px){
     #detailsModal .modal-content > #athlete-biomarkers{
         --result-name-width:40%;
-        --result-trend-width:28%;
+        --result-trend-width:30%;
     }
     #detailsModal .result-clock .biomarker-overview-current{ font-size:1.25rem; }
     #detailsModal .biomarker-overview-table > tbody > .result-summary > td:last-child,
@@ -4367,6 +4453,9 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
         white-space:nowrap;
     }
     #detailsModal .biomarker-overview-table > tbody > .result-summary > :is(th,td){ border-bottom:0; }
+    /* The group rule runs once across the whole first biomarker, above both its lines. */
+    #detailsModal .biomarker-overview-table > tbody > .result-summary.result-first-biomarker{ border-top:2px solid var(--athlete-modal-border); }
+    #detailsModal .biomarker-overview-table > tbody > .result-summary.result-first-biomarker > *{ border-top-style:none; }
     #detailsModal .biomarker-overview-table > tbody > .result-summary > .biomarker-overview-history{
         grid-column:1 / -1;
         grid-row:2;
@@ -5482,41 +5571,6 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
     transition:opacity 200ms 500ms, transform 280ms var(--story-standard) 500ms, left 260ms var(--story-standard), top 260ms var(--story-standard);
 }
 
-/* Results over time trace themselves in, row after row. */
-#detailsModal tr.result-summary[data-draw="wait"] > *{ opacity:0; }
-#detailsModal tr.result-summary[data-draw="in"] > *{ animation:lwc-story-row 360ms var(--story-enter) backwards; }
-#detailsModal tr.result-summary[data-draw="in"] > :nth-child(2){ animation-delay:60ms; }
-#detailsModal tr.result-summary[data-draw="in"] > :nth-child(3){ animation-delay:120ms; }
-@keyframes lwc-story-row{ from{ opacity:0; transform:translateY(10px); } }
-#detailsModal tr.result-summary[data-draw] .biomarker-overview-history svg line[pathLength]{
-    stroke-dasharray:1;
-    stroke-dashoffset:1;
-}
-#detailsModal tr.result-summary[data-draw="in"] .biomarker-overview-history svg line[pathLength]{
-    animation:lwc-story-trace 620ms var(--story-standard) 140ms forwards;
-}
-@keyframes lwc-story-trace{ to{ stroke-dashoffset:0; } }
-#detailsModal tr.result-summary[data-draw] .biomarker-overview-history svg circle{
-    transform-box:fill-box;
-    transform-origin:center;
-}
-#detailsModal tr.result-summary[data-draw="in"] .biomarker-overview-history svg circle{
-    animation:lwc-story-dot 300ms var(--story-standard) backwards;
-    animation-delay:calc(var(--i, 0) * 45ms + 160ms);
-}
-#detailsModal tr.result-summary[data-draw="in"] .sparkline-area{ animation:lwc-story-fade 500ms var(--story-enter) 420ms backwards; }
-@keyframes lwc-story-dot{ 0%{ opacity:0; transform:scale(0); } 70%{ transform:scale(1.35); } }
-@keyframes lwc-story-fade{ from{ opacity:0; } }
-#detailsModal tr.result-summary[data-draw="in"] .clock-history-reading{
-    animation:lwc-story-reading 300ms var(--story-enter) backwards;
-    animation-delay:calc(var(--i, 0) * 55ms + 140ms);
-}
-@keyframes lwc-story-reading{ from{ opacity:0; transform:translateX(-8px); } }
-#detailsModal tr.result-summary[data-draw="in"] .biomarker-overview-change{
-    animation:lwc-story-pop 320ms var(--story-standard) 700ms backwards;
-}
-@keyframes lwc-story-pop{ 0%{ opacity:0; transform:scale(.6); } 70%{ transform:scale(1.12); } }
-
 /* Share and personal links answer hover and press. */
 #detailsModal .athlete-links > a > i,
 #detailsModal .athlete-share-wrapper > button > i{
@@ -5565,8 +5619,7 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
 @media (prefers-reduced-motion: reduce){
     #detailsModal [data-story],
     #detailsModal [data-unlock] .badge-class,
-    #detailsModal [data-unlock] .modal-badge-name,
-    #detailsModal tr.result-summary[data-draw] > *{ opacity:1 !important; transform:none !important; filter:none !important; animation:none !important; transition:none !important; }
+    #detailsModal [data-unlock] .modal-badge-name{ opacity:1 !important; transform:none !important; filter:none !important; animation:none !important; transition:none !important; }
     #detailsModal .modal-badge-item[data-unlock]::after{ display:none; }
     #detailsModal .age-story-gap-fill,
     #detailsModal .age-story-gap-bio,
