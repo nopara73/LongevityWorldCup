@@ -8,8 +8,8 @@
     // No-script pages use the finish-line fallback. Measure the enhanced board only after revealing it.
     if (standings) standings.hidden = false;
     const defaultPortrait = script.dataset.defaultPortrait || '';
-    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const moving = () => !motionQuery.matches;
+    const motionQuery = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+    const moving = () => !motionQuery?.matches;
 
     // ---- Closing timeline: live states, rail legs and the ticking clock ----
 
@@ -135,7 +135,7 @@
         }), { rootMargin: '0px 0px -12% 0px', threshold: 0 });
         bands.forEach(band => {
             // Anything already on screen when the script runs stays put: no flash, no late entrance.
-            if (band.getBoundingClientRect().top < fold * 0.88) {
+            if (band.getBoundingClientRect().top < fold) {
                 reveal(band);
                 return;
             }
@@ -372,7 +372,7 @@
         if (band) { band.classList.remove('ro-reveal'); reveal(band); }
         settleEntrance();
     });
-    motionQuery.addEventListener('change', () => {
+    motionQuery?.addEventListener('change', () => {
         if (!moving()) { bands.forEach(reveal); settleEntrance(); }
     });
     document.addEventListener('visibilitychange', () => { if (document.hidden) settleEntrance(); });
@@ -427,72 +427,99 @@
     let marks = [];
     let length = 0;
     let line = 0;
+    let laneTop = 0;
     let frame = 0;
     let measuring = 0;
+    let synced = false;
 
     const mark = (y, finish) => {
         const element = document.createElement('span');
         element.className = finish ? 'ro-lane-mark is-finish' : 'ro-lane-mark';
         element.style.top = `${y}px`;
-        lane.append(element);
         return { element, y };
     };
 
     // Offsets are layout positions, so the sheet's entrance transform never
-    // shifts the waypoints off their sections.
+    // shifts the waypoints off their sections. Everything is read before
+    // anything is written, so a measure costs one style and layout pass.
     function layout() {
         measuring = 0;
+        if (!synced) {
+            synced = true;
+            // The lane runs the sheet's entrance on the sheet's clock, so the
+            // waypoints stay on their sections while the sheet slides in (and a
+            // late script doesn't give the lane an entrance of its own).
+            const sheetEntrance = essay.getAnimations?.().find(animation => animation.animationName === 'ro-sheet-up');
+            const laneEntrance = lane.getAnimations?.().find(animation => animation.animationName === 'ro-sheet-up');
+            if (sheetEntrance && laneEntrance) sheetEntrance.ready.then(() => { laneEntrance.startTime = sheetEntrance.startTime; }, () => {});
+        }
+        const finish = essay.querySelector(':scope > .ro-standings:not([hidden])') || essay.querySelector(':scope > .ro-actions');
+        const laneStyle = getComputedStyle(lane);
+        const shown = finish && laneStyle.display !== 'none';
+        let top = 0;
+        let stops = [];
+        let gutter = 0;
+        let scrollTop = 0;
+        let lastScroll = 0;
+        if (shown) {
+            const posterEnd = poster ? poster.offsetTop + poster.offsetHeight : 0;
+            // Where the axis passes the poster's corner (phones), the lane starts just clear of it.
+            const lead = parseFloat(laneStyle.getPropertyValue('--ro-lane-lead')) || 0;
+            top = Math.max(essay.offsetTop, posterEnd + lead);
+            // Sections are offset from inside the sheet's border.
+            const start = top - essay.offsetTop - essay.clientTop;
+            // The finish waypoint sits on the middle of the chequered strip.
+            const check = parseFloat(getComputedStyle(guide).getPropertyValue('--ro-check')) || 0;
+            length = Math.max(0, finish.offsetTop + check - start);
+            stops = [...essay.querySelectorAll(':scope > :is(.ro-body, .ro-timeline)')]
+                .map(section => section.offsetTop - start)
+                .filter(y => y > 0 && y < length);
+            const guideBox = guide.getBoundingClientRect();
+            gutter = guideBox.left + essay.offsetLeft;
+            scrollTop = window.scrollY;
+            laneTop = guideBox.top + scrollTop + top;
+            lastScroll = document.documentElement.scrollHeight - window.innerHeight;
+        }
+
         marks.forEach(({ element }) => element.remove());
         marks = [];
-        const finish = essay.querySelector(':scope > .ro-standings:not([hidden])') || essay.querySelector(':scope > .ro-actions');
-        if (!finish || getComputedStyle(lane).display === 'none') return;
-
-        const posterEnd = poster ? poster.offsetTop + poster.offsetHeight : 0;
-        // Where the axis passes the poster's corner (phones), the lane starts just clear of it.
-        const lead = parseFloat(getComputedStyle(lane).getPropertyValue('--ro-lane-lead')) || 0;
-        const top = Math.max(essay.offsetTop, posterEnd + lead);
-        // Sections are offset from inside the sheet's border.
-        const start = top - essay.offsetTop - essay.clientTop;
-        // The finish waypoint sits on the middle of the chequered strip.
-        const check = parseFloat(getComputedStyle(guide).getPropertyValue('--ro-check')) || 0;
-        length = Math.max(0, finish.offsetTop + check - start);
-
+        if (!shown) { length = 0; return; }
         lane.style.top = `${top}px`;
         lane.style.left = `${essay.offsetLeft}px`;
         lane.style.height = `${length}px`;
-        lane.style.setProperty('--ro-gutter', `${guide.getBoundingClientRect().left + essay.offsetLeft}px`);
-
-        marks.push(mark(0, false));
-        essay.querySelectorAll(':scope > :is(.ro-body, .ro-timeline)').forEach(section => {
-            const y = section.offsetTop - start;
-            if (y > 0 && y < length) marks.push(mark(y, false));
-        });
-        marks.push(mark(length, true));
+        lane.style.setProperty('--ro-gutter', `${gutter}px`);
+        marks = [mark(0, false), ...stops.map(y => mark(y, false)), mark(length, true)];
+        lane.append(...marks.map(({ element }) => element));
 
         // The reader's line sits a little above the middle of the view; on a
         // short page it drops just far enough that the finish is always reached.
-        const laneTop = guide.getBoundingClientRect().top + window.scrollY + top;
-        const lastScroll = document.documentElement.scrollHeight - window.innerHeight;
         line = Math.round(Math.min(window.innerHeight - 24, Math.max(window.innerHeight * 0.38, laneTop + length - lastScroll)));
         lane.style.setProperty('--ro-line', `${line}px`);
-        update();
+        update(scrollTop);
     }
 
-    function update() {
+    // Scrolling reads only the scroll position: the lane's place on the page is
+    // measured in layout().
+    function update(scrollTop = window.scrollY) {
         frame = 0;
-        const top = lane.getBoundingClientRect().top;
-        const at = Math.min(Math.max(line - top, 0), length);
+        const at = Math.min(Math.max(line - (laneTop - scrollTop), 0), length);
         marks.forEach(({ element, y }) => element.classList.toggle('is-passed', y <= at + 0.5));
         lane.classList.toggle('is-finished', length > 0 && at >= length - 0.5);
     }
 
-    const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(() => update()); };
     const remeasure = () => { if (!measuring) measuring = requestAnimationFrame(layout); };
     window.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', remeasure, { passive: true });
-    new ResizeObserver(remeasure).observe(essay);
+    if (typeof ResizeObserver === 'function') {
+        const resized = new ResizeObserver(remeasure);
+        resized.observe(essay);
+        // The page's height moves the lane's place and the last scroll position.
+        resized.observe(document.body);
+    }
     if (document.readyState !== 'complete') window.addEventListener('load', remeasure, { once: true });
-    layout();
+    // First measure with the next frame's layout, not a forced one now.
+    remeasure();
     // Waypoints take their first state without a transition.
     requestAnimationFrame(() => requestAnimationFrame(() => lane.classList.add('is-live')));
 })();
