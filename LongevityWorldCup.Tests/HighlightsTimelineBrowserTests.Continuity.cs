@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Xunit;
 using static LongevityWorldCup.Tests.AestheticSystemBrowserTests;
@@ -7,6 +8,39 @@ namespace LongevityWorldCup.Tests;
 
 public sealed partial class HighlightsTimelineBrowserTests
 {
+    [Theory]
+    [InlineData(1440, "grouped-badge", "Bortz Age")]
+    [InlineData(390, "unlisted-badge", "The Regular")]
+    public async Task DirectBadgeLink_ShowsTheRequestedAward(int width, string eventId, string badgeLabel)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 }, Locale = "en-US", TimezoneId = "UTC",
+            ReducedMotion = ReducedMotion.Reduce, HasTouch = width < 600
+        });
+        const string events = """
+            [
+              {"Id":"badge-group-anchor","Type":5,"Text":"slug[timeline-a] badge[PhenoAge – lowest] place[1]","OccurredAt":"2026-10-15T12:00:00Z"},
+              {"Id":"grouped-badge","Type":5,"Text":"slug[timeline-a] badge[Bortz Age – lowest] place[2]","OccurredAt":"2026-10-15T12:00:00Z"},
+              {"Id":"unlisted-badge","Type":5,"Text":"slug[timeline-b] badge[≥2 submissions] cat[Global] place[1]","OccurredAt":"2026-09-15T12:00:00Z"}
+            ]
+            """;
+        await context.RouteAsync("**/api/events", route => route.FulfillAsync(new() { ContentType = "application/json", Body = events }));
+        await context.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new() { ContentType = "application/json", Body = Athletes }));
+        var page = await context.NewPageAsync();
+        var target = page.Locator($"tr.main-row[data-event-id='{eventId}']");
+
+        await page.GotoAsync("/events", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(page.Locator("tr.main-row[data-event-id='badge-group-anchor']")).ToContainTextAsync("bagged 2 new badges");
+        Assert.Equal(0, await target.CountAsync());
+
+        await page.GotoAsync($"/events?event={eventId}", new() { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await Assertions.Expect(target).ToBeInViewportAsync();
+        var badge = target.Locator(".badge-class");
+        await Assertions.Expect(badge).ToHaveCountAsync(1);
+        await Assertions.Expect(badge).ToHaveAttributeAsync("title", new Regex(badgeLabel, RegexOptions.IgnoreCase));
+    }
+
     [Theory]
     [InlineData(1440)]
     [InlineData(390)]
