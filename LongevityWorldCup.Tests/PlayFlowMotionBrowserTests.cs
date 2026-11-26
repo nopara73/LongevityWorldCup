@@ -233,6 +233,9 @@ public sealed class PlayFlowMotionBrowserTests(
         await SelectAthleteAsync(page, await PickAmateurAsync(page));
         await page.Locator("#playConfirmAthleteBtn").PressAsync("Enter");
         var command = page.Locator("#athleteDashboardActions .flow-action:not(.back-button)").Nth(index);
+        // PressAsync can target a hidden command while the dashboard is preparing.
+        await command.WaitForAsync(new() { State = WaitForSelectorState.Visible });
+        await Assertions.Expect(command).ToBeEnabledAsync();
         await command.PressAsync("Enter");
         await page.WaitForFunctionAsync("path => location.pathname === path", destination);
         await page.GoBackAsync();
