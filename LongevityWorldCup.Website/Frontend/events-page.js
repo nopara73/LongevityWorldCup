@@ -2784,6 +2784,7 @@ const eventsPageAssets = document.currentScript.dataset;
             openLinksInNewTab = !!target;
 
             const mode = target ? "athlete" : (n!==null ? "highlights" : "viewAll");
+            const fullTimeline = mode === "viewAll" && !!root?.closest('.event-board-page');
 
             if(target){
                 rows=rows.filter(r=>{
@@ -2865,11 +2866,16 @@ const eventsPageAssets = document.currentScript.dataset;
             }
 
             rows = applyArrivalOrderEpsilon(rows, 1);
+            // Syndication links point to individual awards, including badges the timeline groups or omits.
+            const requestedId = fullTimeline ? getRequestedEventId() : "";
+            const linkedBadge = requestedId ? rows.find(row => row.type === EVENT_TYPE.BadgeAward && row.id === requestedId) : null;
+            if (linkedBadge) rows = rows.filter(row => row !== linkedBadge);
             rows = groupBadgeBursts(rows, 60000);
 
             if(!target){
                 rows = filterBadgeRowsForMainFeed(rows, mode);
             }
+            if (linkedBadge) rows.push(linkedBadge);
 
             if(mode==="highlights"){
                 rows = selectHomepageHighlightRows(rows, n);
@@ -2884,13 +2890,12 @@ const eventsPageAssets = document.currentScript.dataset;
                 return tb - ta || +new Date(b.occurredAt||0) - +new Date(a.occurredAt||0);
             });
 
-            rows = groupAthleteBursts(rows, 60000, mode === "viewAll" && !!root?.closest('.event-board-page'));
+            rows = groupAthleteBursts(rows, 60000, fullTimeline);
 
             if(n!==null) rows=rows.slice(0,n);
             const currentRowIds = rows.map(r => r && r.id ? String(r.id) : '').filter(Boolean);
             const snapshotFor = feedAthleteSnapshot(athletesIndex);
-            const snapshot = mode === "viewAll" && root?.closest('.event-board-page')
-                ? chapterSnapshot(rows, snapshotFor, !!linkNames) : null;
+            const snapshot = fullTimeline ? chapterSnapshot(rows, snapshotFor, !!linkNames) : null;
             if (!live || snapshot === null || snapshot !== loadRoot._chapterSnapshot) {
                 renderRows(rows,athletesIndex,!!linkNames,{
                     snapshotFor,
