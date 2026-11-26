@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Http;
 using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Tools;
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Xunit;
 
@@ -374,27 +373,25 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
         var rankSelector = isBortz ? "#bortzAgeRankPreview" : "#phenoAgeRankPreview";
         var expectedAge = isBortz ? "39.4" : "38.0";
         var expectedReduction = isBortz ? "- 6.5 years 🚀" : "- 8.0 years 🚀";
-        // Kelvin's October panel has the better reduction (-8.162y), even though
-        // July has his lowest biological age. Rank by reduction, as the leaderboard does.
         var expectedRank = isBortz ? "#27" : "#157";
         var expectedMeta = isBortz ? "Bortz Age · 27 of 30" : "Pheno Age · 157 of 217";
         var expectedPercentile = isBortz ? "Top 90%" : "Top 73%";
         var expectedNeighbors = isBortz
             ? new[]
             {
-                "#25 Joe V -9.7y",
-                "#26 Todd Cus -7.5y",
+                "#25 Avery -9.7y",
+                "#26 Blair -7.5y",
                 "#27 You -6.5y",
-                "#28 Devarajan Narayanan -4.4y",
-                "#29 Andressa Lohana de Almeida -2.8y"
+                "#28 Casey -4.4y",
+                "#29 Devon -2.8y"
             }
             : new[]
             {
-                "#155 Yuhwen -8.095y",
-                "#156 Benjamin Woosley -7.964y",
+                "#155 Avery -8.095y",
+                "#156 Blair -7.964y",
                 "#157 You -7.962y",
-                "#158 Mathias -7.919y",
-                "#159 Mathias -7.919y"
+                "#158 Casey -7.919y",
+                "#159 Casey -7.919y"
             };
         var approvedRankFieldJson = BuildApprovedRankFieldJson(clock);
 
@@ -495,45 +492,42 @@ public sealed partial class NewAthleteOnboardingBrowserTests(
 
     private static string BuildApprovedRankFieldJson(string clock)
     {
-        var fixtures = new List<string>();
-        void AddCopies(string slug, int count)
+        var field = new List<object>();
+        var birthDate = new { Year = 1980, Month = 6, Day = 15 };
+        void AddCopies(string name, int count, params object[] panels)
         {
-            var fixture = ReadAthleteFixture(slug);
-            for (var index = 0; index < count; index++)
-                fixtures.Add(fixture);
+            var athlete = new { Name = name, DateOfBirth = birthDate, Biomarkers = panels };
+            field.AddRange(Enumerable.Repeat(athlete, count));
         }
 
+        // A fixed field keeps the preview reproducible as athletes submit new results.
+        // For each clock one athlete has a lower absolute age in 2016 but a better reduction in 2026.
         if (clock == "bortz")
         {
-            AddCopies("joe_v", 25);
-            AddCopies("todd_cus", 1);
-            AddCopies("devarajan_narayanan", 1);
-            AddCopies("andressa_lohana_de_almeida", 2);
+            AddCopies("Avery", 25, Panel(date: "2016-06-01"), Panel(cystatinC: 0.73));
+            AddCopies("Blair", 1, Panel(cystatinC: 0.85));
+            AddCopies("Casey", 1, Panel(cystatinC: 1.015));
+            AddCopies("Devon", 2, Panel(cystatinC: 1.1));
         }
         else
         {
-            AddCopies("yuhwen", 154);
-            AddCopies("benjamin_woosley", 1);
-            AddCopies("kelvin_nicholson", 1);
-            AddCopies("mathias", 60);
+            AddCopies("Avery", 154, Panel(albumin: 45.357));
+            AddCopies("Blair", 1, Panel(albumin: 45.005));
+            AddCopies("Casey", 60, Panel(albumin: 44.885));
+            AddCopies("Devon", 1, Panel(date: "2016-06-01"), Panel(albumin: 46));
         }
 
-        return $"[{string.Join(',', fixtures)}]";
-    }
+        return JsonSerializer.Serialize(field);
 
-    private static string ReadAthleteFixture(string slug, [CallerFilePath] string sourceFilePath = "")
-    {
-        var testsDirectory = Path.GetDirectoryName(sourceFilePath)
-            ?? throw new DirectoryNotFoundException($"Could not locate tests directory from {sourceFilePath}.");
-        var repoRoot = Directory.GetParent(testsDirectory)?.FullName
-            ?? throw new DirectoryNotFoundException($"Could not locate repository root from {testsDirectory}.");
-        return File.ReadAllText(Path.Combine(
-            repoRoot,
-            "LongevityWorldCup.Website",
-            "wwwroot",
-            "athletes",
-            slug,
-            "athlete.json"));
+        static object Panel(double albumin = 45, double cystatinC = 0.9, string date = "2026-06-01") => new
+        {
+            Date = date, AlbGL = albumin, CystatinCMgL = cystatinC,
+            AlpUL = 70, UreaMmolL = 5, CholesterolMmolL = 4.5, CreatUmolL = 80,
+            Hba1cMmolMol = 33.33, CrpMgL = 1, GgtUL = 20, Rbc10e12L = 4.8,
+            McvFL = 90, RdwPc = 13, GluMmolL = 5, MchPg = 30, ApoA1GL = 1.5,
+            LymPc = 30, AltUL = 25, ShbgNmolL = 40, VitaminDNmolL = 200,
+            Wbc1000cellsuL = 5.5, MonocytePc = 6, NeutrophilPc = 60
+        };
     }
 
     private static async Task CompleteAmateurHandoffToApplicationAsync(IPage page, string bloodDrawDate)
