@@ -1,0 +1,28 @@
+{
+  "Name": "Németh Roland",
+  "DisplayName": null,
+  "MediaContact": "nemethr7702@gmail.com",
+  "DateOfBirth": {
+    "Year": 1977,
+    "Month": 2,
+    "Day": 5
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-10-30",
+      "AlbGL": 45,
+      "CreatUmolL": 128,
+      "GluMmolL": 5.3,
+      "CrpMgL": 2.1,
+      "LymPc": 26.6,
+      "McvFL": 88,
+      "RdwPc": 12.9,
+      "AlpUL": 108,
+      "Wbc1000cellsuL": 8.8
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Hungary",
+  "Why": "A fejlődés, hogy önmagam jobbik verziójává váljak.",
+  "PersonalLink": "https://movefit.hu/"
+}
