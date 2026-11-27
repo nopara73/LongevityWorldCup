@@ -4207,9 +4207,19 @@ function performFilter({ updateUrl = true, orderingOnly = false, animateLeague =
             const key = JSON.stringify(state);
             if (!matchingTeamsByState.has(key)) {
                 const teams = buildFlagTeams(getMatchingEntries(state, false), state.view);
-                const matching = teams.filter(team => uniqueSearchTerms.every(term =>
-                    window.normalizeString(team.flag.toLowerCase()).includes(term) ||
-                    team.entries.some(entry => searchTextByAthlete.get(entry.athlete).includes(term))));
+                const matching = showAll ? teams : teams.filter(team => {
+                    const flag = normalizeSearchText(team.flag);
+                    const athleteTerms = uniqueSearchTerms.filter(term => !flag.includes(term));
+                    if (!athleteTerms.length) return true;
+
+                    // A flag can cover some terms. The rest must describe one athlete.
+                    const member = team.entries.find(({ athlete }) =>
+                        athleteTerms.every(term => searchTextByAthlete.get(athlete).includes(term)));
+                    if (!member) return false;
+
+                    team.searchMatch = { athlete: member.athlete, terms: athleteTerms };
+                    return true;
+                });
                 matchingTeamsByState.set(key, { cohort: teams, matching });
             }
             return matchingTeamsByState.get(key);
@@ -7825,20 +7835,26 @@ function markFlagSearchReasons(terms, teams, badgeTextByName) {
             window.highlightText(label, matches);
             name._flagHighlights = key;
         }
-        const pending = terms.filter(term => !normalized.includes(term));
-        const evidence = new Set();
-        pending.forEach(term => {
-            for (const entry of team.entries) {
-                const sources = [entry.athlete.displayName, ...SEARCH_REASON_SOURCES.map(source => source.read(entry.athlete)), badgeTextByName.get(entry.athlete.name)];
+        if (team.searchMatch) {
+            const { athlete, terms: athleteTerms } = team.searchMatch;
+            const sources = [
+                athlete.displayName,
+                ...SEARCH_REASON_SOURCES.map(source => source.read(athlete)),
+                badgeTextByName.get(athlete.name)
+            ];
+            const evidence = new Set();
+            for (const term of athleteTerms) {
                 const source = sources.find(text => normalizeSearchText(text).includes(term));
                 if (source) {
-                    evidence.add(`${entry.athlete.displayName}: ${getSearchSnippet(source, term)}`);
-                    break;
+                    evidence.add(`${athlete.displayName}: ${getSearchSnippet(source, term)}`);
                 }
             }
-        });
-        if (evidence.size) appendSearchReason(name, { kind: 'member', icon: 'fa-magnifying-glass', label: 'Athlete match' }, [...evidence].join('\n'), pending);
-        else name.querySelector(':scope > .search-reason')?.remove();
+            if (evidence.size) {
+                appendSearchReason(name, { kind: 'member', icon: 'fa-magnifying-glass', label: 'Athlete match' }, [...evidence].join('\n'), athleteTerms);
+                return;
+            }
+        }
+        name.querySelector(':scope > .search-reason')?.remove();
     });
 }
 

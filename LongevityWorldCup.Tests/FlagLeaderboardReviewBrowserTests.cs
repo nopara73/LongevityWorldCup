@@ -79,6 +79,58 @@ public sealed class FlagLeaderboardReviewBrowserTests(PlaywrightBrowserFixture b
     [Theory]
     [InlineData(1280)]
     [InlineData(390)]
+    public async Task FlagSearch_RequiresNameTermsToMatchOneAthlete(int width)
+    {
+        await using var context = await NewContextAsync(Browser, App, new()
+        {
+            ViewportSize = new() { Width = width, Height = 900 },
+            ReducedMotion = ReducedMotion.Reduce
+        });
+        await RouteAthleteFixtureAsync(context, athletes =>
+        {
+            string[] names = ["Carys Marlowe", "Nico Vale", "Rhea Brogan", "Carys Vale", "Rowan Moss", "Mina Reed"];
+            var index = 0;
+            foreach (var athlete in athletes.OfType<JsonObject>())
+            {
+                athlete["Flag"] = index < 3 ? "Hungary" : index < names.Length ? "Germany" : "";
+                if (index < names.Length)
+                {
+                    athlete["DisplayName"] = names[index];
+                    athlete["Why"] = "";
+                    athlete["MediaContact"] = "";
+                }
+                index++;
+            }
+        });
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/league/pheno?group=flags");
+        await Assertions.Expect(page.Locator("#leaderboardStatus")).ToHaveTextAsync("Leaderboard loaded.");
+        var search = page.Locator("#athleteSearch");
+        var teams = page.Locator("#flagLeaderboard .flag-team");
+        await Assertions.Expect(teams).ToHaveCountAsync(2);
+
+        await search.FillAsync("Carys Brogan");
+        await Assertions.Expect(teams).ToHaveCountAsync(0);
+
+        await search.FillAsync("Carys Vale");
+        await Assertions.Expect(teams).ToHaveCountAsync(1);
+        await Assertions.Expect(teams).ToHaveAttributeAsync("data-flag", "Germany");
+
+        await search.FillAsync("Germany Carys Vale");
+        await Assertions.Expect(teams.Locator(".flag-name-label .highlight")).ToHaveTextAsync("Germany");
+        await teams.GetByRole(AriaRole.Button, new() { Name = "Athlete match" }).ClickAsync();
+        await Assertions.Expect(page.Locator(".search-reason-popover")).ToHaveTextAsync("Carys Vale: Carys Vale");
+        await page.Keyboard.PressAsync("Escape");
+
+        await search.FillAsync("Hungary");
+        await Assertions.Expect(teams).ToHaveAttributeAsync("data-flag", "Hungary");
+        await Assertions.Expect(teams.Locator(".search-reason")).ToHaveCountAsync(0);
+    }
+
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
     public async Task EnteringFlagCompetition_ClearsFlagSelectionAndPreservesTheCohort(int width)
     {
         await using var context = await NewContextAsync(Browser, App, new() { ViewportSize = new() { Width = width, Height = 1000 }, ReducedMotion = ReducedMotion.Reduce });
