@@ -494,7 +494,7 @@ public sealed class BioageUpdateDraftBrowserTests(PlaywrightBrowserFixture brows
     {
         // Next must already be reachable from the result on both phone and desktop.
         await page.Locator("#continueButton").ClickAsync(new() { Scroll = ScrollMode.None });
-        await page.WaitForURLAsync("**/proofs");
+        await page.WaitForDocumentLoadedAsync("/proofs");
     }
 
     private static async Task RunCachedReturnAsync(IPage page, Func<Task> returnToCachedPage)

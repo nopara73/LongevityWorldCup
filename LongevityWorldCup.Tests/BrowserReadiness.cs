@@ -37,8 +37,20 @@ internal static class BrowserReadiness
             }
             return;
         }
+
+        await page.WaitForDocumentLoadedAsync(expectedPath: null);
+    }
+
+    internal static async Task WaitForDocumentLoadedAsync(this IPage page, string? expectedPath)
+    {
+        // Check the destination and its load state together. Navigation can
+        // commit between a driver URL check and subscription to its events.
         await using var ready = await page.WaitForFunctionAsync(
-            "() => window[Symbol.for('lwc.test.documentReadiness')]?.loaded === true");
+            """
+            path => (path == null || location.pathname + location.search + location.hash === path)
+                && window[Symbol.for('lwc.test.documentReadiness')]?.loaded === true
+            """,
+            expectedPath);
     }
 
     internal static async Task WaitForDocumentContentLoadedAsync(this IPage page)

@@ -52,7 +52,7 @@ public sealed class BioageDecimalInputBrowserTests(PlaywrightBrowserFixture brow
             await page.WaitForSelectorAsync($"#{clock}AgeResult.show");
             var score = await page.EvaluateAsync<double>(clock == "pheno" ? "lastCalculatedPhenoAge" : "lastCalculatedBortzAge");
             await page.Locator("#continueButton").ClickAsync();
-            await page.WaitForURLAsync("**/apply");
+            await page.WaitForDocumentLoadedAsync("/apply");
             await page.WaitForFunctionAsync("() => typeof collectApplicantData === 'function'");
             var panel = await page.EvaluateAsync<JsonElement>("() => collectApplicantData().biomarkers[0]");
             Assert.Equal(0.15, panel.GetProperty("CrpMgL").GetDouble(), 8);
@@ -99,7 +99,7 @@ public sealed class BioageDecimalInputBrowserTests(PlaywrightBrowserFixture brow
             Assert.Equal(firstScore.Value, score, 8);
         }
         await page.Locator("#continueButton").ClickAsync();
-        await page.WaitForURLAsync("**/apply");
+        await page.WaitForDocumentLoadedAsync("/apply");
         await page.WaitForFunctionAsync("() => typeof collectApplicantData === 'function'");
         var application = await page.EvaluateAsync<JsonElement>("() => JSON.parse(JSON.stringify(collectApplicantData()))");
         Assert.Equal(1, application.GetProperty("biomarkers")[0].GetProperty("CrpMgL").GetDouble());
@@ -190,7 +190,7 @@ public sealed class BioageDecimalInputBrowserTests(PlaywrightBrowserFixture brow
         await Assertions.Expect(page.Locator($"#{clock}AgeResult.show")).ToBeVisibleAsync();
         // The mobile result dock puts Next under the user's finger without a preparatory scroll.
         await page.Locator("#continueButton").TapAsync(new() { Scroll = ScrollMode.None });
-        await page.WaitForURLAsync("**/proofs");
+        await page.WaitForDocumentLoadedAsync("/proofs");
         await page.WaitForFunctionAsync("() => !document.documentElement.hasAttribute('data-initial-view')");
         // Only the unrelated proof-upload fixture is seeded; submission uses the actual button and HTTP serializer.
         await page.EvaluateAsync("""
