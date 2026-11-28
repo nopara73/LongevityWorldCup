@@ -127,8 +127,10 @@
         --nf-zoom: 1.035;
     }
 
+    /* The shake joins the entrance instead of replacing it, so tapping never
+       replays Herold's arrival. */
     .not-found-visual[data-nope] .illustration {
-        animation: nf-nope 560ms var(--lwc-ease-standard, ease);
+        animation: nf-herold-in 900ms 60ms var(--lwc-ease-enter, ease-out) backwards, nf-nope 560ms var(--lwc-ease-standard, ease);
     }
 
     .not-found-actions .option-button .fa-home {
