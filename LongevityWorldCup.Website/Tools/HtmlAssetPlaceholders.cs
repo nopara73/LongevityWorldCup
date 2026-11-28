@@ -77,6 +77,8 @@ public static partial class HtmlAssetPlaceholders
         ["{{ASSET_MOBILE_ROUGHNESS_CSS}}"] = "/css/mobile-roughness.css",
         ["{{ASSET_ORBITRON_BOLD}}"] = "/assets/fonts/Orbitron-Bold.woff2",
         ["{{ASSET_PHENO_AGE_JS}}"] = "/js/pheno-age.js",
+        ["{{ASSET_PLAY_ARENA_CSS}}"] = "/css/play-arena.css",
+        ["{{ASSET_PLAY_ARENA_JS}}"] = "/js/play-arena.js",
         ["{{ASSET_PLAY_ATHLETE_FLOW_CSS}}"] = "/css/play-athlete-flow.css",
         ["{{ASSET_PLAY_ATHLETE_PLACEHOLDER_JPEG}}"] = "/assets/content-images/play-athlete-placeholder.jpg",
         ["{{ASSET_PLAY_ATHLETE_PLACEHOLDER_WEBP}}"] = "/assets/content-images/play-athlete-placeholder.webp",

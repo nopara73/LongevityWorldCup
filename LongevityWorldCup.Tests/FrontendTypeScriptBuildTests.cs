@@ -31,6 +31,7 @@ public sealed class FrontendTypeScriptBuildTests
         "lmx-discussion",
         "longevitymaxxing",
         "media-kit-feel",
+        "play-arena",
         "pointer",
         "motion",
         "portrait-system",
