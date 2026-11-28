@@ -57,13 +57,23 @@ public sealed class AthleteDataAnalyticsBrowserTests(
                 if (!area || parseFloat(getComputedStyle(area).opacity) <= 0) problems.push('trend has no area');
                 const line = svg.querySelector('g:not(.sparkline-area) line');
                 if (getComputedStyle(line).stroke === getComputedStyle(svg.querySelector('.sparkline-track')).stroke) problems.push('trend line is not in its accent');
+                // A clock's change sits under its headline figure; a biomarker's ends its trend lane.
                 for (const row of rows) {
-                    const cell = row.querySelector('.biomarker-overview-result').getBoundingClientRect();
-                    const change = row.querySelector('.biomarker-overview-change')?.getBoundingClientRect();
-                    const value = row.querySelector('.biomarker-overview-current').getBoundingClientRect();
-                    if (!change) continue;
-                    if (change.top < value.bottom - 1) problems.push(`${row.dataset.measure}: change is not under the value`);
-                    if (change.left < cell.left - 1 || change.right > cell.right + 1 || change.bottom > cell.bottom + 1) problems.push(`${row.dataset.measure}: change escapes its cell`);
+                    const element = row.querySelector('.biomarker-overview-change');
+                    if (!element) continue;
+                    const change = element.getBoundingClientRect();
+                    if (row.classList.contains('result-clock')) {
+                        const cell = row.querySelector('.biomarker-overview-result').getBoundingClientRect();
+                        const value = row.querySelector('.biomarker-overview-current').getBoundingClientRect();
+                        if (change.top < value.bottom - 1) problems.push(`${row.dataset.measure}: change is not under the value`);
+                        if (change.left < cell.left - 1 || change.right > cell.right + 1 || change.bottom > cell.bottom + 1) problems.push(`${row.dataset.measure}: change escapes its cell`);
+                    } else {
+                        const lane = row.querySelector('.biomarker-overview-history').getBoundingClientRect();
+                        const trend = row.querySelector('.biomarker-overview-trend svg').getBoundingClientRect();
+                        if (!element.closest('.biomarker-overview-trend')) problems.push(`${row.dataset.measure}: change does not end its trend`);
+                        if (change.left < trend.right - 1 && change.top < trend.bottom - 1) problems.push(`${row.dataset.measure}: change overlaps its trend`);
+                        if (change.left < lane.left - 1 || change.right > lane.right + 1 || change.top < lane.top - 1 || change.bottom > lane.bottom + 1) problems.push(`${row.dataset.measure}: change escapes its cell`);
+                    }
                 }
                 const list = document.getElementById('biomarkerResultList');
                 if (list.scrollWidth > list.clientWidth + 1) problems.push('table pans sideways');
@@ -425,7 +435,7 @@ public sealed class AthleteDataAnalyticsBrowserTests(
                     for (const node of svg.querySelectorAll('*')) for (const attribute of node.attributes)
                         if (/NaN|Infinity/.test(attribute.value)) failures.push(`${values}: nonfinite ${attribute.name}`);
                     const ticks = [...svg.querySelectorAll('.sparkline-tick')].map(t => +t.getAttribute('x1'));
-                    if (ticks.length !== 4 || ticks[0] !== 8 || ticks[2] !== 112 || ticks[3] !== 112 || ticks[1] >= 10) failures.push('shared dates are not placed by elapsed time');
+                    if (ticks.length !== 4 || ticks[0] !== 8 || ticks[2] !== 152 || ticks[3] !== 152 || ticks[1] >= 10) failures.push('shared dates are not placed by elapsed time');
                     const measured = values.filter(isBiomarkerHistoryValue).length;
                     if (svg.querySelectorAll('circle').length !== measured) failures.push('measured or zero value disappeared');
                     if (svg.querySelectorAll('.is-latest').length !== (measured ? 1 : 0)) failures.push('latest value marker is wrong');

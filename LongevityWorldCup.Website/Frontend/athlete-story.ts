@@ -5,8 +5,6 @@
 // - Badges unlock one after another.
 // - The age summary grows a gap gauge: chronological age sits in the middle
 //   and the biological age travels away from it, younger to the left.
-// - Results over time draw in row by row: trends trace themselves, dots land,
-//   and each latest value counts on from the athlete's first reading.
 // - The radar's result picker gains a scrubbable timeline of every blood draw;
 //   dragging across it moves the radar, the summary and the gauge with it.
 // - Share and personal links answer hover and press.
@@ -32,7 +30,6 @@
     const timers = new Set<number>();
     const frames = new Set<number>();
     const animations = new Set<Animation>();
-    const counters = new Set<HTMLElement>();
     let cancelScrub = (): void => {};
 
     function later(callback: () => void, delay: number): void {
@@ -85,7 +82,6 @@
     // --- Chapters rise as they scroll in -------------------------------------------
 
     let seen = new WeakSet<Element>();
-    let rowsSeen = new WeakSet<Element>();
     const chapterObserver = new IntersectionObserver(entries => entries.forEach(entry => {
         if (!entry.isIntersecting || !enabled()) return;
         chapterObserver.unobserve(entry.target);
@@ -111,7 +107,6 @@
     function chapterArrived(chapter: HTMLElement, atOpen: boolean): void {
         if (chapter.id === "modalBadgeStrip") unlockBadges(chapter, atOpen ? 260 : 120);
         if (chapter.id === "ageVisualization") gapFor(chapter, true);
-        if (chapter.id === "athlete-biomarkers") armRows(chapter);
     }
 
     function armChapters(): void {
@@ -372,75 +367,6 @@
         window.addEventListener("blur", cancelScrub);
     }
 
-    // --- Results over time draw in ---------------------------------------------------
-
-    const rowObserver = new IntersectionObserver(entries => {
-        if (!enabled()) return;
-        const arriving = entries.filter(entry => entry.isIntersecting).map(entry => entry.target as HTMLElement);
-        arriving.forEach((row, index) => {
-            rowObserver.unobserve(row);
-            later(() => drawRow(row), index * 70);
-        });
-    }, { root: scroller, rootMargin: "0px 0px -6% 0px", threshold: 0.2 });
-
-    function armRows(section: HTMLElement): void {
-        if (!enabled()) return;
-        section.querySelectorAll<HTMLElement>("tr.result-summary").forEach(row => {
-            if (rowsSeen.has(row) || !shown(row)) return;
-            rowsSeen.add(row);
-            if (row.contains(document.activeElement)) return;
-            row.dataset["draw"] = "wait";
-            row.querySelectorAll<SVGGeometryElement>(".biomarker-overview-history svg line:not(.sparkline-track):not(.sparkline-tick)")
-                .forEach(line => line.setAttribute("pathLength", "1"));
-            row.querySelectorAll<SVGElement>(".biomarker-overview-history svg circle, .clock-history-reading")
-                .forEach((dot, index) => (dot as SVGElement | HTMLElement).style.setProperty("--i", String(index)));
-            rowObserver.observe(row);
-        });
-    }
-
-    function drawRow(row: HTMLElement): void {
-        if (row.dataset["draw"] !== "wait" || !row.isConnected || !enabled()) return;
-        row.dataset["draw"] = "in";
-        countFromFirst(row);
-        later(() => {
-            if (row.dataset["draw"] !== "in") return;
-            delete row.dataset["draw"];
-            row.querySelectorAll(".biomarker-overview-history svg line[pathLength]").forEach(line => line.removeAttribute("pathLength"));
-        }, 1400);
-    }
-
-    // The latest value counts on from where the athlete started.
-    function countFromFirst(row: HTMLElement): void {
-        const current = row.querySelector<HTMLElement>(".biomarker-overview-current");
-        const change = row.querySelector<HTMLElement>(".biomarker-overview-change");
-        if (!current || !enabled()) return;
-        const text = current.textContent || "";
-        const latest = readNumber(current);
-        const delta = change ? readNumber(change) : NaN;
-        if (!Number.isFinite(latest) || !Number.isFinite(delta) || delta === 0) return;
-        const decimals = (text.split(".")[1] || "").replace(/\D.*$/, "").length;
-        const from = latest - delta;
-        const start = performance.now();
-        const duration = 760;
-        current.style.setProperty("--lwc-count-color", getComputedStyle(current).color);
-        counters.add(current);
-        const tick = (now: number): void => {
-            if (!enabled() || !current.isConnected || current.textContent !== text || row.dataset["draw"] !== "in") { clearCount(current); return; }
-            const progress = Math.min(1, (now - start) / duration);
-            const value = from + (latest - from) * (1 - Math.pow(1 - progress, 3));
-            if (progress >= 1) { clearCount(current); return; }
-            current.dataset["lwcCount"] = text.replace(/[+−–-]?[0-9]+(\.[0-9]+)?/, value.toFixed(decimals));
-            frame(tick);
-        };
-        frame(tick);
-    }
-
-    function clearCount(current: HTMLElement): void {
-        delete current.dataset["lwcCount"];
-        current.style.removeProperty("--lwc-count-color");
-        counters.delete(current);
-    }
-
     // --- Links answer the press ------------------------------------------------------
 
     dialog.addEventListener("pointerdown", event => {
@@ -458,13 +384,10 @@
         for (let element: Element | null = target; element && element !== dialog; element = element.parentElement) {
             if (!(element instanceof HTMLElement)) continue;
             if (element.matches(chapterSelector)) seen.add(element);
-            if (element.matches("tr.result-summary")) rowsSeen.add(element);
             delete element.dataset["story"];
             delete element.dataset["unlock"];
             delete element.dataset["draw"];
             chapterObserver.unobserve(element);
-            rowObserver.unobserve(element);
-            element.querySelectorAll<HTMLElement>(".biomarker-overview-current").forEach(clearCount);
         }
     }
     dialog.addEventListener("focusin", event => {
@@ -485,20 +408,14 @@
         frames.clear();
         animations.forEach(animation => animation.cancel());
         animations.clear();
-        counters.forEach(clearCount);
         chapterObserver.disconnect();
-        rowObserver.disconnect();
         cancelScrub();
         scroller.querySelectorAll<HTMLElement>("[data-story]").forEach(element => {
             delete element.dataset["story"];
             chapterObserver.unobserve(element);
         });
         scroller.querySelectorAll<HTMLElement>("[data-unlock]").forEach(element => delete element.dataset["unlock"]);
-        scroller.querySelectorAll<HTMLElement>("[data-draw]").forEach(element => {
-            delete element.dataset["draw"];
-            rowObserver.unobserve(element);
-        });
-        scroller.querySelectorAll(".biomarker-overview-history line[pathLength]").forEach(line => line.removeAttribute("pathLength"));
+        scroller.querySelectorAll<HTMLElement>("[data-draw]").forEach(element => delete element.dataset["draw"]);
         scroller.querySelectorAll<HTMLElement>("[data-pressed]").forEach(element => delete element.dataset["pressed"]);
         lastIndex = -1;
     }
@@ -506,7 +423,6 @@
     function forget(): void {
         clearAll();
         seen = new WeakSet<Element>();
-        rowsSeen = new WeakSet<Element>();
     }
 
     let openedAt = 0;
@@ -516,8 +432,6 @@
         pending = window.setTimeout(() => {
             if (!isOpen()) return;
             armChapters();
-            const section = document.getElementById("athlete-biomarkers");
-            if (section && seen.has(section) && section.dataset["story"] !== "wait") armRows(section);
             gapFor(document.getElementById("ageVisualization"), false);
         }, 80);
     }

@@ -15,42 +15,21 @@ public sealed class AthleteStoryBrowserTests(
     [Theory]
     [InlineData(1440, false)]
     [InlineData(390, true)]
-    public async Task ComparisonToggles_NeverRearmSettledRowsOrRestartTheirCounters(int width, bool dark)
+    public async Task ResultRows_ShowTheirRealValuesThroughScrollAndToggles(int width, bool dark)
     {
         await using var context = await ContextAsync(width, dark);
+        // Results are on screen as they are: no row waits for an entrance and no value counts.
         await context.AddInitScriptAsync("""
-            window.registeredStoryRows = new Set();
-            new MutationObserver(records => records.forEach(({ target }) => {
-                if (target.matches('tr.result-summary[data-draw]')) registeredStoryRows.add(target);
-            })).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-draw'] });
+            window.storyMarks = [];
+            new MutationObserver(records => records.forEach(({ target, attributeName }) => {
+                if (target.closest?.('#athlete-biomarkers') && target.hasAttribute(attributeName)) storyMarks.push(attributeName);
+            })).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-draw', 'data-lwc-count'] });
             """);
         var page = await OpenAsync(context);
-        await page.Locator("tr.result-summary").Nth(2).ScrollIntoViewIfNeededAsync();
-        // A missing marker alone can mean the observer has not armed the row yet.
-        await page.WaitForFunctionAsync("""
-            () => {
-                const target = document.querySelectorAll('tr.result-summary')[2];
-                const settled = [...registeredStoryRows].filter(row => row.isConnected
-                    && !row.hasAttribute('data-draw') && !row.querySelector('[data-lwc-count]'));
-                return settled.includes(target) && settled.length >= 2;
-            }
-            """);
-        await page.EvaluateAsync("""
-            () => {
-                window.settled = [...registeredStoryRows].filter(row => row.isConnected
-                    && !row.hasAttribute('data-draw') && !row.querySelector('[data-lwc-count]'));
-                window.restarted = [];
-                window.rowValues = window.settled.map(row => row.textContent);
-                new MutationObserver(records => records.forEach(record => {
-                    const row = record.target.closest('tr.result-summary');
-                    if (window.settled.includes(row) && record.target.hasAttribute(record.attributeName))
-                        window.restarted.push(record.attributeName);
-                })).observe(document.getElementById('athlete-biomarkers'), {
-                    subtree: true, attributes: true, attributeFilter: ['data-draw', 'data-lwc-count']
-                });
-            }
-            """);
-        Assert.True(await page.EvaluateAsync<int>("() => window.settled.length") >= 2);
+        var rows = page.Locator("tr.result-summary");
+        var values = await rows.EvaluateAllAsync<string[]>("rows => rows.map(row => row.textContent)");
+        await rows.Last.ScrollIntoViewIfNeededAsync();
+        await rows.Nth(2).ScrollIntoViewIfNeededAsync();
         var button = page.Locator("tr.result-summary button").Nth(2);
         for (var pass = 0; pass < 4; pass++)
         {
@@ -58,10 +37,9 @@ public sealed class AthleteStoryBrowserTests(
             await Expect(button).ToHaveAttributeAsync("aria-expanded", pass % 2 == 0 ? "true" : "false");
             await page.WaitForTimeoutAsync(200);
         }
-        Assert.Empty(await page.EvaluateAsync<string[]>("() => window.restarted"));
-        Assert.True(await page.EvaluateAsync<bool>("() => window.settled.every((row, i) => row.textContent === window.rowValues[i])"));
         await page.WaitForTimeoutAsync(1600);
-        Assert.Empty(await page.EvaluateAsync<string[]>("() => window.restarted"));
+        Assert.Empty(await page.EvaluateAsync<string[]>("() => window.storyMarks"));
+        Assert.Equal(values, await rows.EvaluateAllAsync<string[]>("rows => rows.map(row => row.textContent)"));
     }
 
     [Fact]
