@@ -134,7 +134,8 @@ public sealed class SocialImageRenderingTests(TestWebApplicationFactory sharedFa
     {
         var images = sharedFactory.Services.GetRequiredService<InstagramImageService>();
         const string raw = "slug[zhivko_gichev] rank[3] prev[siim_land]";
-        var caption = InstagramPost.HighlightText(EventType.NewRank, raw, _ => "@zhivkogichev");
+        var item = new EventItem("podium", EventType.NewRank, raw, DateTime.UtcNow, 1, true);
+        var caption = InstagramPost.HighlightText(item, _ => "@zhivkogichev");
         Assert.StartsWith("@zhivkogichev is now #3 overall in the Longevity World Cup.", caption);
         var visual = InstagramVisual.ForEvent(EventType.NewRank, raw, caption, _ => "Zhivko Gichev");
         var url = await images.RenderAsync(visual, null);
@@ -172,15 +173,21 @@ public sealed class SocialImageRenderingTests(TestWebApplicationFactory sharedFa
     [Fact]
     public async Task InstagramMilestoneImage_RetainsTheMemeAndAddsItsAnnouncementContext()
     {
+        var announcements = sharedFactory.Services.GetRequiredService<InstagramAnnouncementService>();
         var images = sharedFactory.Services.GetRequiredService<InstagramImageService>();
         var memes = sharedFactory.Services.GetRequiredService<AthleteCountMilestoneMemeService>();
         Assert.True(memes.TryGetMeme(777, out var meme));
-        var first = await images.RenderAsync("777 athletes now compete in LWC", null, meme.FullPath);
+        var milestone = new EventItem("milestone", EventType.AthleteCountMilestone, "athletes[777]", DateTime.UtcNow, 1, true);
+        var post = await announcements.BuildRequestAsync(milestone, slug => slug, slug => slug, default);
+        Assert.NotNull(post);
+        Assert.Contains("777 athletes are now on the leaderboard. Lucky sevens.", post.Caption);
+        var visual = InstagramVisual.ForEvent(milestone.Type, milestone.Text, post.Caption, slug => slug);
+        Assert.Equal(await images.RenderAsync(visual, meme.FullPath), post.ImageUrl);
         var second = await images.RenderAsync("888 athletes now compete in LWC", null, meme.FullPath);
-        Assert.NotEqual(first, second); // A meme alone loses which milestone happened.
-        using var image = Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(InstagramImagePath(first));
+        Assert.NotEqual(post.ImageUrl, second); // A meme alone loses which milestone happened.
+        using var image = Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(InstagramImagePath(post.ImageUrl));
         Assert.True(HeroColorCount(image) > 100);
-        CaptureInstagram(InstagramImagePath(first), "milestone");
+        CaptureInstagram(InstagramImagePath(post.ImageUrl), "milestone");
     }
 
     [Fact]

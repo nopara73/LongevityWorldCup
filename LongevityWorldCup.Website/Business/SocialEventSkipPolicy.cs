@@ -29,10 +29,12 @@ public static class SocialEventSkipPolicy
     internal static SocialEventSkipReason? InstagramSkipReason(EventItem item, SocialHeadline headline, DateTimeOffset now)
     {
         if (item.Type == EventType.CustomEvent) return null;
-        var isPodium = headline.Tier == SocialHeadlineTier.Ultimate && headline.Place is >= 1 and <= 3;
-        var isHundred = item.Type == EventType.AthleteCountMilestone &&
-            EventHelpers.TryExtractAthleteCount(item.Text, out var count) && count > 0 && count % 100 == 0;
-        if (!isPodium && !isHundred) return SocialEventSkipReason.RoutineInstagramUpdate;
+        if (item.Type == EventType.DonationReceived)
+            return DonationReceivedPost.TryGetAmountSatoshis(item.Text, out _) ? null : SocialEventSkipReason.UnsupportedEventPayload;
+        if (item.Type == EventType.AthleteCountMilestone)
+            return EventHelpers.TryExtractAthleteCount(item.Text, out var count) && count > 0 ? null : SocialEventSkipReason.UnsupportedEventPayload;
+        if (headline.Tier != SocialHeadlineTier.Ultimate || headline.Place is < 1 or > 3)
+            return SocialEventSkipReason.RoutineInstagramUpdate;
         return item.OccurredAtUtc < now.UtcDateTime.AddDays(-7) ? SocialEventSkipReason.StalePrimaryEvent : null;
     }
 

@@ -41,10 +41,11 @@ in a query parameter.
 
 The daily job selects at most one eligible Event at **15:12 UTC**. The minute job
 handles selected Custom Events and retries of prepared announcements. Both share a
-dispatch gate. Instagram automatically announces overall podium placements (first
-through third in the Ultimate League) and athlete-count milestones divisible by
-100. Automatic highlights expire after seven days. Athletes have a two-day posting
-cooldown. Admin-selected Custom Events can be published at any time.
+dispatch gate. Instagram announces every recorded donation and every athlete-count
+milestone the competition emits. Milestones use their designated artwork when available.
+Automatic ranking posts cover first through third overall in the Ultimate League.
+Podium updates expire after seven days and athletes have a two-day posting cooldown.
+Donations, athlete-count milestones, and admin-selected Custom Events remain eligible while queued.
 
 Overall podium posts use the Prism foil athlete card and label the rank as overall.
 Every post includes a JPEG, a caption, and alt text. Images are public, immutable content-addressed files

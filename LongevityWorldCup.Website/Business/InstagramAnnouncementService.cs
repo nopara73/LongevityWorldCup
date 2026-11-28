@@ -11,6 +11,7 @@ public sealed class InstagramAnnouncementService(
     InstagramPublisher publisher,
     AthleteDataService athletes,
     InstagramImageService images,
+    AthleteCountMilestoneMemeService milestoneMemes,
     TimeProvider time,
     ILogger<InstagramAnnouncementService> log)
 {
@@ -103,12 +104,13 @@ public sealed class InstagramAnnouncementService(
         finally { _dispatchGate.Release(); }
     }
 
-    private async Task<InstagramPostRequest?> BuildRequestAsync(EventItem item, Func<string, string> resolveName,
+    internal async Task<InstagramPostRequest?> BuildRequestAsync(EventItem item, Func<string, string> resolveName,
         Func<string, string> resolveMention, CancellationToken ct)
     {
         string caption;
         InstagramVisual visual;
         string alt;
+        string? artworkPath = null;
         if (item.Type == EventType.CustomEvent)
         {
             var plan = InstagramPost.BuildPlan(item.Id, item.Text, resolveMention, item.VisibleOnWebsite);
@@ -119,14 +121,17 @@ public sealed class InstagramAnnouncementService(
         }
         else
         {
-            var text = InstagramPost.HighlightText(item.Type, item.Text, resolveMention);
+            var text = InstagramPost.HighlightText(item, resolveMention);
             if (string.IsNullOrWhiteSpace(text)) return null;
             caption = InstagramPost.Truncate(text, InstagramPost.MaxCaptionLength);
-            alt = InstagramPost.HighlightText(item.Type, item.Text, resolveName);
+            alt = InstagramPost.HighlightText(item, resolveName);
             visual = InstagramVisual.ForEvent(item.Type, item.Text, alt, resolveName);
+            if (item.Type == EventType.AthleteCountMilestone && EventHelpers.TryExtractAthleteCount(item.Text, out var count)
+                && milestoneMemes.TryGetMeme(count, out var meme))
+                artworkPath = meme.FullPath;
         }
         if (string.IsNullOrWhiteSpace(caption)) return null;
-        var imageUrl = await images.RenderAsync(visual, null, ct);
+        var imageUrl = await images.RenderAsync(visual, artworkPath, ct);
         return new(caption, imageUrl, InstagramPost.Truncate(alt, InstagramPost.MaxAltTextLength));
     }
 }

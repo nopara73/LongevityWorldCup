@@ -8,13 +8,15 @@ public static class InstagramPost
     public const int MaxCaptionLength = 2200;
     public const int MaxAltTextLength = 1000;
 
-    internal static string HighlightText(EventType type, string raw, Func<string, string> resolveAthlete)
+    internal static string HighlightText(EventItem item, Func<string, string> resolveAthlete)
     {
-        if (type == EventType.AthleteCountMilestone)
-            return ThreadsMessageBuilder.ForEventText(type, raw, resolveAthlete);
-        if (type != EventType.NewRank || !EventHelpers.TryExtractTop10Rank(raw, out var rank) ||
-            !EventHelpers.TryExtractSlug(raw, out var slug)) return "";
-        var movement = EventHelpers.TryExtractPreviousPlace(raw, out var previous) && previous > rank
+        if (item.Type == EventType.DonationReceived)
+            return DonationReceivedPost.BuildText(item.Text, item.VisibleOnWebsite ? item.Id : null) ?? "";
+        if (item.Type == EventType.AthleteCountMilestone)
+            return ThreadsMessageBuilder.ForEventText(item.Type, item.Text, resolveAthlete);
+        if (item.Type != EventType.NewRank || !EventHelpers.TryExtractTop10Rank(item.Text, out var rank) ||
+            !EventHelpers.TryExtractSlug(item.Text, out var slug)) return "";
+        var movement = EventHelpers.TryExtractPreviousPlace(item.Text, out var previous) && previous > rank
             ? FormattableString.Invariant($"climbed from #{previous} to #{rank} overall")
             : rank == 1 ? "took the overall lead" : FormattableString.Invariant($"is now #{rank} overall");
         return $"{resolveAthlete(slug)} {movement} in the Longevity World Cup.\n\n{SocialPostLinks.LeaderboardUrl}";

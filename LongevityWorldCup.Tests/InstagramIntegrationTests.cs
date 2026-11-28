@@ -26,15 +26,32 @@ public sealed class InstagramIntegrationTests
     [InlineData(EventType.NewRank, "slug[alice] rank[4]", 0, SocialEventSkipReason.RoutineInstagramUpdate)]
     [InlineData(EventType.NewRank, "rank[1]", 0, SocialEventSkipReason.RoutineInstagramUpdate)]
     [InlineData(EventType.AthleteCountMilestone, "athletes[300]", 0, null)]
-    [InlineData(EventType.AthleteCountMilestone, "athletes[256]", 0, SocialEventSkipReason.RoutineInstagramUpdate)]
-    [InlineData(EventType.DonationReceived, "tx[abc] sats[10000]", 0, SocialEventSkipReason.RoutineInstagramUpdate)]
+    [InlineData(EventType.AthleteCountMilestone, "athletes[256]", 0, null)]
+    [InlineData(EventType.AthleteCountMilestone, "athletes[404]", 8, null)]
+    [InlineData(EventType.AthleteCountMilestone, "athletes[0]", 0, SocialEventSkipReason.UnsupportedEventPayload)]
+    [InlineData(EventType.DonationReceived, "tx[abc] sats[1]", 8, null)]
+    [InlineData(EventType.DonationReceived, "tx[abc] sats[0]", 0, SocialEventSkipReason.UnsupportedEventPayload)]
+    [InlineData(EventType.DonationReceived, "sats[10000]", 0, SocialEventSkipReason.UnsupportedEventPayload)]
     [InlineData(EventType.PhenoAgeTop10Change, "slug[alice] place[1] ageReduction[-15]", 0, SocialEventSkipReason.RoutineInstagramUpdate)]
     [InlineData(EventType.CrowdAgeTop10Change, "slug[alice] place[1] crowdAge[45] crowdCount[100]", 0, SocialEventSkipReason.RoutineInstagramUpdate)]
     [InlineData(EventType.BadgeAward, "slug[alice] badge[Age reduction] cat[Generation] val[Millennials] place[1]", 0, SocialEventSkipReason.RoutineInstagramUpdate)]
-    public void InstagramSelectsFreshOverallPodiumsAndHundreds(EventType type, string raw, int daysOld, SocialEventSkipReason? expected)
+    public void InstagramSelectsCommunityEventsAndFreshOverallPodiums(EventType type, string raw, int daysOld, SocialEventSkipReason? expected)
     {
         var item = new EventItem("test", type, raw, Now.AddDays(-daysOld).UtcDateTime, 1, true);
         Assert.Equal(expected, SocialEventSkipPolicy.InstagramSkipReason(item, SocialHeadline.For(type, raw), Now));
+    }
+
+    [Theory]
+    [InlineData(true, "?utm_content=donation-gift")]
+    [InlineData(false, "")]
+    public void DonationCaptionThanksTheDonorAndLinksToThePrizePool(bool visible, string query)
+    {
+        var donation = new EventItem("gift", EventType.DonationReceived, "tx[abc] sats[125000]", Now.UtcDateTime, 1, visible);
+        var caption = InstagramPost.HighlightText(donation, slug => slug);
+        Assert.Contains("Someone has donated 0.00125 BTC", caption);
+        var link = new Uri(caption.Split('\n')[^1]);
+        Assert.Equal(query, link.Query);
+        Assert.Equal(DonationReminderPost.Url, link.GetLeftPart(UriPartial.Path) + link.Fragment);
     }
 
     [Fact]
@@ -386,7 +403,7 @@ public sealed class InstagramIntegrationTests
         var images = new InstagramImageService(fixture.Env, new InstagramAnnouncementImageService(fixture.Env, fixture.Athletes,
             new Factory(new Handler(_ => Task.FromResult(Json("{}", HttpStatusCode.NotFound)))), NullLogger<InstagramAnnouncementImageService>.Instance));
         return new(fixture.Events, deliveries, api, new InstagramPublisher(api, new InstagramPublishingStore(fixture.Database), deliveries, clock),
-            fixture.Athletes, images, clock, NullLogger<InstagramAnnouncementService>.Instance);
+            fixture.Athletes, images, fixture.MilestoneMemes, clock, NullLogger<InstagramAnnouncementService>.Instance);
     }
 
     private static InstagramApiClient Client(Func<HttpRequestMessage, Task<HttpResponseMessage>> handle, Config? config = null, TimeProvider? clock = null)
