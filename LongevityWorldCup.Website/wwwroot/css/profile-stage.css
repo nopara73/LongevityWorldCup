@@ -1,0 +1,185 @@
+/* The athlete dialog's header as one stage. profile-stage.ts sets
+   [data-profile-stage] and the state used here. Colours are the dialog's own
+   cream-on-dark tokens (--athlete-modal-*). */
+
+#detailsModal #athlete-profile[data-profile-stage] {
+    --stage-p: 0;
+    --stage-spring: cubic-bezier(0.3, 1.35, 0.45, 1);
+    --stage-glide: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ------------------------------------------------------------ the halo
+   A thin cream ring around the portrait with one bright notch, like a
+   watch bezel. It turns as the header leaves. */
+#detailsModal #athlete-profile[data-profile-stage] .profile-stage-halo {
+    position: absolute;
+    inset: -11px;
+    z-index: 0;
+    border-radius: 50%;
+    border: 1.5px solid rgba(246, 244, 237, 0.3);
+    box-shadow:
+        0 0 0 6px rgba(246, 244, 237, 0.04),
+        0 0 34px rgba(246, 244, 237, 0.07);
+    pointer-events: none;
+    rotate: calc(var(--stage-p) * 140deg);
+}
+
+#detailsModal #athlete-profile[data-profile-stage] .profile-stage-halo::after {
+    content: "";
+    position: absolute;
+    top: -4.5px;
+    left: 50%;
+    width: 7px;
+    height: 7px;
+    margin-left: -3.5px;
+    border-radius: 50%;
+    background: var(--athlete-modal-cream, rgba(246, 244, 237, 0.92));
+    box-shadow: 0 0 10px rgba(246, 244, 237, 0.6);
+}
+
+#detailsModal #athlete-profile[data-profile-stage].is-pro .profile-stage-halo {
+    border-color: rgba(246, 244, 237, 0.5);
+    box-shadow:
+        0 0 0 6px rgba(246, 244, 237, 0.06),
+        0 0 40px rgba(246, 244, 237, 0.12);
+}
+
+#detailsModal .modal-content.guess-mode #athlete-profile[data-profile-stage] .profile-stage-halo {
+    display: none;
+}
+
+/* ------------------------------------------------------------ the name
+   The rank stays in the name, set as a quiet scoreboard figure. */
+#detailsModal #athlete-profile[data-profile-stage] #athleteName .modal-rank-text {
+    display: inline-block;
+    margin-left: 0.3em;
+    color: var(--athlete-modal-muted, rgba(255, 255, 255, 0.68));
+    font-family: Orbitron, Roboto, sans-serif;
+    font-size: 0.66em;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    vertical-align: 0.14em;
+}
+
+/* ------------------------------------------------------------ condensing on scroll
+   The portrait shrinks toward its top edge. The origin stays centred (the
+   Guess My Age glide measures from the centre), so the translate lifts it by
+   the 15% that a centred 0.3 shrink would drop the top edge. */
+#detailsModal #athlete-profile[data-profile-stage] .portrait-wrapper {
+    scale: calc(1 - var(--stage-p) * 0.3);
+    translate: 0 calc(var(--stage-p) * 30px - var(--stage-p) * 15%);
+    opacity: calc(1 - var(--stage-p) * 0.55);
+}
+
+#detailsModal #athlete-profile[data-profile-stage] #athleteName {
+    opacity: calc(1 - var(--stage-p) * 0.4);
+    translate: 0 calc(var(--stage-p) * 12px);
+}
+
+/* A moving element can't hold the scroll anchor: Chrome would stop anchoring,
+   and the content would jump when the sticky bar takes its place in the flow. */
+#detailsModal #athlete-profile[data-profile-stage] :is(.portrait-wrapper, #athleteName) {
+    overflow-anchor: none;
+}
+
+/* The sticky bar catches the header: its portrait pops in ringed, the name slides on. */
+#detailsModal[data-profile-stage] .modal-sticky-header.visible .sticky-athlete-portrait {
+    box-shadow: 0 0 0 2px rgba(246, 244, 237, 0.55), 0 0 0 5px rgba(246, 244, 237, 0.08);
+    animation: profile-stage-catch 520ms var(--lwc-ease-pop, cubic-bezier(0.3, 1.35, 0.45, 1)) both;
+}
+
+#detailsModal[data-profile-stage] .modal-sticky-header.visible :is(.sticky-athlete-name, .sticky-pro-badge) {
+    animation: profile-stage-slide 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+#detailsModal[data-profile-stage] .modal-sticky-header.visible .sticky-pro-badge {
+    animation-delay: 90ms;
+}
+
+@keyframes profile-stage-catch {
+    0% { scale: 0.35; opacity: 0; }
+    60% { scale: 1.14; opacity: 1; }
+    100% { scale: 1; opacity: 1; }
+}
+
+@keyframes profile-stage-slide {
+    from { opacity: 0; translate: -12px 0; }
+    to { opacity: 1; translate: 0 0; }
+}
+
+/* ------------------------------------------------------------ the action rail
+   The rings stay; a hairline rail now runs through their centres and one
+   cream lens glides along it to the action in hand. */
+#detailsModal #athlete-profile[data-profile-stage] > .athlete-links {
+    --stage-ring: var(--athlete-frame-ring, 52px);
+}
+
+#detailsModal #athlete-profile[data-profile-stage] > .athlete-links.has-rail::before {
+    content: "";
+    position: absolute;
+    top: calc(0.2rem + var(--stage-ring) / 2);
+    left: var(--rail-from, 30%);
+    width: var(--rail-len, 40%);
+    height: 1px;
+    background: rgba(246, 244, 237, 0.34);
+    -webkit-mask: var(--rail-mask, none);
+    mask: var(--rail-mask, none);
+    pointer-events: none;
+}
+
+#detailsModal #athlete-profile[data-profile-stage] > .athlete-links > a > i,
+#detailsModal #athlete-profile[data-profile-stage] > .athlete-links > .athlete-share-wrapper > #shareAthleteProfile > i {
+    transition: color 160ms var(--lwc-ease, ease), border-color 160ms var(--lwc-ease, ease), background-color 160ms var(--lwc-ease, ease), scale 260ms var(--stage-glide);
+}
+
+#detailsModal #athlete-profile[data-profile-stage] > .athlete-links.is-gliding > a:hover > i,
+#detailsModal #athlete-profile[data-profile-stage] > .athlete-links.is-gliding > a:focus-visible > i,
+#detailsModal #athlete-profile[data-profile-stage] > .athlete-links.is-gliding > .athlete-share-wrapper > #shareAthleteProfile:is(:hover, :focus-visible) > i {
+    scale: 1.08;
+    box-shadow: none;
+}
+
+.profile-stage-glide {
+    position: absolute;
+    top: 0.2rem;
+    left: 0;
+    z-index: 2;
+    width: var(--stage-ring, 52px);
+    height: var(--stage-ring, 52px);
+    margin-left: calc(var(--stage-ring, 52px) / -2);
+    border-radius: 50%;
+    border: 1.5px solid rgba(246, 244, 237, 0.85);
+    box-shadow: 0 0 0 4px rgba(246, 244, 237, 0.12), 0 0 22px rgba(246, 244, 237, 0.22);
+    pointer-events: none;
+    opacity: 0;
+    translate: var(--glide-x, 0px) 0;
+    scale: 1.08;
+    transition: translate 380ms var(--stage-glide, ease), opacity 180ms var(--lwc-ease, ease);
+}
+
+.athlete-links.is-gliding > .profile-stage-glide {
+    opacity: 1;
+}
+
+.profile-stage-glide.is-snapping {
+    transition: opacity 180ms var(--lwc-ease, ease);
+}
+
+/* ------------------------------------------------------------ reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    #detailsModal #athlete-profile[data-profile-stage] :is(.portrait-wrapper, #athleteName, .profile-stage-halo) {
+        scale: none;
+        translate: none;
+        rotate: none;
+        opacity: 1;
+    }
+
+    #detailsModal[data-profile-stage] .modal-sticky-header.visible * {
+        animation: none !important;
+    }
+
+    .profile-stage-glide {
+        transition: opacity 1ms;
+    }
+}
