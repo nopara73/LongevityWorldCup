@@ -3522,10 +3522,6 @@
      border-top:2px solid var(--athlete-modal-border);
  }
  #detailsModal #athlete-stats .athlete-info-divider-row td{ display:none; }
- @container athlete-stats (max-width: 15.99em){
-     #detailsModal #athlete-stats .athlete-info-table tr{ grid-template-columns:minmax(0, 1fr); }
-     #detailsModal #athlete-stats .athlete-info-table td{ text-align:left; }
- }
 
  /* Contact actions: the footer band of the stats card. */
  #detailsModal #athlete-profile > #athlete-stats:has(+ .athlete-links){
@@ -4719,7 +4715,7 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
    The age results read as a scoreboard under the radar: chronological age and
    the crowd's guess set the reference, then each clock keeps its own column of
    lowest age, pace and reduction as large figures. The profile basics follow as
-   quiet label rows. Native hidden state drives the same layout before and after
+   standings tiles. Native hidden state drives the same layout before and after
    hydration; clock pairs reserve their metric row even when a pace is absent. */
 #detailsModal #athlete-profile > #athlete-stats{
     padding:0;
@@ -4825,14 +4821,94 @@ main[data-leaderboard-page="full"] .show-all-athletes-btn{ border-radius:var(--l
 /* A single clock without pace has two tiles rather than an empty third. */
 #detailsModal #athlete-stats .athlete-age-board:not(:has(> #bortzPaceOfAgingContainer:not([hidden]), > #paceOfAgingContainer:not([hidden]))) > tr[data-clock]{ --age-tile-span:3; }
 
-/* The profile basics follow under a firmer rule as plain label rows. */
+/* Standings tiles: the profile basics follow under a firmer rule as Best rank,
+   Division, Generation and Flag in four small scoreboard tiles, two to a row.
+   Each leads with its rank chip (gold, silver and bronze for the podium
+   places); the league name follows as the link. On open the tiles rise in turn
+   and a podium chip pops (decorateProfileStandings in leaderboard-page.js). */
 #detailsModal #athlete-stats .athlete-info-table > tbody.athlete-info-basics{
-    display:block;
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:.6rem;
+    padding-top:.9rem;
     border-top:2px solid var(--athlete-modal-border);
 }
-#detailsModal #athlete-stats .athlete-info-basics > tr:first-child,
-#detailsModal #athlete-stats .athlete-info-basics > tr[hidden] + tr{ border-top:0; }
 #detailsModal #athlete-stats .athlete-info-basics > tr[hidden]{ display:none; }
+/* An athlete without a flag has no Flag tile rather than an empty one. */
+#detailsModal #athlete-stats .athlete-info-basics > tr:has(#athleteFlag:empty){ display:none; }
+#detailsModal #athlete-stats .athlete-info-basics > tr{
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    gap:.3rem;
+    min-width:0;
+    margin:0;
+    padding:.75rem .85rem .8rem;
+    border:1px solid var(--athlete-modal-border, var(--lwc-border));
+    border-radius:var(--lwc-radius-md, 8px);
+    background:var(--athlete-modal-card, var(--lwc-surface));
+    color:var(--athlete-modal-text, var(--lwc-ink));
+    transition:border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+#detailsModal #athlete-stats .athlete-info-basics > tr:has(a:hover){
+    border-color:var(--athlete-modal-border-strong, var(--lwc-border-strong));
+    transform:translateY(-1px);
+    background:var(--athlete-modal-card-strong, var(--lwc-surface));
+}
+#detailsModal #athlete-stats .athlete-info-basics > tr > th,
+#detailsModal #athlete-stats .athlete-info-basics > tr > td{
+    display:block;
+    width:auto;
+    padding:0;
+    border:0;
+    text-align:left;
+}
+#detailsModal #athlete-stats .athlete-info-basics > tr > th{
+    color:var(--athlete-modal-muted, var(--lwc-muted));
+    font-size:.7rem;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+}
+#detailsModal #athlete-stats .athlete-info-basics > tr > th strong{ font-weight:700; }
+#detailsModal #athlete-stats .athlete-info-basics > tr > td{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:baseline;
+    gap:.2rem .45rem;
+    min-width:0;
+    /* The chip's line: server-rendered tiles arrive without their ranks and
+       keep their height when the chips arrive. */
+    min-height:1.7em;
+    font-size:.95rem;
+    line-height:1.3;
+}
+#detailsModal #athlete-stats .athlete-info-basics .standing-rank{
+    flex:0 0 auto;
+    color:var(--athlete-modal-cream, var(--lwc-accent));
+    font-family:Orbitron, Roboto, sans-serif;
+    font-size:1.45rem;
+    font-weight:700;
+    font-variant-numeric:tabular-nums;
+    line-height:1;
+}
+#detailsModal #athlete-stats .athlete-info-basics > tr[data-standing-place="1"]{ --standing-medal:var(--lwc-gold, #c9a227); }
+#detailsModal #athlete-stats .athlete-info-basics > tr[data-standing-place="2"]{ --standing-medal:var(--lwc-silver, #9aa5b1); }
+#detailsModal #athlete-stats .athlete-info-basics > tr[data-standing-place="3"]{ --standing-medal:var(--lwc-bronze, #b0713f); }
+#detailsModal #athlete-stats .athlete-info-basics > tr[data-standing-podium]{
+    border-color:color-mix(in srgb, var(--standing-medal) 55%, var(--athlete-modal-border, var(--lwc-border)));
+    background:
+        radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--standing-medal) 22%, transparent), transparent 62%),
+        var(--athlete-modal-card, var(--lwc-surface));
+}
+#detailsModal #athlete-stats .athlete-info-basics > tr[data-standing-podium] .standing-rank{
+    color:var(--standing-medal);
+}
+/* The chip reads the rank; the "(#3)" and "(rank: #3)" text it replaces stays
+   in the markup only. */
+#detailsModal #athlete-stats .athlete-info-basics .standing-rank-source{ display:none; }
+@container athlete-stats (max-width: 15.99em){
+    #detailsModal #athlete-stats .athlete-info-table > tbody.athlete-info-basics{ grid-template-columns:minmax(0, 1fr); }
+}
 
 /* Phones: two tiles to a row; a lone last tile takes the whole row. */
 @container athlete-stats (max-width: 29.99em){

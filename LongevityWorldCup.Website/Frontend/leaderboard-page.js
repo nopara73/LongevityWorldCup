@@ -5165,6 +5165,76 @@ function renderAthleteFlagDetail(flag, athleteData) {
     return `<a href="${escapeHtml(flagHref)}" class="league-link">${renderFlagLabel(canonicalFlag)}</a>${getModalDetailRankMarkup(flagRank)}`;
 }
 
+// Standings tiles: Best rank, Division, Generation and Flag read as four
+// small scoreboard tiles. The "(#3)" / "(rank: #3)" text becomes a rank chip
+// (gold, silver and bronze for the podium places) that always shows the real
+// rank; the tiles may rise in, the digits never change. The visible words stay
+// the same.
+const standingAnimations = [];
+
+// Best rank leads with a bare "#1 for …" text: set that rank apart so the chip
+// can stand in for it, and so a later pass reads the same source again.
+function wrapLeadingStandingRank(cell) {
+    const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT, {
+        acceptNode: node => node.textContent.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
+    });
+    const lead = walker.nextNode();
+    const match = lead && /^\s*#\s*\d+\s*/.exec(lead.textContent);
+    if (!match) return null;
+    lead.splitText(match[0].length);
+    const source = document.createElement('span');
+    lead.replaceWith(source);
+    source.append(lead);
+    return source;
+}
+
+// `enter` lets the tiles rise for a newly shown athlete. Crowd updates and the
+// hydration of the server-rendered profile keep the tiles where they are.
+function decorateProfileStandings(enter) {
+    const body = runtimeRoot.querySelector('#athlete-stats .athlete-info-basics');
+    if (!body) return;
+    standingAnimations.splice(0).forEach(animation => animation.cancel());
+    const motion = enter && document.documentElement.dataset.lwcMotion === 'on'
+        && !(typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    let shown = 0;
+    body.querySelectorAll(':scope > tr').forEach(row => {
+        const cell = row.querySelector('td');
+        if (!cell) return;
+        // Drop the previous athlete's chip first, so the rank is read from this
+        // athlete's text and never from a stale chip.
+        cell.querySelector(':scope > .standing-rank')?.remove();
+        const source = cell.querySelector('.standing-rank-source, .modal-rank-text, .detail-muted')
+            || wrapLeadingStandingRank(cell);
+        const match = source && /#\s*(\d+)/.exec(source.textContent);
+        const rank = match ? Number(match[1]) : 0;
+        row.toggleAttribute('data-standing-podium', rank >= 1 && rank <= 3);
+        if (rank >= 1 && rank <= 3) row.dataset.standingPlace = String(rank);
+        else delete row.dataset.standingPlace;
+        let chip = null;
+        if (rank > 0) {
+            source.classList.add('standing-rank-source');
+            chip = document.createElement('span');
+            chip.className = 'standing-rank';
+            chip.textContent = `#${rank}`;
+            cell.prepend(chip);
+        }
+        if (!motion || row.hidden || typeof row.animate !== 'function') return;
+        const delay = shown++ * 70;
+        standingAnimations.push(row.animate([
+            { opacity: 0, transform: 'translateY(10px) scale(.98)' },
+            { opacity: 1, transform: 'none' }
+        ], { duration: 420, delay, easing: 'cubic-bezier(0.2, 0, 0, 1)', fill: 'backwards' }));
+        if (chip && row.hasAttribute('data-standing-podium')) {
+            const pop = 'cubic-bezier(0.34, 1.4, 0.64, 1)';
+            standingAnimations.push(chip.animate([
+                { transform: 'none', easing: pop },
+                { offset: .4, transform: 'scale(1.25) rotate(-6deg)', easing: pop },
+                { transform: 'none' }
+            ], { duration: 700, delay: delay + 420 }));
+        }
+    });
+}
+
 document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape' || event.key === 'Esc') {
         closeOpenComponents();
@@ -6342,6 +6412,8 @@ function populateModal(fullAthleteData, athleteData, rankSummary) {
     getRuntimeElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${escapeHtml(athleteData.division)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.division])}`;
     getRuntimeElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${escapeHtml(athleteData.generation)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.generation])}`;
     getRuntimeElementById('athleteFlag').innerHTML = renderAthleteFlagDetail(fullAthleteData.Flag || athleteData.canonicalFlag, athleteData);
+    // The server-rendered profile is already on screen: hydrate its tiles in place.
+    decorateProfileStandings(!runtimeRoot.querySelector('#detailsModal .modal-content')?.hasAttribute('data-server-rendered-profile'));
     renderPortraitFlagMark(fullAthleteData.Flag || athleteData.canonicalFlag);
     const completedAge = getCompletedChronologicalAge(fullAthleteData, athleteData);
     getRuntimeElementById('chronologicalAge').textContent = Number.isFinite(completedAge) ? completedAge.toString() : '';
@@ -8092,6 +8164,7 @@ function updateAthleteCrowdAge(athleteSlug, crowdAge, crowdCount) {
         const rankSummary = computeBestLeagueRank(athleteData);
         renderProfileRankings(athleteData, rankSummary.ultimateRank);
         getRuntimeElementById('athleteRank').innerHTML = renderBestRankLink(rankSummary.bestCandidate);
+        decorateProfileStandings(false);
     }
 }
 
