@@ -169,7 +169,11 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
             case "/api/data/pheno-age":
                 operation.OperationId = "calculatePhenoAge";
                 operation.Summary = "Calculate Pheno Age";
-                operation.Description = "Calculates a Pheno Age result from chronological age and the nine required blood biomarkers. The result includes Biological Age Difference, which can be passed to the hypothetical rank endpoint as the submitted biological age.";
+                operation.Description = """
+                    Calculates a Pheno Age result from chronological age and the nine required blood biomarkers.
+                    For a hypothetical rank preview, pass the response's `biologicalAge` as the rank request's `biologicalAge`.
+                    The signed `biologicalAgeDifference` is biological age minus chronological age.
+                    """;
                 SetRequestExample(operation, """
                     {
                       "chronologicalAge": 45.5,
@@ -262,7 +266,11 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
             case "/api/data/hypothetical-rank":
                 operation.OperationId = "previewHypotheticalRank";
                 operation.Summary = "Preview a hypothetical Ultimate League rank";
-                operation.Description = "Calculates where a hypothetical biological age result would rank in the current Ultimate League field. Use `pheno` for an Amateur Pheno Age preview and `bortz` for a Pro Bortz Age preview.";
+                operation.Description = """
+                    Calculates where a hypothetical biological age result would rank in the current Ultimate League field.
+                    Use `pheno` for an Amateur Pheno Age preview and `bortz` for a Pro Bortz Age preview.
+                    Set the request's `biologicalAge` to the selected calculator's `biologicalAge` result in years.
+                    """;
                 SetRequestExample(operation, """
                     {
                       "calculator": "pheno",

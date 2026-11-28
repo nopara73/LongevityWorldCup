@@ -74,15 +74,19 @@ public sealed class SwaggerOpenApiTests(TestWebApplicationFactory sharedFactory)
     public async Task SwaggerJson_DocumentsHypotheticalRankRequestAndResponse()
     {
         using var document = await LoadSwaggerDocumentAsync();
-        var operation = document.RootElement
-            .GetProperty("paths")
-            .GetProperty("/api/data/hypothetical-rank")
-            .GetProperty("post");
+        var paths = document.RootElement.GetProperty("paths");
+        var operation = paths.GetProperty("/api/data/hypothetical-rank").GetProperty("post");
 
         Assert.Equal("Preview a hypothetical Ultimate League rank", operation.GetProperty("summary").GetString());
         Assert.Equal("previewHypotheticalRank", operation.GetProperty("operationId").GetString());
-        Assert.Contains("Pheno Age", operation.GetProperty("description").GetString());
-        Assert.Contains("Bortz Age", operation.GetProperty("description").GetString());
+        var rankDescription = operation.GetProperty("description").GetString();
+        Assert.Contains("Pheno Age", rankDescription);
+        Assert.Contains("Bortz Age", rankDescription);
+        Assert.Contains("Set the request's `biologicalAge` to the selected calculator's `biologicalAge` result", rankDescription);
+
+        var phenoDescription = paths.GetProperty("/api/data/pheno-age").GetProperty("post").GetProperty("description").GetString();
+        Assert.Contains("pass the response's `biologicalAge` as the rank request's `biologicalAge`", phenoDescription);
+        Assert.Contains("`biologicalAgeDifference` is biological age minus chronological age", phenoDescription);
 
         var requestSchema = operation
             .GetProperty("requestBody")

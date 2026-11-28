@@ -104,7 +104,8 @@ namespace LongevityWorldCup.Website.Controllers
         /// Calculate a Pheno Age result.
         /// </summary>
         /// <remarks>
-        /// Calculates pheno age from chronological age and the nine blood biomarkers used by the Longevity World Cup Amateur clock. The response includes Biological Age Difference so clients can pass the result to the hypothetical rank endpoint.
+        /// Calculates pheno age from chronological age and the nine blood biomarkers used by the Longevity World Cup Amateur clock.
+        /// For a hypothetical rank preview, pass the response's `biologicalAge` as the rank request's `biologicalAge`.
         /// </remarks>
         /// <response code="200">The calculated Pheno Age result and model contribution values.</response>
         /// <response code="400">The request body is missing, malformed, or contains out-of-range biological aging clock inputs.</response>
@@ -181,6 +182,7 @@ namespace LongevityWorldCup.Website.Controllers
         /// </summary>
         /// <remarks>
         /// Calculates where a hypothetical biological age result would rank in the current Ultimate League field. Use `pheno` for an Amateur Pheno Age preview and `bortz` for a Pro Bortz Age preview.
+        /// Set the request's `biologicalAge` to the selected calculator's `biologicalAge` result in years.
         /// </remarks>
         /// <response code="200">The hypothetical rank, field sizes, age difference, and nearby athletes.</response>
         /// <response code="400">The request body is missing, malformed, outside accepted ranges, or uses an unsupported calculator value.</response>
