@@ -1,0 +1,41 @@
+{
+  "Name": "György Szabó",
+  "DisplayName": null,
+  "MediaContact": "@gismostark",
+  "DateOfBirth": {
+    "Year": 1987,
+    "Month": 1,
+    "Day": 21
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-11-13",
+      "AlbGL": 45,
+      "CreatUmolL": 88,
+      "GluMmolL": 4.8,
+      "CrpMgL": 1.5,
+      "LymPc": 39.4,
+      "McvFL": 91,
+      "RdwPc": 12.1,
+      "AlpUL": 83,
+      "Wbc1000cellsuL": 4.8,
+      "NeutrophilPc": 49.3,
+      "MonocytePc": 8.4,
+      "Rbc10e12L": 5.6,
+      "MchPg": 29,
+      "UreaMmolL": 4.7,
+      "CystatinCMgL": 0.77,
+      "Hba1cMmolMol": 34,
+      "CholesterolMmolL": 6.9,
+      "ApoA1GL": 1.47,
+      "AltUL": 48,
+      "GgtUL": 29,
+      "ShbgNmolL": 15.8,
+      "VitaminDNmolL": 74
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Hungary",
+  "Why": "I became a dad a bit late in life, so I want to live long enough to meet my grandchildren. And along the way I want to help others to live longer too.",
+  "PersonalLink": "https://longify8.com/founder"
+}
