@@ -128,7 +128,7 @@ public sealed class InstagramAnnouncementService(
             if (string.IsNullOrWhiteSpace(text)) return null;
             caption = InstagramPost.Truncate(text, InstagramPost.MaxCaptionLength);
             alt = messages.TryBuildMessage(item.Type, item.Text, item.Id, item.VisibleOnWebsite, resolveName) ?? text;
-            visual = InstagramVisual.ForEvent(item.Type, item.Text, alt);
+            visual = InstagramVisual.ForEvent(item.Type, item.Text, alt, resolveName);
             if (item.Type == EventType.AthleteCountMilestone && EventHelpers.TryExtractAthleteCount(item.Text, out var count)
                 && memes.TryGetMeme(count, out var media)) meme = media.FullPath;
         }

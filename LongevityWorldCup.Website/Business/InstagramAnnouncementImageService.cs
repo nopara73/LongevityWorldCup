@@ -45,11 +45,10 @@ public sealed class InstagramAnnouncementImageService(
                 using var portrait = await ImageInput.LoadAsync<Rgba32>(IOPath.Combine(environment.WebRootPath, portraitAsset), ct);
                 if (portrait.Width != Width || portrait.Height != Height)
                     throw new InvalidOperationException("Prepared Instagram artwork must be 1080 by 1350 pixels.");
-                var prepared = new MemoryStream();
-                await portrait.SaveAsPngAsync(prepared, ct);
-                prepared.Position = 0;
-                return prepared;
+                return await EncodePngAsync(portrait, ct);
             }
+            if (visual.Placement is { } placement)
+                return await RenderPlacementAsync(placement, visual.Headline, visual.AthleteSlugs[0], ct);
             artworkPath ??= visual.Artwork?.FullPath(environment.WebRootPath);
             _bold ??= _fonts.Add(Asset("fonts", "Poppins-Bold.ttf"));
             _regular ??= _fonts.Add(Asset("fonts", "Poppins-Regular.ttf"));
@@ -115,12 +114,82 @@ public sealed class InstagramAnnouncementImageService(
                 qr.Mutate(x => x.Resize(164, 164, KnownResamplers.NearestNeighbor));
                 image.Mutate(x => x.DrawImage(qr, new Point(Width - 244, Height - 206), 1f));
             }
-            var stream = new MemoryStream();
-            await image.SaveAsPngAsync(stream, ct);
-            stream.Position = 0;
-            return stream;
+            return await EncodePngAsync(image, ct);
         }
         finally { _gate.Release(); }
+    }
+
+    private static async Task<MemoryStream> EncodePngAsync(Image<Rgba32> image, CancellationToken ct)
+    {
+        var stream = new MemoryStream();
+        await image.SaveAsPngAsync(stream, ct);
+        stream.Position = 0;
+        return stream;
+    }
+
+    private async Task<MemoryStream> RenderPlacementAsync(InstagramPlacement placement, string name, string slug, CancellationToken ct)
+    {
+        const int inset = 64;
+        const int photoHeight = 1040;
+        var fonts = ShareCardCanvas.GetFonts(environment.WebRootPath);
+        var mint = Color.ParseHex("bdf4e2");
+        using var image = new Image<Rgba32>(Width, Height, Ink);
+        var athlete = FindAthlete(athletes.GetAthletesSnapshot().OfType<JsonObject>(), slug);
+        var portrait = ProfilePath(athlete?["ProfilePic"]?.GetValue<string>());
+        using var photo = portrait is null ? null : await LoadPlacementPhotoAsync(portrait, ct);
+        if (photo is null)
+            image.Mutate(x => ShareCardCanvas.DrawMonogramDisc(x, fonts, name, Width / 2f, photoHeight * 0.46f, 248, Teal));
+        else
+        {
+            photo.Mutate(x => x.AutoOrient().Resize(new ResizeOptions { Size = new Size(Width, photoHeight), Mode = ResizeMode.Crop }));
+            image.Mutate(x => x.DrawImage(photo, Point.Empty, 1f));
+        }
+
+        var (lines, nameFont) = ShareCardCanvas.FitHeadline(fonts, name, 112, 80, Width - 2 * inset, 2, 52);
+        var rank = FormattableString.Invariant($"#{placement.Place}");
+        var rankFont = ImageTextLayout.FitFontToWidth(fonts.Display, rank, 150, 100, 260);
+        const int leagueX = 370;
+        var leagueFont = ImageTextLayout.FitFontToWidth(fonts.Bold, placement.Leaderboard, 63, 44, Width - leagueX - inset);
+        using var mark = await ImageLogo.LoadMarkAsync(Asset("HdLogo.png"), ct);
+        mark.Mutate(x => x.Resize(new ResizeOptions { Size = new Size(86, 86), Mode = ResizeMode.Max }));
+        image.Mutate(ctx =>
+        {
+            // Keep a light or busy photograph legible under the wordmark and athlete's name.
+            ctx.Fill(new LinearGradientBrush(PointF.Empty, new PointF(0, photoHeight), GradientRepetitionMode.None,
+                new ColorStop(0, Ink.WithAlpha(.77f)), new ColorStop(.24f, Ink.WithAlpha(0)),
+                new ColorStop(.52f, Ink.WithAlpha(0)), new ColorStop(.8f, Ink.WithAlpha(.65f)),
+                new ColorStop(1, Ink.WithAlpha(.98f))), new RectangularPolygon(0, 0, Width, photoHeight));
+            ctx.DrawImage(mark, new Point(inset - 8, 48), 1f);
+            ShareCardCanvas.DrawTrackedText(ctx, fonts, "LONGEVITY WORLD CUP", fonts.Display.CreateFont(25, FontStyle.Bold),
+                Color.White, new PointF(inset + 89, 73), 1.8f);
+            var lineHeight = nameFont.Size * 1.1f;
+            ShareCardCanvas.DrawLines(ctx, fonts, lines, nameFont, Color.White, inset,
+                photoHeight - 48 - lines.Count * lineHeight, lineHeight);
+
+            ctx.Fill(mint, new RectangularPolygon(0, photoHeight, Width, Height - photoHeight));
+            var middle = (Height + photoHeight) / 2f;
+            ctx.DrawText(rank, rankFont, Ink, new PointF(inset, ShareCardCanvas.CenterTextY(rank, rankFont, middle)));
+            ctx.DrawLine(Ink.WithAlpha(.3f), 2, new PointF(leagueX - 28, middle - 66), new PointF(leagueX - 28, middle + 66));
+            var titleCenter = placement.Detail is null ? middle : middle - 28;
+            ctx.DrawText(placement.Leaderboard, leagueFont, Ink,
+                new PointF(leagueX, ShareCardCanvas.CenterTextY(placement.Leaderboard, leagueFont, titleCenter)));
+            if (placement.Detail is { } detail)
+            {
+                var font = fonts.Regular.CreateFont(35);
+                ctx.DrawText(detail, font, Ink, new PointF(leagueX, ShareCardCanvas.CenterTextY(detail, font, middle + 38)));
+            }
+        });
+        return await EncodePngAsync(image, ct);
+    }
+
+    private async Task<Image<Rgba32>?> LoadPlacementPhotoAsync(string path, CancellationToken ct)
+    {
+        try { return await ImageInput.LoadAsync<Rgba32>(path, ct); }
+        catch (Exception ex) when (ex is IOException or UnknownImageFormatException or InvalidImageContentException)
+        {
+            log.LogWarning("Instagram placement portrait is unavailable ({ErrorType}).", ex.GetType().Name);
+            return null;
+        }
     }
 
     private (Font Font, string Text, float Height) Fit(string text, FontFamily family, float start, float min, float maxHeight, bool truncate)
@@ -196,7 +265,7 @@ public sealed class InstagramAnnouncementImageService(
     {
         var snapshot = athletes.GetAthletesSnapshot().OfType<JsonObject>().ToArray();
         var portraits = slugs.Distinct(StringComparer.OrdinalIgnoreCase).Take(2)
-            .Select(slug => snapshot.FirstOrDefault(x => AthleteSlug.Normalize(x["AthleteSlug"]?.GetValue<string>()) == AthleteSlug.Normalize(slug)))
+            .Select(slug => FindAthlete(snapshot, slug))
             .Select(x => new { Path = ProfilePath(x?["ProfilePic"]?.GetValue<string>()),
                 Name = new[] { x?["DisplayName"]?.GetValue<string>(), x?["Name"]?.GetValue<string>() }.FirstOrDefault(n => !string.IsNullOrWhiteSpace(n)) ?? "" })
             .Where(x => x.Path is not null).ToArray();
@@ -211,6 +280,12 @@ public sealed class InstagramAnnouncementImageService(
             image.Mutate(ctx => ctx.DrawText(label, labelFont, Muted, new PointF(x, 605)));
         }
         return portraits.Length > 0;
+    }
+
+    private static JsonObject? FindAthlete(IEnumerable<JsonObject> snapshot, string slug)
+    {
+        var normalized = AthleteSlug.Normalize(slug);
+        return snapshot.FirstOrDefault(x => AthleteSlug.Normalize(x["AthleteSlug"]?.GetValue<string>()) == normalized);
     }
 
     private string? ProfilePath(string? url)

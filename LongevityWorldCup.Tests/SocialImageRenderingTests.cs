@@ -130,19 +130,24 @@ public sealed class SocialImageRenderingTests(TestWebApplicationFactory sharedFa
     }
 
     [Fact]
-    public async Task InstagramAthleteImage_KeepsTheEventAndAthleteTogether()
+    public async Task InstagramPlacementImage_FeaturesThePortraitAndUsesTheRecordedRank()
     {
         var images = sharedFactory.Services.GetRequiredService<InstagramImageService>();
-        var visual = LongevityWorldCup.Website.Tools.InstagramVisual.ForEvent(EventType.NewRank,
-            "slug[ron_lugbill] rank[1] prev[alice_smith]", "Ron Lugbill is now 1st in the Ultimate League.");
+        var visual = InstagramVisual.ForEvent(EventType.AgeImprovementTop10Change,
+            "slug[benjamin_woosley] clock[pheno] place[2] prev[olga_vresca] improvement[-6.56] ageReduction[-14.2]",
+            "Benjamin Woosley entered the top 10 at 2nd in the Pheno Improvement leaderboard, ahead of Olga Vresca.",
+            _ => "Benjamin Woosley");
         var url = await images.RenderAsync(visual, null);
-        CaptureInstagram(InstagramImagePath(url), "athlete");
+        CaptureInstagram(InstagramImagePath(url), "benjamin-woosley");
         using var image = Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(InstagramImagePath(url));
+        Assert.Equal(1080, image.Width);
         Assert.Equal(1350, image.Height);
         var portraitColors = new HashSet<SixLabors.ImageSharp.PixelFormats.Rgba32>();
         for (var y = 240; y < 580; y += 10)
-            for (var x = 370; x < 710; x += 10) portraitColors.Add(image[x, y]);
-        Assert.True(portraitColors.Count > 100, "The athlete's actual photo must be present.");
+            for (var x = 20; x < 240; x += 10) portraitColors.Add(image[x, y]);
+        Assert.True(portraitColors.Count > 100, "The photograph should fill the frame beyond the former thumbnail.");
+        var changed = visual with { Placement = visual.Placement! with { Place = 10 } };
+        Assert.NotEqual(url, await images.RenderAsync(changed, null));
     }
 
     private string InstagramImagePath(string url) => Path.Combine(

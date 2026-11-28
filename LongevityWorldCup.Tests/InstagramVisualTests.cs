@@ -36,14 +36,22 @@ public sealed class InstagramVisualTests
         Assert.Null(InstagramVisual.ForCustom("Mastodon moderation news\n\n[More](https://mastodon.social/@longevityworldcup)").Platform);
     }
 
-    [Fact]
-    public void AthleteEvent_UsesItsActualParticipantsAndKeepsCaptionUrlsOffTheImage()
+    [Theory]
+    [InlineData(EventType.AgeImprovementTop10Change, "clock[pheno] place[2] improvement[-6.56] ageReduction[-14.2]", 2, "Pheno Improvement", "−6.6 years from worst to latest")]
+    [InlineData(EventType.AgeImprovementTop10Change, "clock[bortz] place[10] improvement[-3] ageReduction[-12]", 10, "Bortz Improvement", "−3 years from worst to latest")]
+    [InlineData(EventType.PhenoAgeTop10Change, "place[7] ageReduction[-14.2]", 7, "Pheno Age", "−14.2 years vs. actual age")]
+    [InlineData(EventType.CrowdAgeTop10Change, "place[1] crowdAge[34.5] crowdCount[1200]", 1, "Crowd Age", "34.5 years · 1,200 guesses")]
+    [InlineData(EventType.NewRank, "rank[2] prevPlace[10]", 2, "Ultimate League", "Previously #10")]
+    [InlineData(EventType.NewRank, "rank[1]", 1, "Ultimate League", null)]
+    public void PlacementImage_UsesTheRecordedStandingAndNamesTheFeaturedAthleteOnce(
+        EventType type, string fields, int rank, string league, string? detail)
     {
-        var visual = InstagramVisual.ForEvent(EventType.NewRank, "slug[alice_smith] rank[1] prev[bob_jones]",
-            "Alice Smith is now 1st, ahead of Bob Jones.\n\nhttps://longevityworldcup.com/athlete/alice-smith");
-        Assert.Equal("Alice Smith is now 1st, ahead of Bob Jones.", visual.Headline);
+        var visual = InstagramVisual.ForEvent(type, $"slug[alice_smith] {fields} prev[bob_jones]",
+            "Announcement with a runner-up and a link.", slug => slug == "alice_smith" ? "Alice Smith" : "Bob Jones");
+        Assert.Equal("Alice Smith", visual.Headline);
         Assert.Equal("", visual.Details);
-        Assert.Equal(new[] { "alice_smith", "bob_jones" }, visual.AthleteSlugs);
+        Assert.Equal(new[] { "alice_smith" }, visual.AthleteSlugs);
+        Assert.Equal(new InstagramPlacement(rank, league, detail), visual.Placement);
     }
 
     [Fact]
@@ -52,7 +60,7 @@ public sealed class InstagramVisualTests
         var visual = InstagramVisual.ForCustom("A new Immortal Combat episode\n\n[Watch](https://www.youtube.com/watch?v=kOWAsyQCtH4) [LWC](https://longevityworldcup.com)");
         Assert.Equal("kOWAsyQCtH4", visual.VideoId);
         var athlete = InstagramVisual.ForEvent(EventType.Joined, "slug[alice_smith]",
-            "Alice Smith joins LWC.\n\nhttps://youtu.be/kOWAsyQCtH4");
+            "Alice Smith joins LWC.\n\nhttps://youtu.be/kOWAsyQCtH4", _ => "Alice Smith");
         Assert.Equal("kOWAsyQCtH4", athlete.VideoId);
         Assert.Null(InstagramVisual.ForCustom("An update\n\n[Watch](https://youtube.com.evil.example/watch?v=kOWAsyQCtH4)").VideoId);
     }

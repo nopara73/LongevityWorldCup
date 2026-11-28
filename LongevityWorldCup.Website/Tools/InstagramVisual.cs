@@ -3,9 +3,30 @@ using LongevityWorldCup.Website.Business;
 
 namespace LongevityWorldCup.Website.Tools;
 
+internal sealed record InstagramPlacement(int Place, string Leaderboard, string? Detail)
+{
+    internal static InstagramPlacement? FromEvent(EventType type, string raw) => type switch
+    {
+        EventType.AgeImprovementTop10Change when EventHelpers.TryExtractAgeImprovementTop10Change(raw,
+            out var clock, out var place, out _, out var improvement, out _) =>
+            new(place, clock == "bortz" ? "Bortz Improvement" : "Pheno Improvement",
+                FormattableString.Invariant($"{improvement:+0.#;−0.#;0} years from worst to latest")),
+        EventType.PhenoAgeTop10Change when EventHelpers.TryExtractPhenoAgeTop10Change(raw,
+            out var place, out _, out var reduction) =>
+            new(place, "Pheno Age", FormattableString.Invariant($"{reduction:+0.#;−0.#;0} years vs. actual age")),
+        EventType.CrowdAgeTop10Change when EventHelpers.TryExtractCrowdAgeTop10Change(raw,
+            out var place, out _, out var age, out var count) =>
+            new(place, "Crowd Age", FormattableString.Invariant($"{age:0.#} years · {count:N0} {(count == 1 ? "guess" : "guesses")}")),
+        EventType.NewRank when EventHelpers.TryExtractTop10Rank(raw, out var place) =>
+            new(place, "Ultimate League", EventHelpers.TryExtractPreviousPlace(raw, out var previous) && previous > place
+                ? FormattableString.Invariant($"Previously #{previous}") : null),
+        _ => null
+    };
+}
+
 internal sealed record InstagramVisual(
     string Headline, string Details, string? Platform, string? Address, string? VideoId,
-    IReadOnlyList<string> AthleteSlugs, CustomEventArtwork? Artwork = null)
+    IReadOnlyList<string> AthleteSlugs, CustomEventArtwork? Artwork = null, InstagramPlacement? Placement = null)
 {
     internal static InstagramVisual ForCustom(string rawText, Func<string, string>? resolveName = null)
     {
@@ -22,11 +43,15 @@ internal sealed record InstagramVisual(
         return new(headline, details, platform, AddressFor(platform, link) ?? artworkAddress, FindVideoId(rawText), slugs, artwork);
     }
 
-    internal static InstagramVisual ForEvent(EventType type, string rawText, string message)
+    internal static InstagramVisual ForEvent(EventType type, string rawText, string message, Func<string, string> resolveName)
     {
+        if (EventHelpers.TryExtractSlug(rawText, out var slug)
+            && InstagramPlacement.FromEvent(type, rawText) is { } placement)
+            return new(resolveName(slug), "", null, null, null, [slug], Placement: placement);
+
         var (headline, details) = CustomEventMarkup.SplitTitleAndContent(message);
         var slugs = new List<string>();
-        if (EventHelpers.TryExtractSlug(rawText, out var slug)) slugs.Add(slug);
+        if (!string.IsNullOrWhiteSpace(slug)) slugs.Add(slug);
         if (type == EventType.NewRank && EventHelpers.TryExtractPrev(rawText, out var previous)) slugs.Add(previous);
         return new(Plain(headline), Plain(details), null, null, FindVideoId(message), slugs);
     }
