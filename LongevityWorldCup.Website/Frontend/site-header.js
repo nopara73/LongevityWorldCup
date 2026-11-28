@@ -501,7 +501,9 @@ function fetchWithTimeout(url, options = {}, timeout = 10000) {
             && !destination.search && !destination.hash && /^\/leaderboard\/?$/i.test(destination.pathname)
             && event.activation?.navigationType !== 'traverse'
             && !matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (destination.origin !== location.origin || (!journeyPath.test(destination.pathname) && !homeBoard)) {
+        // route-motion.js claims the return from an athlete to the page it was opened from.
+        const athleteReturn = event.viewTransition.types?.has('lwc-athlete-return');
+        if (destination.origin !== location.origin || (!journeyPath.test(destination.pathname) && !homeBoard && !athleteReturn)) {
             event.viewTransition.skipTransition();
         }
     });

@@ -42,6 +42,7 @@ public sealed class FrontendTypeScriptBuildTests
         "scroll-choreography",
         "image-viewer",
         "disclosure",
+        "route-motion",
         "site-statistics",
         "site-statistics-tracking"
     ];
