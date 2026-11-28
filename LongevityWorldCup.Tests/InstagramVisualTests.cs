@@ -37,21 +37,21 @@ public sealed class InstagramVisualTests
     }
 
     [Theory]
-    [InlineData(EventType.AgeImprovementTop10Change, "clock[pheno] place[2] improvement[-6.56] ageReduction[-14.2]", 2, "Pheno Improvement", "−6.6 years from worst to latest")]
-    [InlineData(EventType.AgeImprovementTop10Change, "clock[bortz] place[10] improvement[-3] ageReduction[-12]", 10, "Bortz Improvement", "−3 years from worst to latest")]
-    [InlineData(EventType.PhenoAgeTop10Change, "place[7] ageReduction[-14.2]", 7, "Pheno Age", "−14.2 years vs. actual age")]
-    [InlineData(EventType.CrowdAgeTop10Change, "place[1] crowdAge[34.5] crowdCount[1200]", 1, "Crowd Age", "34.5 years · 1,200 guesses")]
-    [InlineData(EventType.NewRank, "rank[2] prevPlace[10]", 2, "Ultimate League", "Previously #10")]
-    [InlineData(EventType.NewRank, "rank[1]", 1, "Ultimate League", null)]
+    [InlineData(EventType.AgeImprovementTop10Change, "clock[pheno] place[2] improvement[-6.56] ageReduction[-14.2]", 2, "Pheno Improvement")]
+    [InlineData(EventType.AgeImprovementTop10Change, "clock[bortz] place[10] improvement[-3] ageReduction[-12]", 10, "Bortz Improvement")]
+    [InlineData(EventType.PhenoAgeTop10Change, "place[7] ageReduction[-14.2]", 7, "Pheno Age")]
+    [InlineData(EventType.CrowdAgeTop10Change, "place[1] crowdAge[34.5] crowdCount[1200]", 1, "Crowd Age")]
+    [InlineData(EventType.NewRank, "rank[2] prevPlace[10]", 2, "Overall standings")]
+    [InlineData(EventType.NewRank, "rank[1]", 1, "Overall standings")]
     public void PlacementImage_UsesTheRecordedStandingAndNamesTheFeaturedAthleteOnce(
-        EventType type, string fields, int rank, string league, string? detail)
+        EventType type, string fields, int rank, string league)
     {
         var visual = InstagramVisual.ForEvent(type, $"slug[alice_smith] {fields} prev[bob_jones]",
             "Announcement with a runner-up and a link.", slug => slug == "alice_smith" ? "Alice Smith" : "Bob Jones");
         Assert.Equal("Alice Smith", visual.Headline);
         Assert.Equal("", visual.Details);
         Assert.Equal(new[] { "alice_smith" }, visual.AthleteSlugs);
-        Assert.Equal(new InstagramPlacement(rank, league, detail), visual.Placement);
+        Assert.Equal(new InstagramPlacement(rank, league), visual.Placement);
     }
 
     [Fact]

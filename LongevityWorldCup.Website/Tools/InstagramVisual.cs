@@ -3,23 +3,17 @@ using LongevityWorldCup.Website.Business;
 
 namespace LongevityWorldCup.Website.Tools;
 
-internal sealed record InstagramPlacement(int Place, string Leaderboard, string? Detail)
+internal sealed record InstagramPlacement(int Place, string Leaderboard)
 {
     internal static InstagramPlacement? FromEvent(EventType type, string raw) => type switch
     {
+        EventType.NewRank when EventHelpers.TryExtractTop10Rank(raw, out var place) => new(place, "Overall standings"),
         EventType.AgeImprovementTop10Change when EventHelpers.TryExtractAgeImprovementTop10Change(raw,
-            out var clock, out var place, out _, out var improvement, out _) =>
-            new(place, clock == "bortz" ? "Bortz Improvement" : "Pheno Improvement",
-                FormattableString.Invariant($"{improvement:+0.#;−0.#;0} years from worst to latest")),
-        EventType.PhenoAgeTop10Change when EventHelpers.TryExtractPhenoAgeTop10Change(raw,
-            out var place, out _, out var reduction) =>
-            new(place, "Pheno Age", FormattableString.Invariant($"{reduction:+0.#;−0.#;0} years vs. actual age")),
-        EventType.CrowdAgeTop10Change when EventHelpers.TryExtractCrowdAgeTop10Change(raw,
-            out var place, out _, out var age, out var count) =>
-            new(place, "Crowd Age", FormattableString.Invariant($"{age:0.#} years · {count:N0} {(count == 1 ? "guess" : "guesses")}")),
-        EventType.NewRank when EventHelpers.TryExtractTop10Rank(raw, out var place) =>
-            new(place, "Ultimate League", EventHelpers.TryExtractPreviousPlace(raw, out var previous) && previous > place
-                ? FormattableString.Invariant($"Previously #{previous}") : null),
+            out var clock, out var place, out _, out _, out _) => new(place, clock == "bortz" ? "Bortz Improvement" : "Pheno Improvement"),
+        EventType.PhenoAgeTop10Change when EventHelpers.TryExtractPhenoAgeTop10Change(raw, out var place, out _, out _) =>
+            new(place, "Pheno Age"),
+        EventType.CrowdAgeTop10Change when EventHelpers.TryExtractCrowdAgeTop10Change(raw, out var place, out _, out _, out _) =>
+            new(place, "Crowd Age"),
         _ => null
     };
 }

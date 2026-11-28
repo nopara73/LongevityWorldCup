@@ -133,19 +133,19 @@ public sealed class SocialImageRenderingTests(TestWebApplicationFactory sharedFa
     public async Task InstagramPlacementImage_FeaturesThePortraitAndUsesTheRecordedRank()
     {
         var images = sharedFactory.Services.GetRequiredService<InstagramImageService>();
-        var visual = InstagramVisual.ForEvent(EventType.AgeImprovementTop10Change,
-            "slug[benjamin_woosley] clock[pheno] place[2] prev[olga_vresca] improvement[-6.56] ageReduction[-14.2]",
-            "Benjamin Woosley entered the top 10 at 2nd in the Pheno Improvement leaderboard, ahead of Olga Vresca.",
-            _ => "Benjamin Woosley");
+        const string raw = "slug[zhivko_gichev] rank[3] prev[siim_land]";
+        var caption = InstagramPost.HighlightText(EventType.NewRank, raw, _ => "@zhivkogichev");
+        Assert.StartsWith("@zhivkogichev is now #3 overall in the Longevity World Cup.", caption);
+        var visual = InstagramVisual.ForEvent(EventType.NewRank, raw, caption, _ => "Zhivko Gichev");
         var url = await images.RenderAsync(visual, null);
-        CaptureInstagram(InstagramImagePath(url), "benjamin-woosley");
+        CaptureInstagram(InstagramImagePath(url), "zhivko-overall-podium");
         using var image = Image.Load<SixLabors.ImageSharp.PixelFormats.Rgba32>(InstagramImagePath(url));
         Assert.Equal(1080, image.Width);
         Assert.Equal(1350, image.Height);
         var portraitColors = new HashSet<SixLabors.ImageSharp.PixelFormats.Rgba32>();
         for (var y = 240; y < 580; y += 10)
-            for (var x = 20; x < 240; x += 10) portraitColors.Add(image[x, y]);
-        Assert.True(portraitColors.Count > 100, "The photograph should fill the frame beyond the former thumbnail.");
+            for (var x = 390; x < 690; x += 10) portraitColors.Add(image[x, y]);
+        Assert.True(portraitColors.Count > 100, "The athlete portrait must show through the foil frame.");
         var changed = visual with { Placement = visual.Placement! with { Place = 10 } };
         Assert.NotEqual(url, await images.RenderAsync(changed, null));
     }

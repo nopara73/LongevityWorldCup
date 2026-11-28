@@ -20,11 +20,22 @@ public enum SocialEventSkipReason
     PermanentDeliveryFailure,
     RoutineConversationUpdate,
     SupersededBadgeAward,
-    SupersededUltimateRank
+    SupersededUltimateRank,
+    RoutineInstagramUpdate
 }
 
 public static class SocialEventSkipPolicy
 {
+    internal static SocialEventSkipReason? InstagramSkipReason(EventItem item, SocialHeadline headline, DateTimeOffset now)
+    {
+        if (item.Type == EventType.CustomEvent) return null;
+        var isPodium = headline.Tier == SocialHeadlineTier.Ultimate && headline.Place is >= 1 and <= 3;
+        var isHundred = item.Type == EventType.AthleteCountMilestone &&
+            EventHelpers.TryExtractAthleteCount(item.Text, out var count) && count > 0 && count % 100 == 0;
+        if (!isPodium && !isHundred) return SocialEventSkipReason.RoutineInstagramUpdate;
+        return item.OccurredAtUtc < now.UtcDateTime.AddDays(-7) ? SocialEventSkipReason.StalePrimaryEvent : null;
+    }
+
     internal static SocialEventSkipReason? ConversationSkipReason(EventType type, string text, DateTime occurredAtUtc, DateTime freshCutoffUtc)
     {
         if (type == EventType.CustomEvent) return null;

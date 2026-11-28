@@ -9,10 +9,8 @@ public sealed class InstagramAnnouncementService(
     SocialDeliveryStore deliveries,
     InstagramApiClient api,
     InstagramPublisher publisher,
-    ThreadsEventService messages,
     AthleteDataService athletes,
     InstagramImageService images,
-    AthleteCountMilestoneMemeService memes,
     TimeProvider time,
     ILogger<InstagramAnnouncementService> log)
 {
@@ -27,7 +25,6 @@ public sealed class InstagramAnnouncementService(
             await api.EnsureAccessTokenFreshAsync(ct);
             var now = time.GetUtcNow();
             var snapshot = athletes.GetAthletesForX();
-            messages.SetAthletesForThreads(snapshot);
             var names = snapshot.ToDictionary(x => x.Slug, x => x.Name, StringComparer.OrdinalIgnoreCase);
             string ResolveName(string slug) => names.TryGetValue(slug, out var name) && !string.IsNullOrWhiteSpace(name)
                 ? name : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(slug.Replace('_', ' ').Replace('-', ' '));
@@ -38,22 +35,21 @@ public sealed class InstagramAnnouncementService(
             {
                 ct.ThrowIfCancellationRequested();
                 var item = pending.Event;
-                if (pending.HiddenForMissingAthlete)
+                // Recheck even prepared containers until media_publish starts. Once attempted,
+                // keep the original request available for receipt recovery.
+                if (pending.FirstAttemptAtUtc is null)
                 {
-                    deliveries.Skip(SocialDeliveryStore.Instagram, item.Id, "MissingAthlete", now);
-                    continue;
-                }
-                var subject = pending.Headline.Subject;
-                if (pending.RecordJson is null)
-                {
-                    if (SocialEventSkipPolicy.TryGetBroadcastSkipReason(item.Type, item.Text, item.OccurredAtUtc, pending.Headline,
-                        now.UtcDateTime.AddDays(-7), athletes.HasSingleGlobalPlaceOneBadgeHolder, out var reason))
+                    var skip = pending.HiddenForMissingAthlete ? "MissingAthlete" :
+                        SocialEventSkipPolicy.InstagramSkipReason(item, pending.Headline, now)?.ToString();
+                    if (skip is not null)
                     {
-                        deliveries.Skip(SocialDeliveryStore.Instagram, item.Id, reason.ToString(), now);
+                        deliveries.SkipUnattempted(SocialDeliveryStore.Instagram, item.Id, skip, now);
                         continue;
                     }
-                    if (subject is not null && deliveries.IsSubjectOnCooldown(SocialDeliveryStore.Instagram, subject, now)) continue;
                 }
+                var subject = pending.Headline.Subject;
+                if (pending.RecordJson is null && subject is not null &&
+                    deliveries.IsSubjectOnCooldown(SocialDeliveryStore.Instagram, subject, now)) continue;
 
                 try
                 {
@@ -113,7 +109,6 @@ public sealed class InstagramAnnouncementService(
         string caption;
         InstagramVisual visual;
         string alt;
-        string? meme = null;
         if (item.Type == EventType.CustomEvent)
         {
             var plan = InstagramPost.BuildPlan(item.Id, item.Text, resolveMention, item.VisibleOnWebsite);
@@ -124,16 +119,14 @@ public sealed class InstagramAnnouncementService(
         }
         else
         {
-            var text = messages.TryBuildMessage(item.Type, item.Text, item.Id, item.VisibleOnWebsite, resolveMention) ?? "";
+            var text = InstagramPost.HighlightText(item.Type, item.Text, resolveMention);
             if (string.IsNullOrWhiteSpace(text)) return null;
             caption = InstagramPost.Truncate(text, InstagramPost.MaxCaptionLength);
-            alt = messages.TryBuildMessage(item.Type, item.Text, item.Id, item.VisibleOnWebsite, resolveName) ?? text;
+            alt = InstagramPost.HighlightText(item.Type, item.Text, resolveName);
             visual = InstagramVisual.ForEvent(item.Type, item.Text, alt, resolveName);
-            if (item.Type == EventType.AthleteCountMilestone && EventHelpers.TryExtractAthleteCount(item.Text, out var count)
-                && memes.TryGetMeme(count, out var media)) meme = media.FullPath;
         }
         if (string.IsNullOrWhiteSpace(caption)) return null;
-        var imageUrl = await images.RenderAsync(visual, meme, ct);
+        var imageUrl = await images.RenderAsync(visual, null, ct);
         return new(caption, imageUrl, InstagramPost.Truncate(alt, InstagramPost.MaxAltTextLength));
     }
 }

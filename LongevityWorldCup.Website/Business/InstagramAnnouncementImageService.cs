@@ -129,55 +129,40 @@ public sealed class InstagramAnnouncementImageService(
 
     private async Task<MemoryStream> RenderPlacementAsync(InstagramPlacement placement, string name, string slug, CancellationToken ct)
     {
-        const int inset = 64;
-        const int photoHeight = 1040;
         var fonts = ShareCardCanvas.GetFonts(environment.WebRootPath);
-        var mint = Color.ParseHex("bdf4e2");
         using var image = new Image<Rgba32>(Width, Height, Ink);
         var athlete = FindAthlete(athletes.GetAthletesSnapshot().OfType<JsonObject>(), slug);
         var portrait = ProfilePath(athlete?["ProfilePic"]?.GetValue<string>());
         using var photo = portrait is null ? null : await LoadPlacementPhotoAsync(portrait, ct);
+        // The frame's transparent portrait window starts at (59, 195).
         if (photo is null)
-            image.Mutate(x => ShareCardCanvas.DrawMonogramDisc(x, fonts, name, Width / 2f, photoHeight * 0.46f, 248, Teal));
+            image.Mutate(x => ShareCardCanvas.DrawMonogramDisc(x, fonts, name, 600, 625, 230, Teal));
         else
         {
-            photo.Mutate(x => x.AutoOrient().Resize(new ResizeOptions { Size = new Size(Width, photoHeight), Mode = ResizeMode.Crop }));
-            image.Mutate(x => x.DrawImage(photo, Point.Empty, 1f));
+            photo.Mutate(x => x.AutoOrient().Resize(new ResizeOptions { Size = new Size(960, 925), Mode = ResizeMode.Crop }));
+            image.Mutate(x => x.DrawImage(photo, new Point(59, 195), 1f));
         }
 
-        var (lines, nameFont) = ShareCardCanvas.FitHeadline(fonts, name, 112, 80, Width - 2 * inset, 2, 52);
+        using var frame = await ImageInput.LoadAsync<Rgba32>(Asset("social", "instagram-prism-frame.webp"), ct);
         var rank = FormattableString.Invariant($"#{placement.Place}");
-        var rankFont = ImageTextLayout.FitFontToWidth(fonts.Display, rank, 150, 100, 260);
-        const int leagueX = 370;
-        var leagueFont = ImageTextLayout.FitFontToWidth(fonts.Bold, placement.Leaderboard, 63, 44, Width - leagueX - inset);
-        using var mark = await ImageLogo.LoadMarkAsync(Asset("HdLogo.png"), ct);
-        mark.Mutate(x => x.Resize(new ResizeOptions { Size = new Size(86, 86), Mode = ResizeMode.Max }));
+        var rankFont = fonts.Display.CreateFont(154, FontStyle.Bold);
+        var silver = new LinearGradientBrush(new PointF(80, 220), new PointF(112, 364), GradientRepetitionMode.None,
+            new ColorStop(0, Color.ParseHex("9eb5ca")), new ColorStop(.38f, Color.ParseHex("f8efdb")),
+            new ColorStop(.50f, Color.ParseHex("d3c9e1")), new ColorStop(.52f, Color.ParseHex("8a9eaa")),
+            new ColorStop(1, Color.ParseHex("d7efe9")));
+        var (lines, nameFont) = ShareCardCanvas.FitHeadline(fonts, name, 108, 62, 940, 2, 46);
+        if (lines.Count > 1)
+            (lines, nameFont) = ShareCardCanvas.FitHeadline(fonts, name, 66, 62, 940, 2, 46);
+        var lineHeight = nameFont.Size * 1.09f;
+        var league = placement.Leaderboard.ToUpperInvariant();
+        var leagueFont = ImageTextLayout.FitFontToWidth(fonts.Display, league, 46, 30, 932);
         image.Mutate(ctx =>
         {
-            // Keep a light or busy photograph legible under the wordmark and athlete's name.
-            ctx.Fill(new LinearGradientBrush(PointF.Empty, new PointF(0, photoHeight), GradientRepetitionMode.None,
-                new ColorStop(0, Ink.WithAlpha(.77f)), new ColorStop(.24f, Ink.WithAlpha(0)),
-                new ColorStop(.52f, Ink.WithAlpha(0)), new ColorStop(.8f, Ink.WithAlpha(.65f)),
-                new ColorStop(1, Ink.WithAlpha(.98f))), new RectangularPolygon(0, 0, Width, photoHeight));
-            ctx.DrawImage(mark, new Point(inset - 8, 48), 1f);
-            ShareCardCanvas.DrawTrackedText(ctx, fonts, "LONGEVITY WORLD CUP", fonts.Display.CreateFont(25, FontStyle.Bold),
-                Color.White, new PointF(inset + 89, 73), 1.8f);
-            var lineHeight = nameFont.Size * 1.1f;
-            ShareCardCanvas.DrawLines(ctx, fonts, lines, nameFont, Color.White, inset,
-                photoHeight - 48 - lines.Count * lineHeight, lineHeight);
-
-            ctx.Fill(mint, new RectangularPolygon(0, photoHeight, Width, Height - photoHeight));
-            var middle = (Height + photoHeight) / 2f;
-            ctx.DrawText(rank, rankFont, Ink, new PointF(inset, ShareCardCanvas.CenterTextY(rank, rankFont, middle)));
-            ctx.DrawLine(Ink.WithAlpha(.3f), 2, new PointF(leagueX - 28, middle - 66), new PointF(leagueX - 28, middle + 66));
-            var titleCenter = placement.Detail is null ? middle : middle - 28;
-            ctx.DrawText(placement.Leaderboard, leagueFont, Ink,
-                new PointF(leagueX, ShareCardCanvas.CenterTextY(placement.Leaderboard, leagueFont, titleCenter)));
-            if (placement.Detail is { } detail)
-            {
-                var font = fonts.Regular.CreateFont(35);
-                ctx.DrawText(detail, font, Ink, new PointF(leagueX, ShareCardCanvas.CenterTextY(detail, font, middle + 38)));
-            }
+            ctx.DrawImage(frame, Point.Empty, 1f);
+            ctx.DrawText(rank, rankFont, silver, Pens.Solid(Ink, 5), new PointF(69, 207));
+            ShareCardCanvas.DrawLines(ctx, fonts, lines, nameFont, Color.White, 70,
+                1122 - lines.Count * lineHeight / 2, lineHeight);
+            ctx.DrawText(league, leagueFont, Ink, new PointF(72, ShareCardCanvas.CenterTextY(league, leagueFont, 1267)));
         });
         return await EncodePngAsync(image, ct);
     }

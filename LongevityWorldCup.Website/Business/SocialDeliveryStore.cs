@@ -154,6 +154,8 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
 
     internal void Complete(string platform, string id, SocialPostReceipt receipt, DateTimeOffset now) => Update(platform, id, "sent", null, receipt, null, false, now);
     internal void Skip(string platform, string id, string reason, DateTimeOffset now) => Update(platform, id, "skipped", reason, null, null, false, now);
+    internal void SkipUnattempted(string platform, string id, string reason, DateTimeOffset now) =>
+        Update(platform, id, "skipped", reason, null, null, false, now, onlyIfUnattempted: true);
     internal void Reject(string platform, string id, string reason, DateTimeOffset now) => Update(platform, id, "failed", reason, null, null, false, now);
     internal void RequireReview(string platform, string id, DateTimeOffset now) => Update(platform, id, "review", "UnconfirmedPost", null, null, false, now);
     internal void Fail(string platform, string id, string code, TimeSpan retryDelay, bool clearFirstAttempt, DateTimeOffset now) =>
@@ -208,7 +210,7 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
     }
 
     private void Update(string platform, string id, string status, string? reason, SocialPostReceipt? receipt, DateTimeOffset? retryAt,
-        bool clearFirstAttempt, DateTimeOffset now) => db.Run(sqlite =>
+        bool clearFirstAttempt, DateTimeOffset now, bool onlyIfUnattempted = false) => db.Run(sqlite =>
     {
         using var cmd = sqlite.CreateCommand();
         cmd.CommandText = """
@@ -219,7 +221,8 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
                 NextAttemptAtUtc = @retry, AttemptCount = SocialDeliveries.AttemptCount + @failed,
                 FirstAttemptAtUtc = CASE WHEN @clear = 1 THEN NULL ELSE SocialDeliveries.FirstAttemptAtUtc END,
                 UpdatedAtUtc = @now
-            WHERE @status NOT IN ('review', 'pending') OR SocialDeliveries.Status = 'pending';
+            WHERE (@status NOT IN ('review', 'pending') OR SocialDeliveries.Status = 'pending')
+              AND (@unattempted = 0 OR (SocialDeliveries.Status = 'pending' AND SocialDeliveries.FirstAttemptAtUtc IS NULL));
             """;
         cmd.Parameters.AddWithValue("@id", id);
         cmd.Parameters.AddWithValue("@platform", platform);
@@ -229,6 +232,7 @@ public sealed class SocialDeliveryStore(DatabaseManager db)
         cmd.Parameters.AddWithValue("@remoteId", (object?)receipt?.Id ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@retry", (object?)retryAt?.UtcDateTime.ToString("o") ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@failed", retryAt.HasValue ? 1 : 0);
+        cmd.Parameters.AddWithValue("@unattempted", onlyIfUnattempted ? 1 : 0);
         cmd.Parameters.AddWithValue("@clear", clearFirstAttempt ? 1 : 0);
         cmd.Parameters.AddWithValue("@now", Timestamp(now));
         cmd.ExecuteNonQuery();

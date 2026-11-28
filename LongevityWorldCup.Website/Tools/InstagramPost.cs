@@ -1,4 +1,5 @@
 using System.Globalization;
+using LongevityWorldCup.Website.Business;
 
 namespace LongevityWorldCup.Website.Tools;
 
@@ -6,6 +7,18 @@ public static class InstagramPost
 {
     public const int MaxCaptionLength = 2200;
     public const int MaxAltTextLength = 1000;
+
+    internal static string HighlightText(EventType type, string raw, Func<string, string> resolveAthlete)
+    {
+        if (type == EventType.AthleteCountMilestone)
+            return ThreadsMessageBuilder.ForEventText(type, raw, resolveAthlete);
+        if (type != EventType.NewRank || !EventHelpers.TryExtractTop10Rank(raw, out var rank) ||
+            !EventHelpers.TryExtractSlug(raw, out var slug)) return "";
+        var movement = EventHelpers.TryExtractPreviousPlace(raw, out var previous) && previous > rank
+            ? FormattableString.Invariant($"climbed from #{previous} to #{rank} overall")
+            : rank == 1 ? "took the overall lead" : FormattableString.Invariant($"is now #{rank} overall");
+        return $"{resolveAthlete(slug)} {movement} in the Longevity World Cup.\n\n{SocialPostLinks.LeaderboardUrl}";
+    }
 
     // A UTF-16 budget is conservative for Instagram's character limit and never
     // splits an emoji, combining sequence, or surrogate pair at the boundary.

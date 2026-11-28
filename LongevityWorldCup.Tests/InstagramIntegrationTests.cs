@@ -18,6 +18,62 @@ public sealed class InstagramIntegrationTests
     private static readonly DateTimeOffset Now = new(2026, 10, 7, 12, 0, 0, TimeSpan.Zero);
     private static readonly InstagramPostRequest Post = new("A sport for time 🏆", "https://longevityworldcup.com/generated/instagram/card.jpg", "Complete announcement");
 
+    [Theory]
+    [InlineData(EventType.CustomEvent, "Editorial selection", 14, null)]
+    [InlineData(EventType.NewRank, "slug[alice] rank[1]", 0, null)]
+    [InlineData(EventType.NewRank, "slug[alice] rank[3]", 7, null)]
+    [InlineData(EventType.NewRank, "slug[alice] rank[2]", 8, SocialEventSkipReason.StalePrimaryEvent)]
+    [InlineData(EventType.NewRank, "slug[alice] rank[4]", 0, SocialEventSkipReason.RoutineInstagramUpdate)]
+    [InlineData(EventType.NewRank, "rank[1]", 0, SocialEventSkipReason.RoutineInstagramUpdate)]
+    [InlineData(EventType.AthleteCountMilestone, "athletes[300]", 0, null)]
+    [InlineData(EventType.AthleteCountMilestone, "athletes[256]", 0, SocialEventSkipReason.RoutineInstagramUpdate)]
+    [InlineData(EventType.DonationReceived, "tx[abc] sats[10000]", 0, SocialEventSkipReason.RoutineInstagramUpdate)]
+    [InlineData(EventType.PhenoAgeTop10Change, "slug[alice] place[1] ageReduction[-15]", 0, SocialEventSkipReason.RoutineInstagramUpdate)]
+    [InlineData(EventType.CrowdAgeTop10Change, "slug[alice] place[1] crowdAge[45] crowdCount[100]", 0, SocialEventSkipReason.RoutineInstagramUpdate)]
+    [InlineData(EventType.BadgeAward, "slug[alice] badge[Age reduction] cat[Generation] val[Millennials] place[1]", 0, SocialEventSkipReason.RoutineInstagramUpdate)]
+    public void InstagramSelectsFreshOverallPodiumsAndHundreds(EventType type, string raw, int daysOld, SocialEventSkipReason? expected)
+    {
+        var item = new EventItem("test", type, raw, Now.AddDays(-daysOld).UtcDateTime, 1, true);
+        Assert.Equal(expected, SocialEventSkipPolicy.InstagramSkipReason(item, SocialHeadline.For(type, raw), Now));
+    }
+
+    [Fact]
+    public async Task PreparedLeagueUpdateIsSkippedWhileAttemptedPublicationKeepsItsReceiptPath()
+    {
+        using var fixture = SocialJobIntegrationTests.SocialJobFixture.Create(seedLeaderboardAssets: true);
+        var clock = new FixedTime(DateTimeOffset.UtcNow);
+        var store = new SocialDeliveryStore(fixture.Database);
+        var progress = new InstagramPublishingStore(fixture.Database);
+        const string raw = "slug[benjamin_woosley] clock[pheno] place[2] improvement[-6.56] ageReduction[-14.2]";
+        var unstarted = fixture.InsertEvent(EventType.AgeImprovementTop10Change, raw, clock.Now.UtcDateTime);
+        var attempted = fixture.InsertEvent(EventType.AgeImprovementTop10Change, raw, clock.Now.AddMinutes(-1).UtcDateTime);
+        foreach (var id in new[] { unstarted, attempted })
+            store.Prepare(SocialDeliveryStore.Instagram, id, JsonSerializer.Serialize(Post), null, clock.Now);
+        progress.SaveContainer(unstarted, "1111", clock.Now);
+        progress.SaveContainer(attempted, "222", clock.Now);
+        Assert.True(store.BeginAttempt(SocialDeliveryStore.Instagram, attempted, clock.Now));
+        progress.SaveMedia(attempted, "222", "333");
+        var config = new Config { InstagramAccountId = "111", InstagramAccessToken = "test-token", InstagramAccessTokenExpiresAtUtc = clock.Now.AddDays(60).ToString("o") };
+        var api = Client(request =>
+        {
+            Assert.Equal(HttpMethod.Get, request.Method);
+            return Task.FromResult(request.RequestUri!.AbsolutePath.EndsWith("/me") ? Identity() : Receipt());
+        }, config, clock);
+        var service = Service(fixture, api, clock);
+        await service.DispatchAsync(true);
+        Assert.Equal(new[] { "sent", "skipped" }, fixture.Database.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT Status FROM SocialDeliveries WHERE Platform='instagram' AND EventId IN (@a,@b) ORDER BY EventId=@b DESC";
+            cmd.Parameters.AddWithValue("@a", unstarted);
+            cmd.Parameters.AddWithValue("@b", attempted);
+            using var reader = cmd.ExecuteReader();
+            var states = new List<string>();
+            while (reader.Read()) states.Add(reader.GetString(0));
+            return states;
+        }));
+    }
+
     [Fact]
     public async Task SuppressionDuringContainerPreparationPreventsPublication()
     {
@@ -330,7 +386,7 @@ public sealed class InstagramIntegrationTests
         var images = new InstagramImageService(fixture.Env, new InstagramAnnouncementImageService(fixture.Env, fixture.Athletes,
             new Factory(new Handler(_ => Task.FromResult(Json("{}", HttpStatusCode.NotFound)))), NullLogger<InstagramAnnouncementImageService>.Instance));
         return new(fixture.Events, deliveries, api, new InstagramPublisher(api, new InstagramPublishingStore(fixture.Database), deliveries, clock),
-            fixture.ThreadsEvents, fixture.Athletes, images, fixture.MilestoneMemes, clock, NullLogger<InstagramAnnouncementService>.Instance);
+            fixture.Athletes, images, clock, NullLogger<InstagramAnnouncementService>.Instance);
     }
 
     private static InstagramApiClient Client(Func<HttpRequestMessage, Task<HttpResponseMessage>> handle, Config? config = null, TimeProvider? clock = null)
