@@ -17,6 +17,7 @@ function getRuntimeElementById(id) {
 
 let athleteResults = [];
 let leaderboardOrderingSnapshot = null;
+let leaderboardFieldFigures = { byName: new Map(), leading: null };
 let athletesOrderedByPace;
 let athletesOrderedByBortzPace;
 const isAthleteDialogOnlyRuntime = runtimeRoot.dataset.athleteDialogOnly === 'true';
@@ -4201,6 +4202,15 @@ function performFilter({ updateUrl = true, orderingOnly = false, animateLeague =
         });
     };
 
+    // The view's unrounded figures for the desktop row lane. A search narrows
+    // the rows, not the field, so it never changes the leading figure.
+    const fieldEntries = getMatchingEntries(selectedState, false);
+    const fieldFigures = fieldEntries.map(entry => entry.metricValue).filter(Number.isFinite);
+    leaderboardFieldFigures = {
+        byName: new Map(fieldEntries.map(entry => [entry.athlete.name, entry.metricValue])),
+        leading: fieldFigures.length ? Math.min(...fieldFigures) : null
+    };
+
     if (selectedState.byFlag) {
         const matchingTeamsByState = new Map();
         const getMatchingFlagTeams = state => {
@@ -8186,6 +8196,11 @@ window.getLeaderboardStanding = name => {
         comparable: athleteResultsReady && renderedStandingsComparable,
         flag: athlete.canonicalFlag || ''
     });
+};
+// The desktop row lane reads a row's figure and its field's leading figure.
+window.getLeaderboardFigure = name => {
+    if (!leaderboardFieldFigures.byName.has(name)) return null;
+    return Object.freeze({ figure: leaderboardFieldFigures.byName.get(name), leading: leaderboardFieldFigures.leading });
 };
 window.openEnlargedView = openEnlargedView;
 window.closeEnlargedView = closeEnlargedView;
